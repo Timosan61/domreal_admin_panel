@@ -1,0 +1,31 @@
+# SQL dumps
+*.sql
+calls_db*.sql
+
+# Environment files
+.env
+.env.local
+
+# Docker volumes
+/mysql_data/
+
+# PHP dependencies
+/vendor/
+
+# Logs
+*.log
+/logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp

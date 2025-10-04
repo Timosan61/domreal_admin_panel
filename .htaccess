@@ -1,0 +1,15 @@
+RewriteEngine On
+
+# Если файл или директория существует, используем их
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Разрешаем прямой доступ к PHP файлам
+RewriteRule ^api/ - [L]
+
+# Включаем CORS для API
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</IfModule>
