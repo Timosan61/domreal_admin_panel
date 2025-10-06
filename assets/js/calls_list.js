@@ -6,6 +6,7 @@
 let currentPage = 1;
 let currentFilters = {};
 let currentSort = { by: 'started_at_utc', order: 'DESC' };
+let multiselectInstances = null; // Хранилище для multiselect инстансов
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
@@ -13,10 +14,162 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Сохранение состояния фильтров и сортировки в URL
+ */
+function saveStateToURL() {
+    const params = new URLSearchParams();
+
+    // Сохраняем фильтры
+    for (let [key, value] of Object.entries(currentFilters)) {
+        if (value) {
+            params.set(key, value);
+        }
+    }
+
+    // Сохраняем сортировку
+    if (currentSort.by !== 'started_at_utc' || currentSort.order !== 'DESC') {
+        params.set('sort_by', currentSort.by);
+        params.set('sort_order', currentSort.order);
+    }
+
+    // Сохраняем страницу
+    if (currentPage !== 1) {
+        params.set('page', currentPage);
+    }
+
+    // Обновляем URL без перезагрузки страницы
+    const newURL = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    window.history.replaceState({}, '', newURL);
+}
+
+/**
+ * Восстановление состояния из URL
+ */
+async function loadStateFromURL() {
+    const params = new URLSearchParams(window.location.search);
+
+    // Восстанавливаем фильтры
+    currentFilters = {};
+    const filterKeys = ['call_type', 'date_from', 'date_to', 'search', 'client_phone'];
+
+    // Восстанавливаем обычные фильтры (текстовые поля, обычные селекты)
+    filterKeys.forEach(key => {
+        const value = params.get(key);
+        if (value) {
+            currentFilters[key] = value;
+            // Обновляем значения в форме
+            const element = document.getElementById(key);
+            if (element) {
+                element.value = value;
+            }
+        }
+    });
+
+    // Восстанавливаем multiselect компоненты
+    if (multiselectInstances) {
+        // Отделы
+        const departments = params.get('departments');
+        if (departments) {
+            currentFilters['departments'] = departments;
+            const departmentMS = multiselectInstances.get('department-multiselect');
+            if (departmentMS) {
+                const departmentsArray = departments.split(',');
+                departmentMS.setValues(departmentsArray);
+
+                // Загружаем менеджеров для выбранных отделов
+                await loadManagersByDepartments(departmentsArray);
+            }
+        }
+
+        // Менеджеры
+        const managers = params.get('managers');
+        if (managers) {
+            currentFilters['managers'] = managers;
+            const managerMS = multiselectInstances.get('manager-multiselect');
+            if (managerMS) {
+                const managersArray = managers.split(',');
+                managerMS.setValues(managersArray);
+            }
+        }
+
+        // Направления звонка
+        const directions = params.get('directions');
+        if (directions) {
+            currentFilters['directions'] = directions;
+            const directionMS = multiselectInstances.get('direction-multiselect');
+            if (directionMS) {
+                const directionsArray = directions.split(',');
+                directionMS.setValues(directionsArray);
+            }
+        }
+
+        // Оценка (ratings)
+        const ratings = params.get('ratings');
+        if (ratings) {
+            currentFilters['ratings'] = ratings;
+            const ratingMS = multiselectInstances.get('rating-multiselect');
+            if (ratingMS) {
+                const ratingsArray = ratings.split(',');
+                ratingMS.setValues(ratingsArray);
+            }
+        }
+
+        // Теги
+        const tags = params.get('tags');
+        if (tags) {
+            currentFilters['tags'] = tags;
+            const tagsMS = multiselectInstances.get('tags-multiselect');
+            if (tagsMS) {
+                const tagsArray = tags.split(',');
+                tagsMS.setValues(tagsArray);
+            }
+        }
+
+        // Результаты звонка
+        const callResults = params.get('call_results');
+        if (callResults) {
+            currentFilters['call_results'] = callResults;
+            const resultMS = multiselectInstances.get('result-multiselect');
+            if (resultMS) {
+                const resultsArray = callResults.split(',');
+                resultMS.setValues(resultsArray);
+            }
+        }
+    }
+
+    // Восстанавливаем сортировку
+    const sortBy = params.get('sort_by');
+    const sortOrder = params.get('sort_order');
+    if (sortBy) {
+        currentSort.by = sortBy;
+        currentSort.order = sortOrder || 'DESC';
+
+        // Обновляем стрелки сортировки в таблице
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            const sortField = th.getAttribute('data-sort');
+            if (sortField === sortBy) {
+                th.textContent = th.textContent.replace(/ [↑↓]/g, '');
+                th.textContent += sortOrder === 'DESC' ? ' ↓' : ' ↑';
+            }
+        });
+    }
+
+    // Восстанавливаем страницу
+    const page = params.get('page');
+    if (page) {
+        currentPage = parseInt(page);
+    }
+}
+
+/**
  * Инициализация страницы
  */
 async function initializePage() {
+    // Инициализируем multiselect компоненты
+    multiselectInstances = initMultiselects();
+
     await loadFilterOptions();
+    await loadStateFromURL(); // Восстанавливаем состояние из URL (теперь async)
     setupEventListeners();
     await loadCalls();
 }
@@ -32,25 +185,29 @@ async function loadFilterOptions() {
         if (result.success) {
             const { departments, managers, call_types } = result.data;
 
-            // Заполняем селект отделов
-            const departmentSelect = document.getElementById('department');
-            departments.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept;
-                option.textContent = dept;
-                departmentSelect.appendChild(option);
-            });
+            // Заполняем multiselect отделов
+            const departmentMS = multiselectInstances.get('department-multiselect');
+            if (departmentMS) {
+                const options = departments.map(dept => ({
+                    name: 'departments[]',
+                    value: dept,
+                    label: dept
+                }));
+                departmentMS.setOptions(options);
+            }
 
-            // Заполняем селект менеджеров
-            const managerSelect = document.getElementById('manager');
-            managers.forEach(manager => {
-                const option = document.createElement('option');
-                option.value = manager;
-                option.textContent = manager;
-                managerSelect.appendChild(option);
-            });
+            // Заполняем multiselect менеджеров (начальная загрузка - все менеджеры)
+            const managerMS = multiselectInstances.get('manager-multiselect');
+            if (managerMS) {
+                const options = managers.map(manager => ({
+                    name: 'managers[]',
+                    value: manager,
+                    label: manager
+                }));
+                managerMS.setOptions(options);
+            }
 
-            // Типы звонков уже заданы в HTML, но можем добавить динамические
+            // Типы звонков уже заданы в HTML
             const callTypeSelect = document.getElementById('call_type');
             call_types.forEach(type => {
                 // Проверяем, нет ли уже такой опции
@@ -68,6 +225,49 @@ async function loadFilterOptions() {
 }
 
 /**
+ * Загрузка менеджеров по выбранным отделам
+ */
+async function loadManagersByDepartments(departments) {
+    try {
+        // Если выбрано несколько отделов, загружаем менеджеров для каждого
+        let url = 'api/filters.php';
+        if (departments && departments.length > 0) {
+            // Для простоты пока загружаем менеджеров для первого отдела
+            // TODO: можно улучшить, загружая для всех отделов
+            url = `api/filters.php?department=${encodeURIComponent(departments[0])}`;
+        }
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success) {
+            const { managers } = result.data;
+
+            const managerMS = multiselectInstances.get('manager-multiselect');
+            if (managerMS) {
+                const currentValues = managerMS.getValues();
+
+                const options = managers.map(manager => ({
+                    name: 'managers[]',
+                    value: manager,
+                    label: manager
+                }));
+
+                managerMS.setOptions(options);
+
+                // Восстанавливаем выбранные значения, если они есть в новом списке
+                const validValues = currentValues.filter(v => managers.includes(v));
+                if (validValues.length > 0) {
+                    managerMS.setValues(validValues);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки менеджеров:', error);
+    }
+}
+
+/**
  * Настройка обработчиков событий
  */
 function setupEventListeners() {
@@ -77,16 +277,41 @@ function setupEventListeners() {
         e.preventDefault();
         currentPage = 1;
         currentFilters = getFiltersFromForm();
+        saveStateToURL(); // Сохраняем состояние в URL
         loadCalls();
     });
 
     // Сброс фильтров
     document.getElementById('reset-filters').addEventListener('click', function() {
         filtersForm.reset();
+
+        // Сбрасываем все multiselect
+        if (multiselectInstances) {
+            multiselectInstances.forEach(instance => {
+                instance.clear();
+            });
+        }
+
         currentPage = 1;
         currentFilters = {};
+        saveStateToURL(); // Сохраняем состояние в URL
+        loadManagersByDepartments([]); // Загружаем всех менеджеров
         loadCalls();
     });
+
+    // Зависимый фильтр: при изменении отделов обновляем список менеджеров
+    const departmentMS = multiselectInstances.get('department-multiselect');
+    if (departmentMS) {
+        const departmentCheckboxes = departmentMS.optionsContainer.querySelectorAll('input[type="checkbox"]');
+        departmentCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const selectedDepartments = departmentMS.getValues();
+
+                // Загружаем менеджеров для выбранных отделов
+                loadManagersByDepartments(selectedDepartments);
+            });
+        });
+    }
 
     // Сортировка по колонкам
     document.querySelectorAll('th[data-sort]').forEach(th => {
@@ -107,6 +332,7 @@ function setupEventListeners() {
             });
             this.textContent += currentSort.order === 'DESC' ? ' ↓' : ' ↑';
 
+            saveStateToURL(); // Сохраняем состояние в URL
             loadCalls();
         });
     });
@@ -120,9 +346,72 @@ function getFiltersFromForm() {
     const form = document.getElementById('filters-form');
     const formData = new FormData(form);
 
+    // Обработка обычных полей (текстовые поля, обычные селекты)
     for (let [key, value] of formData.entries()) {
+        // Пропускаем массивы чекбоксов (они обработаются ниже)
+        if (key.endsWith('[]')) {
+            continue;
+        }
+
         if (value) {
             filters[key] = value;
+        }
+    }
+
+    // Обработка multiselect компонентов
+    if (multiselectInstances) {
+        // Отделы
+        const departmentMS = multiselectInstances.get('department-multiselect');
+        if (departmentMS) {
+            const departments = departmentMS.getValues();
+            if (departments.length > 0) {
+                filters['departments'] = departments.join(',');
+            }
+        }
+
+        // Менеджеры
+        const managerMS = multiselectInstances.get('manager-multiselect');
+        if (managerMS) {
+            const managers = managerMS.getValues();
+            if (managers.length > 0) {
+                filters['managers'] = managers.join(',');
+            }
+        }
+
+        // Направления звонка
+        const directionMS = multiselectInstances.get('direction-multiselect');
+        if (directionMS) {
+            const directions = directionMS.getValues();
+            if (directions.length > 0) {
+                filters['directions'] = directions.join(',');
+            }
+        }
+
+        // Оценка (ratings)
+        const ratingMS = multiselectInstances.get('rating-multiselect');
+        if (ratingMS) {
+            const ratings = ratingMS.getValues();
+            if (ratings.length > 0) {
+                filters['ratings'] = ratings.join(',');
+            }
+        }
+
+        // Теги
+        const tagsMS = multiselectInstances.get('tags-multiselect');
+        if (tagsMS) {
+            const tags = tagsMS.getValues();
+            if (tags.length > 0) {
+                filters['tags'] = tags.join(',');
+            }
+        }
+
+        // Результаты звонка
+        const resultMS = multiselectInstances.get('result-multiselect');
+        if (resultMS) {
+            const results = resultMS.getValues();
+            if (results.length > 0) {
+                filters['call_results'] = results.join(',');
+            }
         }
     }
 
@@ -176,6 +465,9 @@ function renderCalls(calls) {
         return;
     }
 
+    // Получаем текущий URL со state для передачи в страницу деталей
+    const currentStateURL = window.location.search;
+
     tbody.innerHTML = calls.map(call => `
         <tr>
             <td>${formatDateTime(call.started_at_utc)}</td>
@@ -186,9 +478,9 @@ function renderCalls(calls) {
             <td>${formatDuration(call.duration_sec)}</td>
             <td>${formatCallType(call.call_type)}</td>
             <td>${formatScriptCompliance(call.script_compliance_score)}</td>
-            <td>${formatCallResult(call.call_result, call.is_successful)}</td>
+            <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
             <td>
-                <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}"
+                <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}&returnState=${encodeURIComponent(currentStateURL)}"
                    class="btn btn-primary btn-sm">
                     Открыть
                 </a>
@@ -233,6 +525,7 @@ function updateStats(pagination) {
  */
 function goToPage(page) {
     currentPage = page;
+    saveStateToURL(); // Сохраняем состояние в URL
     loadCalls();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -330,22 +623,73 @@ function formatEmotionTone(emotion, conversionProb) {
 }
 
 /**
- * Форматирование результата звонка (используем conversion_probability)
+ * Форматирование результата звонка с учетом call_type
+ * Логика совпадает с детальной страницей (call_evaluation.js)
  */
-function formatCallResult(result, isSuccessful) {
+function formatCallResult(result, isSuccessful, callType) {
     // Пытаемся использовать имеющиеся данные
-    if (!result && !isSuccessful) return '-';
+    if (!result && isSuccessful === null) return '-';
 
     // Если есть результат, отображаем его
     if (result) {
-        let badgeClass = 'badge-info';
+        let badgeClass = 'badge-info'; // По умолчанию синий
+        let icon = '';
+        const resultLower = result.toLowerCase();
 
-        // Определяем класс по ключевым словам
-        if (result.includes('показ')) badgeClass = 'badge-success';
-        else if (result.includes('перезвон')) badgeClass = 'badge-warning';
-        else if (result.includes('отказ')) badgeClass = 'badge-danger';
+        // Для первого звонка - специфичные категории
+        if (callType === 'first_call') {
+            if (resultLower.includes('квалифик')) {
+                badgeClass = 'badge-success';
+                icon = '📋 ';
+            } else if (resultLower.includes('материал') || resultLower.includes('отправ')) {
+                badgeClass = 'badge-success';
+                icon = '📤 ';
+            } else if (resultLower.includes('назначен перезвон')) {
+                badgeClass = 'badge-info';
+                icon = '📞 ';
+            } else if (resultLower.includes('не целевой') || resultLower.includes('нецелевой')) {
+                badgeClass = 'badge-warning';
+                icon = '⛔ ';
+            } else if (resultLower.includes('отказ')) {
+                badgeClass = 'badge-danger';
+                icon = '❌ ';
+            } else if (resultLower.includes('не дозвон')) {
+                badgeClass = 'badge-secondary';
+                icon = '📵 ';
+            }
+        }
+        // Для других звонков - стандартные категории
+        else {
+            if (resultLower.includes('показ')) {
+                badgeClass = 'badge-success';
+                icon = '🏠 ';
+            } else if (resultLower.includes('перезвон')) {
+                badgeClass = 'badge-warning';
+                icon = '⏰ ';
+            } else if (resultLower.includes('думает')) {
+                badgeClass = 'badge-info';
+                icon = '💭 ';
+            } else if (resultLower.includes('отказ')) {
+                badgeClass = 'badge-danger';
+                icon = '❌ ';
+            } else if (resultLower.includes('не дозвон')) {
+                badgeClass = 'badge-secondary';
+                icon = '📵 ';
+            }
+        }
 
-        return `<span class="badge ${badgeClass}">${escapeHtml(result)}</span>`;
+        // Общие категории (для любого типа звонка)
+        if (resultLower.includes('личн') || resultLower.includes('нерабоч')) {
+            badgeClass = 'badge-secondary';
+            icon = '👤 ';
+        }
+
+        // Если нет спецкатегорий, используем флаг успешности как fallback
+        if (!icon && (isSuccessful !== null && isSuccessful !== undefined)) {
+            badgeClass = isSuccessful ? 'badge-success' : 'badge-danger';
+        }
+
+        return `<span class="badge ${badgeClass}">${icon}${escapeHtml(result)}</span>`;
     }
 
     // Иначе используем isSuccessful

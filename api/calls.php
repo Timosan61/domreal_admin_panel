@@ -17,17 +17,18 @@ checkAuth(); // Проверка авторизации
 include_once '../config/database.php';
 
 // Получаем параметры фильтрации
-$department = isset($_GET['department']) ? $_GET['department'] : '';
-$manager = isset($_GET['manager']) ? $_GET['manager'] : '';
+$departments = isset($_GET['departments']) ? $_GET['departments'] : ''; // Множественный выбор
+$managers = isset($_GET['managers']) ? $_GET['managers'] : ''; // Множественный выбор
 $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $duration_min = isset($_GET['duration_min']) ? intval($_GET['duration_min']) : 0;
 $duration_max = isset($_GET['duration_max']) ? intval($_GET['duration_max']) : 999999;
 $client_phone = isset($_GET['client_phone']) ? $_GET['client_phone'] : '';
-$direction = isset($_GET['direction']) ? $_GET['direction'] : '';
-$rating_min = isset($_GET['rating_min']) ? floatval($_GET['rating_min']) : 0;
-$rating_max = isset($_GET['rating_max']) ? floatval($_GET['rating_max']) : 1;
+$directions = isset($_GET['directions']) ? $_GET['directions'] : ''; // Множественный выбор
+$ratings = isset($_GET['ratings']) ? $_GET['ratings'] : ''; // Множественный выбор (high,medium,low)
 $call_type = isset($_GET['call_type']) ? $_GET['call_type'] : '';
+$call_results = isset($_GET['call_results']) ? $_GET['call_results'] : ''; // Множественный выбор результатов
+$tags = isset($_GET['tags']) ? $_GET['tags'] : ''; // Множественный выбор
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = isset($_GET['per_page']) ? min(100, max(10, intval($_GET['per_page']))) : 20;
 $sort_by = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'started_at_utc';
@@ -85,16 +86,28 @@ if ($_SESSION['role'] !== 'admin' && !empty($user_departments)) {
     $query .= " AND cr.department IN (" . implode(', ', $placeholders) . ")";
 }
 
-// Фильтр по отделу
-if (!empty($department)) {
-    $query .= " AND cr.department = :department";
-    $params[':department'] = $department;
+// Фильтр по отделам (множественный выбор)
+if (!empty($departments)) {
+    $departments_array = explode(',', $departments);
+    $departments_placeholders = [];
+    foreach ($departments_array as $index => $dept) {
+        $param_name = ':department_' . $index;
+        $departments_placeholders[] = $param_name;
+        $params[$param_name] = $dept;
+    }
+    $query .= " AND cr.department IN (" . implode(', ', $departments_placeholders) . ")";
 }
 
-// Фильтр по менеджеру
-if (!empty($manager)) {
-    $query .= " AND cr.employee_name LIKE :manager";
-    $params[':manager'] = '%' . $manager . '%';
+// Фильтр по менеджерам (множественный выбор)
+if (!empty($managers)) {
+    $managers_array = explode(',', $managers);
+    $managers_placeholders = [];
+    foreach ($managers_array as $index => $manager) {
+        $param_name = ':manager_' . $index;
+        $managers_placeholders[] = $param_name;
+        $params[$param_name] = $manager;
+    }
+    $query .= " AND cr.employee_name IN (" . implode(', ', $managers_placeholders) . ")";
 }
 
 // Фильтр по дате (от)
@@ -125,23 +138,86 @@ if (!empty($client_phone)) {
     $params[':client_phone'] = '%' . $client_phone . '%';
 }
 
-// Фильтр по направлению звонка
-if (!empty($direction)) {
-    $query .= " AND cr.direction = :direction";
-    $params[':direction'] = $direction;
+// Фильтр по направлениям звонка (множественный выбор, формат: "INBOUND,OUTBOUND")
+if (!empty($directions)) {
+    $directions_array = explode(',', $directions);
+    $directions_placeholders = [];
+    foreach ($directions_array as $index => $dir) {
+        $param_name = ':direction_' . $index;
+        $directions_placeholders[] = $param_name;
+        $params[$param_name] = trim($dir);
+    }
+    $query .= " AND cr.direction IN (" . implode(', ', $directions_placeholders) . ")";
 }
 
-// Фильтр по оценке (script_compliance_score от 0.00 до 1.00)
-if ($rating_min > 0 || $rating_max < 1) {
-    $query .= " AND ar.script_compliance_score BETWEEN :rating_min AND :rating_max";
-    $params[':rating_min'] = $rating_min;
-    $params[':rating_max'] = $rating_max;
+// Фильтр по оценке (множественный выбор: high,medium,low)
+if (!empty($ratings)) {
+    $ratings_array = explode(',', $ratings);
+    $rating_conditions = [];
+
+    foreach ($ratings_array as $rating) {
+        $rating = trim($rating);
+        if ($rating === 'high') {
+            $rating_conditions[] = '(ar.script_compliance_score >= 0.8 AND ar.script_compliance_score <= 1.0)';
+        } elseif ($rating === 'medium') {
+            $rating_conditions[] = '(ar.script_compliance_score >= 0.6 AND ar.script_compliance_score < 0.8)';
+        } elseif ($rating === 'low') {
+            $rating_conditions[] = '(ar.script_compliance_score >= 0 AND ar.script_compliance_score < 0.6)';
+        }
+    }
+
+    if (!empty($rating_conditions)) {
+        $query .= " AND (" . implode(' OR ', $rating_conditions) . ")";
+    }
 }
 
 // Фильтр по типу звонка
 if (!empty($call_type)) {
     $query .= " AND ar.call_type = :call_type";
     $params[':call_type'] = $call_type;
+}
+
+// Фильтр по результату звонка (множественный выбор через LIKE)
+if (!empty($call_results)) {
+    $results_array = explode(',', $call_results);
+    $result_conditions = [];
+
+    foreach ($results_array as $result) {
+        $result = trim($result);
+
+        // Категории первого звонка
+        if ($result === 'квалификация') {
+            $result_conditions[] = "LOWER(ar.call_result) LIKE '%квалифик%'";
+        } elseif ($result === 'материалы') {
+            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%материал%' OR LOWER(ar.call_result) LIKE '%отправ%')";
+        } elseif ($result === 'назначен перезвон') {
+            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%назначен перезвон%' OR (LOWER(ar.call_result) LIKE '%перезвон%' AND ar.call_type = 'first_call'))";
+        }
+
+        // Категории других звонков
+        elseif ($result === 'показ') {
+            $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ%'";
+        } elseif ($result === 'перезвон') {
+            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%перезвон%' AND ar.call_type != 'first_call')";
+        } elseif ($result === 'думает') {
+            $result_conditions[] = "LOWER(ar.call_result) LIKE '%думает%'";
+        }
+
+        // Общие категории
+        elseif ($result === 'отказ') {
+            $result_conditions[] = "LOWER(ar.call_result) LIKE '%отказ%'";
+        } elseif ($result === 'не целевой') {
+            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%не целевой%' OR LOWER(ar.call_result) LIKE '%нецелевой%')";
+        } elseif ($result === 'не дозвонились') {
+            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%не дозвон%' OR LOWER(ar.call_result) LIKE '%автоответчик%')";
+        } elseif ($result === 'личный') {
+            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%личн%' OR LOWER(ar.call_result) LIKE '%нерабоч%')";
+        }
+    }
+
+    if (!empty($result_conditions)) {
+        $query .= " AND (" . implode(' OR ', $result_conditions) . ")";
+    }
 }
 
 // Подсчет общего количества записей

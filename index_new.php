@@ -9,7 +9,7 @@ checkAuth(); // Проверка авторизации
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Звонки - Система оценки звонков</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <!-- Левая боковая панель -->
@@ -77,16 +77,50 @@ checkAuth(); // Проверка авторизации
             <form id="filters-form">
                 <div class="filters-row">
                     <div class="filter-group">
-                        <label for="department">Отдел</label>
-                        <select id="department" name="department">
-                            <option value="">—</option>
-                        </select>
+                        <label>Отдел</label>
+                        <div class="multiselect" id="department-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <!-- Будет заполнено динамически -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="filter-group">
-                        <label for="manager">Менеджер</label>
-                        <select id="manager" name="manager">
-                            <option value="">—</option>
-                        </select>
+                        <label>Менеджер</label>
+                        <div class="multiselect" id="manager-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <!-- Будет заполнено динамически -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="filter-group">
                         <label for="client_phone">Номер клиента</label>
@@ -104,34 +138,163 @@ checkAuth(); // Проверка авторизации
 
                 <div class="filters-row">
                     <div class="filter-group">
-                        <label for="direction">Направление звонка</label>
-                        <select id="direction" name="direction">
-                            <option value="">—</option>
-                            <option value="INBOUND">Входящий</option>
-                            <option value="OUTBOUND">Исходящий</option>
-                        </select>
+                        <label>Направление звонка</label>
+                        <div class="multiselect" id="direction-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="directions[]" value="INBOUND">
+                                        <span>Входящий</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="directions[]" value="OUTBOUND">
+                                        <span>Исходящий</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="filter-group">
-                        <label for="rating">Оценка</label>
-                        <select id="rating" name="rating">
-                            <option value="">—</option>
-                            <option value="high">Высокая</option>
-                            <option value="medium">Средняя</option>
-                            <option value="low">Низкая</option>
-                        </select>
+                        <label>Результат</label>
+                        <div class="multiselect" id="result-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <!-- Первый звонок -->
+                                    <div class="multiselect-group-header">Первый звонок</div>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="квалификация">
+                                        <span>📋 Квалификация выполнена</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="материалы">
+                                        <span>📤 Материалы отправлены</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="назначен перезвон">
+                                        <span>📞 Назначен перезвон</span>
+                                    </label>
+
+                                    <!-- Другие звонки -->
+                                    <div class="multiselect-group-header">Другие звонки</div>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="показ">
+                                        <span>🏠 Показ</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="перезвон">
+                                        <span>⏰ Перезвон</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="думает">
+                                        <span>💭 Думает</span>
+                                    </label>
+
+                                    <!-- Общие -->
+                                    <div class="multiselect-group-header">Общие</div>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="отказ">
+                                        <span>❌ Отказ</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="не целевой">
+                                        <span>⛔ Не целевой</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="не дозвонились">
+                                        <span>📵 Не дозвонились</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="личный">
+                                        <span>👤 Личный</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="filter-group">
-                        <label for="status">Статус распознавания</label>
-                        <select id="status" name="status">
-                            <option value="">—</option>
-                        </select>
+                        <label>Оценка</label>
+                        <div class="multiselect" id="rating-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="ratings[]" value="high">
+                                        <span>Высокая (80-100%)</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="ratings[]" value="medium">
+                                        <span>Средняя (60-79%)</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="ratings[]" value="low">
+                                        <span>Низкая (0-59%)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="filter-group">
-                        <label for="tags">Теги</label>
-                        <select id="tags" name="tags">
-                            <option value="">—</option>
-                        </select>
+                        <label>Теги</label>
+                        <div class="multiselect" id="tags-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <!-- Будет заполнено динамически -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    <div class="filter-group"></div>
                 </div>
 
                 <div class="filters-row">
@@ -143,14 +306,8 @@ checkAuth(); // Проверка авторизации
                         <label>&nbsp;</label>
                         <input type="date" id="date_to" name="date_to">
                     </div>
-                    <div class="filter-group">
-                        <label for="date_eval_from">Дата оценки</label>
-                        <input type="date" id="date_eval_from" name="date_eval_from">
-                    </div>
-                    <div class="filter-group">
-                        <label>&nbsp;</label>
-                        <input type="date" id="date_eval_to" name="date_eval_to">
-                    </div>
+                    <div class="filter-group"></div>
+                    <div class="filter-group"></div>
                 </div>
 
                 <div class="filters-row">
@@ -187,7 +344,7 @@ checkAuth(); // Проверка авторизации
                         <th data-sort="duration_sec">Длительность <span class="sort-icon">↕</span></th>
                         <th>Тип звонка</th>
                         <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
-                        <th>Анализ</th>
+                        <th>Результат</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -208,6 +365,7 @@ checkAuth(); // Проверка авторизации
         </div>
     </div>
 
+    <script src="assets/js/multiselect.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

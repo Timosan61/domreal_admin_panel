@@ -314,29 +314,70 @@ function renderAnalysis() {
         `;
     }
 
-    // Результат звонка
+    // Результат звонка с учетом call_type
     if (callData.call_result) {
         // Логика совпадает с общей таблицей (calls_list.js)
         let badgeClass = 'badge-info'; // По умолчанию синий
+        let icon = '';
         const resultLower = callData.call_result.toLowerCase();
 
-        // Проверяем ключевые слова в тексте результата (регистронезависимо)
-        if (resultLower.includes('показ')) {
-            badgeClass = 'badge-success'; // Зеленый
-        } else if (resultLower.includes('перезвон')) {
-            badgeClass = 'badge-warning'; // Желтый
-        } else if (resultLower.includes('отказ')) {
-            badgeClass = 'badge-danger'; // Красный
+        // Для первого звонка - специфичные категории
+        if (callData.call_type === 'first_call') {
+            if (resultLower.includes('квалифик')) {
+                badgeClass = 'badge-success';
+                icon = '📋 ';
+            } else if (resultLower.includes('материал') || resultLower.includes('отправ')) {
+                badgeClass = 'badge-success';
+                icon = '📤 ';
+            } else if (resultLower.includes('назначен перезвон')) {
+                badgeClass = 'badge-info';
+                icon = '📞 ';
+            } else if (resultLower.includes('не целевой') || resultLower.includes('нецелевой')) {
+                badgeClass = 'badge-warning';
+                icon = '⛔ ';
+            } else if (resultLower.includes('отказ')) {
+                badgeClass = 'badge-danger';
+                icon = '❌ ';
+            } else if (resultLower.includes('не дозвон')) {
+                badgeClass = 'badge-secondary';
+                icon = '📵 ';
+            }
         }
-        // Если нет ключевых слов, но есть флаг успешности
-        else if (callData.is_successful !== null && callData.is_successful !== undefined) {
+        // Для других звонков - стандартные категории
+        else {
+            if (resultLower.includes('показ')) {
+                badgeClass = 'badge-success';
+                icon = '🏠 ';
+            } else if (resultLower.includes('перезвон')) {
+                badgeClass = 'badge-warning';
+                icon = '⏰ ';
+            } else if (resultLower.includes('думает')) {
+                badgeClass = 'badge-info';
+                icon = '💭 ';
+            } else if (resultLower.includes('отказ')) {
+                badgeClass = 'badge-danger';
+                icon = '❌ ';
+            } else if (resultLower.includes('не дозвон')) {
+                badgeClass = 'badge-secondary';
+                icon = '📵 ';
+            }
+        }
+
+        // Общие категории (для любого типа звонка)
+        if (resultLower.includes('личн') || resultLower.includes('нерабоч')) {
+            badgeClass = 'badge-secondary';
+            icon = '👤 ';
+        }
+
+        // Если нет спецкатегорий, используем флаг успешности как fallback
+        if (!icon && (callData.is_successful !== null && callData.is_successful !== undefined)) {
             badgeClass = callData.is_successful ? 'badge-success' : 'badge-danger';
         }
 
         html += `
             <div class="analysis-section">
                 <h3>🎯 Результат звонка</h3>
-                <span class="analysis-result-badge ${badgeClass}">${escapeHtml(callData.call_result)}</span>
+                <span class="analysis-result-badge ${badgeClass}">${icon}${escapeHtml(callData.call_result)}</span>
             </div>
         `;
     } else if (callData.is_successful !== null && callData.is_successful !== undefined) {
