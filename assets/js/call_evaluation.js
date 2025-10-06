@@ -316,10 +316,13 @@ function renderAnalysis() {
 
     // Результат звонка с учетом call_type
     if (callData.call_result) {
+        // Очищаем префикс "Результат:" если есть
+        const cleanResult = callData.call_result.replace(/^Результат:\s*/i, '').trim();
+
         // Логика совпадает с общей таблицей (calls_list.js)
         let badgeClass = 'badge-info'; // По умолчанию синий
         let icon = '';
-        const resultLower = callData.call_result.toLowerCase();
+        const resultLower = cleanResult.toLowerCase();
 
         // Для первого звонка - специфичные категории
         if (callData.call_type === 'first_call') {
@@ -329,6 +332,9 @@ function renderAnalysis() {
             } else if (resultLower.includes('материал') || resultLower.includes('отправ')) {
                 badgeClass = 'badge-success';
                 icon = '📤 ';
+            } else if (resultLower.includes('показ')) {
+                badgeClass = 'badge-success';
+                icon = '🏠 ';
             } else if (resultLower.includes('назначен перезвон')) {
                 badgeClass = 'badge-info';
                 icon = '📞 ';
@@ -377,7 +383,7 @@ function renderAnalysis() {
         html += `
             <div class="analysis-section">
                 <h3>🎯 Результат звонка</h3>
-                <span class="analysis-result-badge ${badgeClass}">${icon}${escapeHtml(callData.call_result)}</span>
+                <span class="analysis-result-badge ${badgeClass}">${icon}${escapeHtml(cleanResult)}</span>
             </div>
         `;
     } else if (callData.is_successful !== null && callData.is_successful !== undefined) {

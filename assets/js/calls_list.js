@@ -477,7 +477,7 @@ function renderCalls(calls) {
             <td>${formatDirection(call.direction)}</td>
             <td>${formatDuration(call.duration_sec)}</td>
             <td>${formatCallType(call.call_type)}</td>
-            <td>${formatScriptCompliance(call.script_compliance_score)}</td>
+            <td>${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
             <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
             <td>
                 <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}&returnState=${encodeURIComponent(currentStateURL)}"
@@ -582,7 +582,12 @@ function formatCallType(type) {
 /**
  * Форматирование оценки выполнения скрипта (script_compliance_score от 0.00 до 1.00)
  */
-function formatScriptCompliance(score) {
+function formatScriptCompliance(score, callType) {
+    // Оценка скрипта только для первого звонка
+    if (callType !== 'first_call') {
+        return '<span class="text-muted">н/д</span>';
+    }
+
     if (score === null || score === undefined) return '-';
 
     const scoreNum = parseFloat(score);
@@ -632,9 +637,12 @@ function formatCallResult(result, isSuccessful, callType) {
 
     // Если есть результат, отображаем его
     if (result) {
+        // Очищаем префикс "Результат:" если есть
+        let cleanResult = result.replace(/^Результат:\s*/i, '').trim();
+
         let badgeClass = 'badge-info'; // По умолчанию синий
         let icon = '';
-        const resultLower = result.toLowerCase();
+        const resultLower = cleanResult.toLowerCase();
 
         // Для первого звонка - специфичные категории
         if (callType === 'first_call') {
@@ -644,6 +652,9 @@ function formatCallResult(result, isSuccessful, callType) {
             } else if (resultLower.includes('материал') || resultLower.includes('отправ')) {
                 badgeClass = 'badge-success';
                 icon = '📤 ';
+            } else if (resultLower.includes('показ')) {
+                badgeClass = 'badge-success';
+                icon = '🏠 ';
             } else if (resultLower.includes('назначен перезвон')) {
                 badgeClass = 'badge-info';
                 icon = '📞 ';
@@ -689,7 +700,7 @@ function formatCallResult(result, isSuccessful, callType) {
             badgeClass = isSuccessful ? 'badge-success' : 'badge-danger';
         }
 
-        return `<span class="badge ${badgeClass}">${icon}${escapeHtml(result)}</span>`;
+        return `<span class="badge ${badgeClass}">${icon}${escapeHtml(cleanResult)}</span>`;
     }
 
     // Иначе используем isSuccessful

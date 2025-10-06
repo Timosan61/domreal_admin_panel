@@ -134,6 +134,22 @@ checkAuth(); // Проверка авторизации
                             <option value="other">Нет</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label for="date_from">Дата звонка</label>
+                        <input type="date" id="date_from" name="date_from">
+                    </div>
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <input type="date" id="date_to" name="date_to">
+                    </div>
+                    <div class="filter-group">
+                        <label for="duration_min">Длительность звонка</label>
+                        <input type="time" id="duration_min" name="duration_min" placeholder="От">
+                    </div>
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <input type="time" id="duration_max" name="duration_max" placeholder="До">
+                    </div>
                 </div>
 
                 <div class="filters-row">
@@ -295,30 +311,7 @@ checkAuth(); // Проверка авторизации
                         </div>
                     </div>
                     <div class="filter-group"></div>
-                </div>
-
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label for="date_from">Дата звонка</label>
-                        <input type="date" id="date_from" name="date_from">
-                    </div>
-                    <div class="filter-group">
-                        <label>&nbsp;</label>
-                        <input type="date" id="date_to" name="date_to">
-                    </div>
                     <div class="filter-group"></div>
-                    <div class="filter-group"></div>
-                </div>
-
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label for="duration_min">Длительность звонка</label>
-                        <input type="time" id="duration_min" name="duration_min" placeholder="От">
-                    </div>
-                    <div class="filter-group">
-                        <label>&nbsp;</label>
-                        <input type="time" id="duration_max" name="duration_max" placeholder="До">
-                    </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Применить</button>
