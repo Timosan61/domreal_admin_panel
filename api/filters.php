@@ -28,9 +28,25 @@ $departments_stmt = $db->prepare($departments_query);
 $departments_stmt->execute();
 $departments = $departments_stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Получаем список менеджеров
-$managers_query = "SELECT DISTINCT employee_name FROM calls_raw WHERE employee_name IS NOT NULL AND employee_name != '' ORDER BY employee_name";
-$managers_stmt = $db->prepare($managers_query);
+// Получаем список менеджеров (с фильтрацией по отделу, если указан)
+$department_filter = isset($_GET['department']) ? $_GET['department'] : '';
+
+if (!empty($department_filter)) {
+    // Фильтруем менеджеров по отделу
+    $managers_query = "SELECT DISTINCT employee_name FROM calls_raw
+                       WHERE employee_name IS NOT NULL AND employee_name != ''
+                       AND department = :department
+                       ORDER BY employee_name";
+    $managers_stmt = $db->prepare($managers_query);
+    $managers_stmt->bindParam(':department', $department_filter);
+} else {
+    // Возвращаем всех менеджеров
+    $managers_query = "SELECT DISTINCT employee_name FROM calls_raw
+                       WHERE employee_name IS NOT NULL AND employee_name != ''
+                       ORDER BY employee_name";
+    $managers_stmt = $db->prepare($managers_query);
+}
+
 $managers_stmt->execute();
 $managers = $managers_stmt->fetchAll(PDO::FETCH_COLUMN);
 

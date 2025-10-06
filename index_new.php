@@ -1,3 +1,8 @@
+<?php
+session_start();
+require_once 'auth/session.php';
+checkAuth(); // Проверка авторизации
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -10,7 +15,7 @@
     <!-- Левая боковая панель -->
     <aside class="sidebar">
         <nav class="sidebar-menu">
-            <a href="index.php" class="sidebar-menu-item active">
+            <a href="index_new.php" class="sidebar-menu-item active">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                 </svg>
@@ -32,11 +37,20 @@
                 </svg>
                 Менеджеры
             </a>
+            <?php if ($_SESSION['role'] === 'admin'): ?>
+            <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>
+                </svg>
+                ADMIN
+            </a>
+            <?php endif; ?>
         </nav>
         <div class="sidebar-user">
-            <div class="sidebar-user-avatar">С</div>
+            <div class="sidebar-user-avatar"><?= strtoupper(substr($_SESSION['username'], 0, 1)) ?></div>
             <div class="sidebar-user-info">
-                <div class="sidebar-user-name">Сергей</div>
+                <div class="sidebar-user-name"><?= htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['username']) ?></div>
+                <a href="auth/logout.php" style="font-size: 12px; color: #6c757d; text-decoration: none;">Выйти</a>
             </div>
         </div>
     </aside>
@@ -79,11 +93,11 @@
                         <input type="text" id="client_phone" name="client_phone" placeholder="">
                     </div>
                     <div class="filter-group">
-                        <label for="first_call">Первый звонок</label>
-                        <select id="first_call" name="first_call">
+                        <label for="call_type">Первый звонок</label>
+                        <select id="call_type" name="call_type">
                             <option value="">—</option>
-                            <option value="yes">Да</option>
-                            <option value="no">Нет</option>
+                            <option value="first_call">Да</option>
+                            <option value="other">Нет</option>
                         </select>
                     </div>
                 </div>
@@ -142,11 +156,11 @@
                 <div class="filters-row">
                     <div class="filter-group">
                         <label for="duration_min">Длительность звонка</label>
-                        <input type="time" id="duration_min" name="duration_min" value="00:00">
+                        <input type="time" id="duration_min" name="duration_min" placeholder="От">
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <input type="time" id="duration_max" name="duration_max" value="00:00">
+                        <input type="time" id="duration_max" name="duration_max" placeholder="До">
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
@@ -169,16 +183,17 @@
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
                         <th data-sort="department">Отдел <span class="sort-icon">↕</span></th>
                         <th>Номер клиента</th>
+                        <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
                         <th data-sort="duration_sec">Длительность <span class="sort-icon">↕</span></th>
                         <th>Тип звонка</th>
-                        <th data-sort="score_overall">Оценка <span class="sort-icon">↕</span></th>
+                        <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
                         <th>Анализ</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="9" class="loading">Загрузка данных...</td>
+                        <td colspan="10" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>
@@ -193,6 +208,6 @@
         </div>
     </div>
 
-    <script src="assets/js/calls_list.js"></script>
+    <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

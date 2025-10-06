@@ -134,7 +134,7 @@ function getFiltersFromForm() {
  */
 async function loadCalls() {
     const tbody = document.getElementById('calls-tbody');
-    tbody.innerHTML = '<tr><td colspan="9" class="loading">Загрузка данных...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="loading">Загрузка данных...</td></tr>';
 
     try {
         // Формируем URL с параметрами
@@ -146,6 +146,9 @@ async function loadCalls() {
             sort_order: currentSort.order
         });
 
+        console.log('🔍 Отправка фильтров:', currentFilters);
+        console.log('📡 API URL:', `api/calls.php?${params}`);
+
         const response = await fetch(`api/calls.php?${params}`);
         const result = await response.json();
 
@@ -154,11 +157,11 @@ async function loadCalls() {
             renderPagination(result.pagination);
             updateStats(result.pagination);
         } else {
-            tbody.innerHTML = '<tr><td colspan="9" class="error">Ошибка загрузки данных</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="error">Ошибка загрузки данных</td></tr>';
         }
     } catch (error) {
         console.error('Ошибка загрузки звонков:', error);
-        tbody.innerHTML = '<tr><td colspan="9" class="error">Ошибка подключения к серверу</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="error">Ошибка подключения к серверу</td></tr>';
     }
 }
 
@@ -169,7 +172,7 @@ function renderCalls(calls) {
     const tbody = document.getElementById('calls-tbody');
 
     if (calls.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center">Звонки не найдены</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">Звонки не найдены</td></tr>';
         return;
     }
 
@@ -179,10 +182,11 @@ function renderCalls(calls) {
             <td>${escapeHtml(call.employee_name || '-')}</td>
             <td>${escapeHtml(call.department || '-')}</td>
             <td>${escapeHtml(call.client_phone || '-')}</td>
+            <td>${formatDirection(call.direction)}</td>
             <td>${formatDuration(call.duration_sec)}</td>
             <td>${formatCallType(call.call_type)}</td>
-            <td>${formatRating(call.score_overall)}</td>
-            <td>${formatEmotionTone(call.emotion_tone, call.conversion_probability)}</td>
+            <td>${formatScriptCompliance(call.script_compliance_score)}</td>
+            <td>${formatCallResult(call.call_result, call.is_successful)}</td>
             <td>
                 <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}"
                    class="btn btn-primary btn-sm">
@@ -251,10 +255,23 @@ function formatDateTime(dateStr) {
  * Форматирование длительности
  */
 function formatDuration(seconds) {
-    if (!seconds) return '-';
+    if (seconds === null || seconds === undefined) return '-';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}м ${secs}с`;
+}
+
+/**
+ * Форматирование направления звонка
+ */
+function formatDirection(direction) {
+    if (!direction) return '-';
+    const directions = {
+        'INBOUND': '<span class="badge badge-info">Входящий</span>',
+        'OUTBOUND': '<span class="badge badge-success">Исходящий</span>',
+        'MISSED': '<span class="badge badge-danger">Пропущенный</span>'
+    };
+    return directions[direction] || `<span class="badge">${escapeHtml(direction)}</span>`;
 }
 
 /**
@@ -270,22 +287,22 @@ function formatCallType(type) {
 }
 
 /**
- * Форматирование оценки (score_overall от 0 до 10)
+ * Форматирование оценки выполнения скрипта (script_compliance_score от 0.00 до 1.00)
  */
-function formatRating(score) {
+function formatScriptCompliance(score) {
     if (score === null || score === undefined) return '-';
 
     const scoreNum = parseFloat(score);
-    const percentage = Math.round((scoreNum / 10) * 100);
+    const percentage = Math.round(scoreNum * 100);
     let className = 'rating-low';
 
-    if (percentage >= 80) {
+    if (scoreNum >= 0.8) {
         className = 'rating-high';
-    } else if (percentage >= 60) {
+    } else if (scoreNum >= 0.6) {
         className = 'rating-medium';
     }
 
-    return `<span class="rating-badge ${className}">${scoreNum.toFixed(1)}/10</span>`;
+    return `<span class="rating-badge ${className}">${percentage}%</span>`;
 }
 
 /**

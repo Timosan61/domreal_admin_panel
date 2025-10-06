@@ -10,6 +10,10 @@ header("Access-Control-Allow-Methods: GET");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
+session_start();
+require_once '../auth/session.php';
+checkAuth(); // Проверка авторизации
+
 include_once '../config/database.php';
 
 // Получаем параметры фильтрации
@@ -20,6 +24,7 @@ $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $duration_min = isset($_GET['duration_min']) ? intval($_GET['duration_min']) : 0;
 $duration_max = isset($_GET['duration_max']) ? intval($_GET['duration_max']) : 999999;
 $client_phone = isset($_GET['client_phone']) ? $_GET['client_phone'] : '';
+$direction = isset($_GET['direction']) ? $_GET['direction'] : '';
 $rating_min = isset($_GET['rating_min']) ? floatval($_GET['rating_min']) : 0;
 $rating_max = isset($_GET['rating_max']) ? floatval($_GET['rating_max']) : 1;
 $call_type = isset($_GET['call_type']) ? $_GET['call_type'] : '';
@@ -40,6 +45,9 @@ if ($db === null) {
     exit();
 }
 
+// Получаем список отделов, доступных пользователю
+$user_departments = getUserDepartments();
+
 // Базовый запрос с JOIN для получения полной информации
 $query = "SELECT
     cr.callid,
@@ -52,9 +60,9 @@ $query = "SELECT
     cr.call_url,
     ar.call_type,
     ar.summary_text,
-    ar.score_overall,
-    ar.conversion_probability,
-    ar.emotion_tone,
+    ar.is_successful,
+    ar.call_result,
+    ar.script_compliance_score,
     t.audio_duration_sec,
     aj.local_path as audio_path,
     aj.status as audio_status
@@ -65,6 +73,17 @@ LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
 WHERE 1=1";
 
 $params = [];
+
+// Фильтрация по отделам пользователя (если не admin)
+if ($_SESSION['role'] !== 'admin' && !empty($user_departments)) {
+    $placeholders = [];
+    foreach ($user_departments as $index => $dept) {
+        $param_name = ':user_dept_' . $index;
+        $placeholders[] = $param_name;
+        $params[$param_name] = $dept;
+    }
+    $query .= " AND cr.department IN (" . implode(', ', $placeholders) . ")";
+}
 
 // Фильтр по отделу
 if (!empty($department)) {
@@ -106,12 +125,17 @@ if (!empty($client_phone)) {
     $params[':client_phone'] = '%' . $client_phone . '%';
 }
 
-// Фильтр по оценке (score_overall от 0 до 10)
+// Фильтр по направлению звонка
+if (!empty($direction)) {
+    $query .= " AND cr.direction = :direction";
+    $params[':direction'] = $direction;
+}
+
+// Фильтр по оценке (script_compliance_score от 0.00 до 1.00)
 if ($rating_min > 0 || $rating_max < 1) {
-    // Преобразуем 0-1 в 0-10 для score_overall
-    $query .= " AND ar.score_overall BETWEEN :rating_min AND :rating_max";
-    $params[':rating_min'] = $rating_min * 10;
-    $params[':rating_max'] = $rating_max * 10;
+    $query .= " AND ar.script_compliance_score BETWEEN :rating_min AND :rating_max";
+    $params[':rating_min'] = $rating_min;
+    $params[':rating_max'] = $rating_max;
 }
 
 // Фильтр по типу звонка
@@ -130,7 +154,7 @@ $count_stmt->execute();
 $total_count = $count_stmt->fetch()['total'];
 
 // Добавляем сортировку и пагинацию
-$allowed_sort_fields = ['started_at_utc', 'employee_name', 'department', 'duration_sec', 'score_overall'];
+$allowed_sort_fields = ['started_at_utc', 'employee_name', 'department', 'duration_sec', 'direction', 'script_compliance_score'];
 if (!in_array($sort_by, $allowed_sort_fields)) {
     $sort_by = 'started_at_utc';
 }

@@ -36,8 +36,13 @@ async function loadCallDetails(callid) {
         const response = await fetch(`api/call_details.php?callid=${encodeURIComponent(callid)}`);
         const result = await response.json();
 
+        console.log('API Response:', result); // DEBUG
+
         if (result.success) {
             callData = result.data;
+            console.log('Call Data:', callData); // DEBUG
+            console.log('Audio Status:', callData.audio_status); // DEBUG
+            console.log('Audio Error:', callData.audio_error); // DEBUG
             renderCallInfo();
             renderTranscript();
             renderChecklist();
@@ -110,8 +115,33 @@ function setupAudioSource() {
         audioSource.src = `api/audio_stream.php?callid=${encodeURIComponent(callData.callid)}`;
         audioPlayer.load();
     } else {
+        let errorMessage = 'Аудиозапись недоступна';
+
+        if (callData.audio_status === 'ERROR') {
+            errorMessage = `<div style="color: #721c24;">
+                <strong>❌ Аудиозапись недоступна (статус: ERROR)</strong><br>`;
+
+            if (callData.audio_error && callData.audio_error !== 'null') {
+                errorMessage += `<div style="margin-top: 8px;">📋 Причина: <em>${escapeHtml(callData.audio_error)}</em></div>`;
+            } else {
+                errorMessage += `<div style="margin-top: 8px;">⚠️ Произошла ошибка при обработке аудио</div>`;
+            }
+
+            errorMessage += `<div style="margin-top: 12px; font-size: 13px; color: #856404;">
+                💡 <strong>Решение:</strong> Обратитесь к администратору для повторной обработки звонка
+            </div></div>`;
+        } else if (callData.audio_status === 'QUEUED') {
+            errorMessage = '⏳ Аудиозапись в очереди на обработку';
+        } else if (callData.audio_status === 'DOWNLOADING') {
+            errorMessage = '⬇️ Аудиозапись загружается...';
+        } else if (callData.audio_status === 'TRANSCRIBING') {
+            errorMessage = '🎙️ Идёт транскрибация...';
+        } else if (!callData.audio_status) {
+            errorMessage = '❓ Задача на обработку аудио не создана';
+        }
+
         document.getElementById('audio-player-container').innerHTML = `
-            <div class="error">Аудиозапись недоступна (статус: ${callData.audio_status || 'не найдено'})</div>
+            <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">${errorMessage}</div>
         `;
     }
 }
@@ -176,7 +206,21 @@ function renderTranscript() {
     const container = document.getElementById('transcript');
 
     if (!callData.diarization || !callData.diarization.segments) {
-        container.innerHTML = '<div class="error">Транскрипция недоступна</div>';
+        let message = '<div style="padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">';
+        message += '<strong>📝 Транскрипция недоступна</strong><br>';
+
+        if (callData.audio_status === 'ERROR') {
+            message += '<div style="margin-top: 8px;">⚠️ Транскрипция не была создана из-за ошибки обработки аудио</div>';
+        } else if (callData.audio_status === 'QUEUED' || callData.audio_status === 'DOWNLOADING') {
+            message += '<div style="margin-top: 8px;">⏳ Ожидание обработки аудио...</div>';
+        } else if (callData.audio_status === 'TRANSCRIBING') {
+            message += '<div style="margin-top: 8px;">🎙️ Транскрибация в процессе...</div>';
+        } else {
+            message += '<div style="margin-top: 8px;">❓ Данные транскрипции не найдены</div>';
+        }
+
+        message += '</div>';
+        container.innerHTML = message;
         return;
     }
 
@@ -240,7 +284,21 @@ function renderAnalysis() {
     const container = document.getElementById('analysis-result');
 
     if (!callData.summary_text && !callData.call_result) {
-        container.innerHTML = '<div class="error">Анализ недоступен</div>';
+        let message = '<div style="padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">';
+        message += '<strong>🤖 Анализ недоступен</strong><br>';
+
+        if (!callData.transcript_text && !callData.diarization) {
+            message += '<div style="margin-top: 8px;">⚠️ Анализ не был создан, так как отсутствует транскрипция</div>';
+
+            if (callData.audio_status === 'ERROR') {
+                message += '<div style="margin-top: 8px;">📋 Причина: ошибка при обработке аудио</div>';
+            }
+        } else {
+            message += '<div style="margin-top: 8px;">❓ Результаты анализа не найдены</div>';
+        }
+
+        message += '</div>';
+        container.innerHTML = message;
         return;
     }
 
@@ -258,11 +316,37 @@ function renderAnalysis() {
 
     // Результат звонка
     if (callData.call_result) {
-        const badgeClass = callData.is_successful ? 'badge-success' : 'badge-danger';
+        // Логика совпадает с общей таблицей (calls_list.js)
+        let badgeClass = 'badge-info'; // По умолчанию синий
+        const resultLower = callData.call_result.toLowerCase();
+
+        // Проверяем ключевые слова в тексте результата (регистронезависимо)
+        if (resultLower.includes('показ')) {
+            badgeClass = 'badge-success'; // Зеленый
+        } else if (resultLower.includes('перезвон')) {
+            badgeClass = 'badge-warning'; // Желтый
+        } else if (resultLower.includes('отказ')) {
+            badgeClass = 'badge-danger'; // Красный
+        }
+        // Если нет ключевых слов, но есть флаг успешности
+        else if (callData.is_successful !== null && callData.is_successful !== undefined) {
+            badgeClass = callData.is_successful ? 'badge-success' : 'badge-danger';
+        }
+
         html += `
             <div class="analysis-section">
                 <h3>🎯 Результат звонка</h3>
                 <span class="analysis-result-badge ${badgeClass}">${escapeHtml(callData.call_result)}</span>
+            </div>
+        `;
+    } else if (callData.is_successful !== null && callData.is_successful !== undefined) {
+        // Если нет call_result, но есть флаг успешности
+        const badgeClass = callData.is_successful ? 'badge-success' : 'badge-danger';
+        const text = callData.is_successful ? 'Успешный' : 'Неуспешный';
+        html += `
+            <div class="analysis-section">
+                <h3>🎯 Результат звонка</h3>
+                <span class="analysis-result-badge ${badgeClass}">${text}</span>
             </div>
         `;
     }
