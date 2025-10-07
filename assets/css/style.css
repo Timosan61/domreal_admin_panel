@@ -715,7 +715,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     white-space: normal;
-    max-width: 22ch; /* Перенос текста только если больше ~22 символов */
+    max-width: 30ch; /* Перенос текста только если больше ~30 символов */
     overflow-wrap: break-word;
     word-wrap: break-word;
     line-height: 1.4;
