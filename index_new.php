@@ -14,19 +14,28 @@ checkAuth(); // Проверка авторизации
 <body>
     <!-- Левая боковая панель -->
     <aside class="sidebar">
+        <div class="sidebar-toggle">
+            <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Свернуть/развернуть меню">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
         <nav class="sidebar-menu">
             <a href="index_new.php" class="sidebar-menu-item active">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                 </svg>
-                Звонки
+                <span class="sidebar-menu-text">Звонки</span>
             </a>
             <a href="#" class="sidebar-menu-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                     <line x1="7" y1="7" x2="7.01" y2="7"></line>
                 </svg>
-                Теги
+                <span class="sidebar-menu-text">Теги</span>
             </a>
             <a href="#" class="sidebar-menu-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -35,14 +44,14 @@ checkAuth(); // Проверка авторизации
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
-                Менеджеры
+                <span class="sidebar-menu-text">Менеджеры</span>
             </a>
             <?php if ($_SESSION['role'] === 'admin'): ?>
             <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>
                 </svg>
-                ADMIN
+                <span class="sidebar-menu-text">ADMIN</span>
             </a>
             <?php endif; ?>
         </nav>
@@ -205,7 +214,7 @@ checkAuth(); // Проверка авторизации
                                     <div class="multiselect-group-header">Первый звонок</div>
                                     <label class="multiselect-option">
                                         <input type="checkbox" name="call_results[]" value="квалификация">
-                                        <span>📋 Квалификация выполнена</span>
+                                        <span>📋 Квалификация</span>
                                     </label>
                                     <label class="multiselect-option">
                                         <input type="checkbox" name="call_results[]" value="материалы">
@@ -333,10 +342,10 @@ checkAuth(); // Проверка авторизации
                         <th>Результат</th>
                         <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
                         <th>Резюме</th>
-                        <th data-sort="started_at_utc">Дата и время звонка <span class="sort-icon">↓</span></th>
+                        <th data-sort="started_at_utc">Дата и время <span class="sort-icon">↓</span></th>
                         <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
-                        <th data-sort="duration_sec">Длительность <span class="sort-icon">↕</span></th>
-                        <th>Номер клиента</th>
+                        <th data-sort="duration_sec">Длина <span class="sort-icon">↕</span></th>
+                        <th>Номер</th>
                         <th>Действия</th>
                         <th>Тип звонка</th>
                         <th data-sort="department">Отдел <span class="sort-icon">↕</span></th>
@@ -420,6 +429,7 @@ checkAuth(); // Проверка авторизации
     </div>
 
     <script src="https://unpkg.com/wavesurfer.js@7"></script>
+    <script src="assets/js/sidebar.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/multiselect.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
 </body>
