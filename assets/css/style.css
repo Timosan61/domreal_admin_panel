@@ -27,6 +27,7 @@
     --radius-md: 6px;
     --radius-lg: 8px;
     --sidebar-width: 240px;
+    --sidebar-width-collapsed: 70px;
 }
 
 body {
@@ -47,6 +48,7 @@ body {
     flex: 1;
     margin-left: var(--sidebar-width);
     padding: 20px 30px;
+    transition: margin-left 0.3s ease;
 }
 
 /* ========================================
@@ -64,6 +66,49 @@ body {
     display: flex;
     flex-direction: column;
     z-index: 1000;
+    transition: width 0.3s ease;
+}
+
+/* Свернутое состояние sidebar */
+.sidebar.collapsed {
+    width: var(--sidebar-width-collapsed);
+}
+
+.sidebar.collapsed ~ .main-content {
+    margin-left: var(--sidebar-width-collapsed);
+}
+
+/* Кнопка toggle sidebar */
+.sidebar-toggle {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-toggle-btn {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-color);
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: #F9F9F9;
+}
+
+.sidebar-toggle-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+    padding: 15px 10px;
 }
 
 .sidebar-menu {
@@ -134,6 +179,50 @@ body {
 .sidebar-user-role {
     font-size: 12px;
     color: var(--text-muted);
+}
+
+/* Стили для collapsed sidebar */
+.sidebar-menu-item svg,
+.sidebar-menu-item i {
+    transition: margin-right 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-menu-item {
+    padding: 12px;
+    justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-menu-item svg,
+.sidebar.collapsed .sidebar-menu-item i {
+    margin-right: 0;
+}
+
+.sidebar.collapsed .sidebar-menu-text {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, width 0.3s ease;
+}
+
+.sidebar-menu-text {
+    opacity: 1;
+    transition: opacity 0.3s ease 0.1s;
+}
+
+.sidebar.collapsed .sidebar-user {
+    padding: 20px 10px;
+    justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-user-info {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, width 0.3s ease;
+}
+
+.sidebar-user-info {
+    transition: opacity 0.3s ease 0.1s;
 }
 
 /* ========================================
@@ -539,12 +628,14 @@ body {
     background: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: visible;
     margin-bottom: 20px;
 }
 
 .calls-table {
     width: 100%;
+    min-width: 1400px;
     border-collapse: collapse;
     font-size: 13px;
 }
@@ -556,7 +647,7 @@ body {
 
 .calls-table th {
     padding: 12px 16px;
-    text-align: left;
+    text-align: center;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-muted);
@@ -623,6 +714,11 @@ body {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
+    white-space: normal;
+    max-width: 22ch; /* Перенос текста только если больше ~22 символов */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    line-height: 1.4;
 }
 
 .badge-success {
@@ -643,6 +739,17 @@ body {
 .badge-info {
     background-color: #dbeafe;
     color: #1e40af;
+}
+
+.badge-secondary {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+/* Badge элементы, которые должны оставаться в одну строку */
+.badge.badge-nowrap {
+    white-space: nowrap;
+    max-width: none;
 }
 
 /* Оценка */
@@ -1019,6 +1126,7 @@ input[type="range"]::-moz-range-thumb {
     font-weight: 600;
     font-size: 14px;
     margin-top: 10px;
+    white-space: nowrap;
 }
 
 /* ========================================
@@ -1467,7 +1575,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ========================================
-   Summary Cell и Tooltip
+   Truncated Cells и Tooltip
    ======================================== */
 
 .summary-cell {
@@ -1477,7 +1585,22 @@ input[type="range"]::-moz-range-thumb {
     text-overflow: ellipsis;
 }
 
-.summary-tooltip {
+.employee-cell {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.department-cell {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.summary-tooltip,
+.truncated-tooltip {
     position: fixed;
     background-color: rgba(0, 0, 0, 0.9);
     color: #ffffff;
