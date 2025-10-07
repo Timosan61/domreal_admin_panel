@@ -473,6 +473,7 @@ function renderCalls(calls) {
             <td>${escapeHtml(call.employee_name || '-')}</td>
             <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
             <td>${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
+            <td class="summary-cell" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
             <td>${formatDateTime(call.started_at_utc)}</td>
             <td>${formatDirection(call.direction)}</td>
             <td>${formatDuration(call.duration_sec)}</td>
@@ -487,6 +488,9 @@ function renderCalls(calls) {
             <td>${escapeHtml(call.department || '-')}</td>
         </tr>
     `).join('');
+
+    // Инициализация tooltip для ячеек резюме
+    initSummaryTooltips();
 }
 
 /**
@@ -707,6 +711,93 @@ function formatCallResult(result, isSuccessful, callType) {
     const badgeClass = isSuccessful ? 'badge-success' : 'badge-danger';
     const text = isSuccessful ? 'Успешный' : 'Неуспешный';
     return `<span class="badge ${badgeClass}">${text}</span>`;
+}
+
+/**
+ * Форматирование резюме звонка с обрезкой текста
+ */
+function formatSummary(summaryText) {
+    if (!summaryText || summaryText.trim() === '') return '-';
+
+    const maxLength = 40;
+    const text = summaryText.trim();
+
+    if (text.length > maxLength) {
+        return escapeHtml(text.substring(0, maxLength)) + '...';
+    }
+
+    return escapeHtml(text);
+}
+
+/**
+ * Инициализация tooltip для ячеек с резюме
+ */
+function initSummaryTooltips() {
+    const cells = document.querySelectorAll('.summary-cell');
+
+    cells.forEach(cell => {
+        const fullText = cell.getAttribute('data-full-text');
+
+        // Показываем tooltip только если текст был обрезан
+        if (fullText && fullText.trim() !== '' && fullText.length > 40) {
+            cell.addEventListener('mouseenter', function(e) {
+                showSummaryTooltip(e, fullText);
+            });
+
+            cell.addEventListener('mouseleave', function() {
+                hideSummaryTooltip();
+            });
+
+            // Добавляем курсор pointer для индикации интерактивности
+            cell.style.cursor = 'pointer';
+        }
+    });
+}
+
+/**
+ * Показать tooltip с полным текстом резюме
+ */
+function showSummaryTooltip(event, text) {
+    // Удаляем существующий tooltip если есть
+    hideSummaryTooltip();
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'summary-tooltip';
+    tooltip.textContent = text;
+    tooltip.id = 'summary-tooltip';
+
+    document.body.appendChild(tooltip);
+
+    // Позиционируем tooltip
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    // Позиция: под ячейкой, выровнено по левому краю
+    let left = rect.left;
+    let top = rect.bottom + 5;
+
+    // Проверяем, не выходит ли tooltip за правую границу экрана
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = window.innerWidth - tooltipRect.width - 10;
+    }
+
+    // Проверяем, не выходит ли tooltip за нижнюю границу экрана
+    if (top + tooltipRect.height > window.innerHeight) {
+        top = rect.top - tooltipRect.height - 5;
+    }
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
+
+/**
+ * Скрыть tooltip
+ */
+function hideSummaryTooltip() {
+    const tooltip = document.getElementById('summary-tooltip');
+    if (tooltip) {
+        tooltip.remove();
+    }
 }
 
 /**

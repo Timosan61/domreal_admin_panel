@@ -332,6 +332,7 @@ checkAuth(); // Проверка авторизации
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
                         <th>Результат</th>
                         <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
+                        <th>Резюме</th>
                         <th data-sort="started_at_utc">Дата и время звонка <span class="sort-icon">↓</span></th>
                         <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
                         <th data-sort="duration_sec">Длительность <span class="sort-icon">↕</span></th>
@@ -343,7 +344,7 @@ checkAuth(); // Проверка авторизации
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="10" class="loading">Загрузка данных...</td>
+                        <td colspan="11" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>

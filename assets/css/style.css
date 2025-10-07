@@ -1466,6 +1466,44 @@ input[type="range"]::-moz-range-thumb {
     padding: 20px 0;
 }
 
+/* ========================================
+   Summary Cell и Tooltip
+   ======================================== */
+
+.summary-cell {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.summary-tooltip {
+    position: fixed;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 400px;
+    word-wrap: break-word;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive Evaluation Page */
 @media (max-width: 1200px) {
     .eval-content {
