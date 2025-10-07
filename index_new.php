@@ -359,6 +359,67 @@ checkAuth(); // Проверка авторизации
         </div>
     </div>
 
+    <!-- Глобальный аудиоплеер -->
+    <div class="global-audio-player" id="global-audio-player" style="display: none;">
+        <div class="player-container">
+            <div class="player-info">
+                <span class="player-label">Звонок:</span>
+                <span id="player-callid" class="player-value">-</span>
+                <span class="player-separator">|</span>
+                <span id="player-employee" class="player-value">-</span>
+                <span class="player-arrow">→</span>
+                <span id="player-client" class="player-value">-</span>
+            </div>
+
+            <div class="player-controls">
+                <button class="audio-btn" id="global-play-btn" title="Play/Pause">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+
+                <div class="waveform-wrapper">
+                    <div id="global-waveform"></div>
+                    <div class="player-time">
+                        <span id="player-current-time">0:00</span>
+                        <span id="player-total-time">0:00</span>
+                    </div>
+                </div>
+
+                <div class="volume-control">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                    <input type="range" id="volume-slider" min="0" max="100" value="80" title="Громкость">
+                </div>
+
+                <div class="speed-control">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <select id="global-speed" title="Скорость воспроизведения">
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                    </select>
+                </div>
+
+                <button class="player-close" id="player-close-btn" title="Закрыть плеер">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
     <script src="assets/js/multiselect.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
 </body>

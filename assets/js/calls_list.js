@@ -8,6 +8,10 @@ let currentFilters = {};
 let currentSort = { by: 'started_at_utc', order: 'DESC' };
 let multiselectInstances = null; // Хранилище для multiselect инстансов
 
+// Глобальный аудиоплеер
+let globalWaveSurfer = null;
+let currentPlayingCallId = null;
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
@@ -171,6 +175,7 @@ async function initializePage() {
     await loadFilterOptions();
     await loadStateFromURL(); // Восстанавливаем состояние из URL (теперь async)
     setupEventListeners();
+    initGlobalAudioPlayer(); // Инициализация глобального плеера
     await loadCalls();
 }
 
@@ -478,7 +483,17 @@ function renderCalls(calls) {
             <td>${formatDirection(call.direction)}</td>
             <td>${formatDuration(call.duration_sec)}</td>
             <td>${escapeHtml(call.client_phone || '-')}</td>
-            <td>
+            <td class="actions-cell">
+                <button class="btn-play-audio ${currentPlayingCallId === call.callid ? 'playing' : ''}"
+                        data-callid="${call.callid}"
+                        data-employee="${escapeHtml(call.employee_name || '')}"
+                        data-client="${escapeHtml(call.client_phone || '')}"
+                        title="Проиграть запись"
+                        ${!call.audio_path && !call.audio_status ? 'disabled' : ''}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
                 <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}&returnState=${encodeURIComponent(currentStateURL)}"
                    class="btn btn-primary btn-sm">
                     Открыть
@@ -491,6 +506,9 @@ function renderCalls(calls) {
 
     // Инициализация tooltip для ячеек резюме
     initSummaryTooltips();
+
+    // Инициализация обработчиков для кнопок Play
+    initPlayButtons();
 }
 
 /**
@@ -822,4 +840,193 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/* ========================================
+   Глобальный аудиоплеер
+   ======================================== */
+
+/**
+ * Инициализация глобального аудиоплеера
+ */
+function initGlobalAudioPlayer() {
+    // Проверка наличия WaveSurfer
+    if (typeof WaveSurfer === 'undefined') {
+        console.error('WaveSurfer.js не загружен');
+        return;
+    }
+
+    // Создание экземпляра WaveSurfer
+    globalWaveSurfer = WaveSurfer.create({
+        container: '#global-waveform',
+        waveColor: '#ddd',
+        progressColor: '#007AFF',
+        cursorColor: '#007AFF',
+        barWidth: 2,
+        barRadius: 3,
+        responsive: true,
+        height: 60,
+        normalize: true,
+        backend: 'WebAudio'
+    });
+
+    // Обработчики событий WaveSurfer
+    globalWaveSurfer.on('ready', function() {
+        const duration = globalWaveSurfer.getDuration();
+        document.getElementById('player-total-time').textContent = formatTime(duration);
+    });
+
+    globalWaveSurfer.on('audioprocess', function() {
+        const currentTime = globalWaveSurfer.getCurrentTime();
+        document.getElementById('player-current-time').textContent = formatTime(currentTime);
+    });
+
+    globalWaveSurfer.on('finish', function() {
+        updatePlayPauseButton(false);
+    });
+
+    // Обработчик кнопки Play/Pause
+    document.getElementById('global-play-btn').addEventListener('click', function() {
+        if (globalWaveSurfer) {
+            globalWaveSurfer.playPause();
+            updatePlayPauseButton(globalWaveSurfer.isPlaying());
+        }
+    });
+
+    // Обработчик регулятора громкости
+    document.getElementById('volume-slider').addEventListener('input', function() {
+        if (globalWaveSurfer) {
+            globalWaveSurfer.setVolume(this.value / 100);
+        }
+    });
+
+    // Обработчик скорости воспроизведения
+    document.getElementById('global-speed').addEventListener('change', function() {
+        if (globalWaveSurfer) {
+            globalWaveSurfer.setPlaybackRate(parseFloat(this.value));
+        }
+    });
+
+    // Обработчик кнопки закрытия плеера
+    document.getElementById('player-close-btn').addEventListener('click', function() {
+        closeGlobalPlayer();
+    });
+}
+
+/**
+ * Инициализация обработчиков для кнопок Play в таблице
+ */
+function initPlayButtons() {
+    const playButtons = document.querySelectorAll('.btn-play-audio');
+
+    playButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const callid = this.getAttribute('data-callid');
+            const employee = this.getAttribute('data-employee');
+            const client = this.getAttribute('data-client');
+
+            playAudioInGlobalPlayer(callid, employee, client);
+        });
+    });
+}
+
+/**
+ * Проигрывание аудио в глобальном плеере
+ */
+function playAudioInGlobalPlayer(callid, employeeName, clientPhone) {
+    if (!globalWaveSurfer) {
+        console.error('Глобальный плеер не инициализирован');
+        return;
+    }
+
+    // Показываем плеер
+    const playerElement = document.getElementById('global-audio-player');
+    playerElement.style.display = 'block';
+
+    // Обновляем информацию о звонке
+    document.getElementById('player-callid').textContent = callid;
+    document.getElementById('player-employee').textContent = employeeName || '-';
+    document.getElementById('player-client').textContent = clientPhone || '-';
+
+    // Загружаем аудио
+    const audioUrl = `api/audio_stream.php?callid=${encodeURIComponent(callid)}`;
+
+    globalWaveSurfer.load(audioUrl);
+    currentPlayingCallId = callid;
+
+    // Обновляем состояние кнопок Play в таблице
+    updatePlayButtonsState();
+
+    // Автовоспроизведение при загрузке
+    globalWaveSurfer.on('ready', function() {
+        globalWaveSurfer.play();
+        updatePlayPauseButton(true);
+    }, { once: true });
+}
+
+/**
+ * Обновление состояния кнопки Play/Pause
+ */
+function updatePlayPauseButton(isPlaying) {
+    const playBtn = document.getElementById('global-play-btn');
+
+    if (isPlaying) {
+        // Иконка Pause
+        playBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+        `;
+    } else {
+        // Иконка Play
+        playBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        `;
+    }
+}
+
+/**
+ * Обновление состояния кнопок Play в таблице
+ */
+function updatePlayButtonsState() {
+    const playButtons = document.querySelectorAll('.btn-play-audio');
+
+    playButtons.forEach(button => {
+        const callid = button.getAttribute('data-callid');
+
+        if (callid === currentPlayingCallId) {
+            button.classList.add('playing');
+        } else {
+            button.classList.remove('playing');
+        }
+    });
+}
+
+/**
+ * Закрытие глобального плеера
+ */
+function closeGlobalPlayer() {
+    if (globalWaveSurfer) {
+        globalWaveSurfer.stop();
+    }
+
+    document.getElementById('global-audio-player').style.display = 'none';
+    currentPlayingCallId = null;
+    updatePlayButtonsState();
+}
+
+/**
+ * Форматирование времени (секунды -> мм:сс)
+ */
+function formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return '0:00';
+
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return minutes + ':' + (secs < 10 ? '0' : '') + secs;
 }
