@@ -446,11 +446,11 @@ async function loadCalls() {
             renderPagination(result.pagination);
             updateStats(result.pagination);
         } else {
-            tbody.innerHTML = '<tr><td colspan="10" class="error">Ошибка загрузки данных</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" class="error">Ошибка загрузки данных</td></tr>';
         }
     } catch (error) {
         console.error('Ошибка загрузки звонков:', error);
-        tbody.innerHTML = '<tr><td colspan="10" class="error">Ошибка подключения к серверу</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="error">Ошибка подключения к серверу</td></tr>';
     }
 }
 
@@ -461,7 +461,7 @@ function renderCalls(calls) {
     const tbody = document.getElementById('calls-tbody');
 
     if (calls.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center">Звонки не найдены</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center">Звонки не найдены</td></tr>';
         return;
     }
 
@@ -738,18 +738,23 @@ function initSummaryTooltips() {
     cells.forEach(cell => {
         const fullText = cell.getAttribute('data-full-text');
 
-        // Показываем tooltip только если текст был обрезан
-        if (fullText && fullText.trim() !== '' && fullText.length > 40) {
-            cell.addEventListener('mouseenter', function(e) {
-                showSummaryTooltip(e, fullText);
-            });
+        // Показываем tooltip если текст обрезан CSS (scrollWidth) или программно (length > 40)
+        if (fullText && fullText.trim() !== '') {
+            const isTruncatedByCSS = cell.scrollWidth > cell.clientWidth;
+            const isTruncatedByJS = fullText.length > 40;
 
-            cell.addEventListener('mouseleave', function() {
-                hideSummaryTooltip();
-            });
+            if (isTruncatedByCSS || isTruncatedByJS) {
+                cell.addEventListener('mouseenter', function(e) {
+                    showSummaryTooltip(e, fullText);
+                });
 
-            // Добавляем курсор pointer для индикации интерактивности
-            cell.style.cursor = 'pointer';
+                cell.addEventListener('mouseleave', function() {
+                    hideSummaryTooltip();
+                });
+
+                // Добавляем курсор pointer для индикации интерактивности
+                cell.style.cursor = 'pointer';
+            }
         }
     });
 }
@@ -785,6 +790,10 @@ function showSummaryTooltip(event, text) {
     if (top + tooltipRect.height > window.innerHeight) {
         top = rect.top - tooltipRect.height - 5;
     }
+
+    // Проверяем минимальные отступы от краев экрана
+    if (left < 5) left = 5;
+    if (top < 5) top = 5;
 
     tooltip.style.left = left + 'px';
     tooltip.style.top = top + 'px';
