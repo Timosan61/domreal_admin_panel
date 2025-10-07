@@ -470,21 +470,21 @@ function renderCalls(calls) {
 
     tbody.innerHTML = calls.map(call => `
         <tr>
-            <td>${formatDateTime(call.started_at_utc)}</td>
             <td>${escapeHtml(call.employee_name || '-')}</td>
-            <td>${escapeHtml(call.department || '-')}</td>
-            <td>${escapeHtml(call.client_phone || '-')}</td>
+            <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
+            <td>${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
+            <td>${formatDateTime(call.started_at_utc)}</td>
             <td>${formatDirection(call.direction)}</td>
             <td>${formatDuration(call.duration_sec)}</td>
-            <td>${formatCallType(call.call_type)}</td>
-            <td>${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
-            <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
+            <td>${escapeHtml(call.client_phone || '-')}</td>
             <td>
                 <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}&returnState=${encodeURIComponent(currentStateURL)}"
                    class="btn btn-primary btn-sm">
                     Открыть
                 </a>
             </td>
+            <td>${formatCallType(call.call_type)}</td>
+            <td>${escapeHtml(call.department || '-')}</td>
         </tr>
     `).join('');
 }

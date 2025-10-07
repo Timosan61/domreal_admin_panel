@@ -329,16 +329,16 @@ checkAuth(); // Проверка авторизации
             <table class="calls-table" id="calls-table">
                 <thead>
                     <tr>
-                        <th data-sort="started_at_utc">Дата и время звонка <span class="sort-icon">↓</span></th>
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
-                        <th data-sort="department">Отдел <span class="sort-icon">↕</span></th>
-                        <th>Номер клиента</th>
+                        <th>Результат</th>
+                        <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
+                        <th data-sort="started_at_utc">Дата и время звонка <span class="sort-icon">↓</span></th>
                         <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
                         <th data-sort="duration_sec">Длительность <span class="sort-icon">↕</span></th>
-                        <th>Тип звонка</th>
-                        <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
-                        <th>Результат</th>
+                        <th>Номер клиента</th>
                         <th>Действия</th>
+                        <th>Тип звонка</th>
+                        <th data-sort="department">Отдел <span class="sort-icon">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="calls-tbody">
