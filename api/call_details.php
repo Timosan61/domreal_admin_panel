@@ -10,6 +10,10 @@ header("Access-Control-Allow-Methods: GET");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
+session_start();
+require_once '../auth/session.php';
+checkAuth(); // Проверка авторизации
+
 include_once '../config/database.php';
 
 // Получаем callid
@@ -41,16 +45,20 @@ $query = "SELECT
     t.processing_time_ms,
     ar.call_type,
     ar.summary_text,
-    ar.score_overall,
-    ar.conversion_probability,
-    ar.emotion_tone,
-    ar.metrics_json,
-    ar.coaching_text,
-    ar.questions_text,
-    ar.has_objections,
+    ar.is_successful,
+    ar.call_result,
+    ar.success_reason,
+    ar.script_compliance_score,
+    ar.script_check_location,
+    ar.script_check_payment,
+    ar.script_check_goal,
+    ar.script_check_is_local,
+    ar.script_check_budget,
+    ar.script_check_details,
     ar.raw_response as llm_analysis,
     aj.local_path as audio_path,
     aj.status as audio_status,
+    aj.error_text as audio_error,
     aj.file_size_bytes,
     aj.file_format
 FROM calls_raw cr
@@ -59,6 +67,17 @@ LEFT JOIN analysis_results ar ON cr.callid = ar.callid
 LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
 WHERE cr.callid = :callid
 LIMIT 1";
+
+// Проверяем наличие вызова и доступ к отделу
+if ($_SESSION['role'] !== 'admin') {
+    // Для обычных пользователей проверяем доступ к отделу
+    $user_departments = getUserDepartments();
+    if (empty($user_departments)) {
+        http_response_code(403);
+        echo json_encode(["error" => "У вас нет доступа к отделам"], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+}
 
 $stmt = $db->prepare($query);
 $stmt->bindParam(':callid', $callid);
@@ -70,6 +89,15 @@ if (!$call) {
     http_response_code(404);
     echo json_encode(["error" => "Call not found"], JSON_UNESCAPED_UNICODE);
     exit();
+}
+
+// Проверяем доступ к отделу звонка (для не-админов)
+if ($_SESSION['role'] !== 'admin') {
+    if (!hasAccessToDepartment($call['department'])) {
+        http_response_code(403);
+        echo json_encode(["error" => "У вас нет доступа к этому отделу"], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
 }
 
 // Парсим JSON поля
@@ -132,11 +160,7 @@ if (!empty($call['metrics_json'])) {
 $call['checklist'] = $checklist;
 $call['metrics'] = $metrics;
 
-// Добавляем дополнительные поля для обратной совместимости
-$call['script_compliance_score'] = $call['score_overall'] ? ($call['score_overall'] / 10) : null;
-$call['is_successful'] = $call['conversion_probability'] > 0.5 ? true : false;
-$call['call_result'] = isset($metrics['call_result']) ? $metrics['call_result'] : 'unknown';
-$call['success_reason'] = isset($metrics['success_reason']) ? $metrics['success_reason'] : null;
+// Поля уже есть в запросе из базы данных - ничего дополнительно не нужно
 
 // Формируем ответ
 $response = [

@@ -1,0 +1,23 @@
+# Защита доступа к Adminer
+# Только для авторизованных пользователей
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /db/
+
+    # Если нет файла или директории, направляем на index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [L,QSA]
+</IfModule>
+
+# Запрет доступа к служебным файлам
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql)$">
+    Require all denied
+</FilesMatch>
+
+# Настройки PHP для Adminer
+php_value upload_max_filesize 64M
+php_value post_max_size 64M
+php_value memory_limit 256M
+php_value max_execution_time 300

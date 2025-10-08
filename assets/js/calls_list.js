@@ -475,13 +475,13 @@ function renderCalls(calls) {
 
     tbody.innerHTML = calls.map(call => `
         <tr>
-            <td>${escapeHtml(call.employee_name || '-')}</td>
+            <td class="employee-cell" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
             <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
-            <td>${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
+            <td class="text-center">${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
             <td class="summary-cell" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
             <td>${formatDateTime(call.started_at_utc)}</td>
             <td>${formatDirection(call.direction)}</td>
-            <td>${formatDuration(call.duration_sec)}</td>
+            <td class="text-center">${formatDuration(call.duration_sec)}</td>
             <td>${escapeHtml(call.client_phone || '-')}</td>
             <td class="actions-cell">
                 <button class="btn-play-audio ${currentPlayingCallId === call.callid ? 'playing' : ''}"
@@ -500,12 +500,14 @@ function renderCalls(calls) {
                 </a>
             </td>
             <td>${formatCallType(call.call_type)}</td>
-            <td>${escapeHtml(call.department || '-')}</td>
+            <td class="department-cell" data-full-text="${escapeHtml(call.department || '-')}">${formatDepartment(call.department)}</td>
         </tr>
     `).join('');
 
-    // Инициализация tooltip для ячеек резюме
-    initSummaryTooltips();
+    // Инициализация tooltip для обрезанных ячеек
+    initTruncatedCellTooltips('.employee-cell');
+    initTruncatedCellTooltips('.summary-cell');
+    initTruncatedCellTooltips('.department-cell');
 
     // Инициализация обработчиков для кнопок Play
     initPlayButtons();
@@ -582,11 +584,11 @@ function formatDuration(seconds) {
 function formatDirection(direction) {
     if (!direction) return '-';
     const directions = {
-        'INBOUND': '<span class="badge badge-info">Входящий</span>',
-        'OUTBOUND': '<span class="badge badge-success">Исходящий</span>',
-        'MISSED': '<span class="badge badge-danger">Пропущенный</span>'
+        'INBOUND': '<span class="badge badge-info badge-nowrap">Входящий</span>',
+        'OUTBOUND': '<span class="badge badge-success badge-nowrap">Исходящий</span>',
+        'MISSED': '<span class="badge badge-danger badge-nowrap">Пропущенный</span>'
     };
-    return directions[direction] || `<span class="badge">${escapeHtml(direction)}</span>`;
+    return directions[direction] || `<span class="badge badge-nowrap">${escapeHtml(direction)}</span>`;
 }
 
 /**
@@ -595,10 +597,10 @@ function formatDirection(direction) {
 function formatCallType(type) {
     if (!type) return '-';
     const types = {
-        'first_call': '<span class="badge badge-info">Первый звонок</span>',
-        'other': '<span class="badge">Другое</span>'
+        'first_call': '<span class="badge badge-info badge-nowrap">Первый</span>',
+        'other': '<span class="badge badge-nowrap">Другое</span>'
     };
-    return types[type] || `<span class="badge">${escapeHtml(type)}</span>`;
+    return types[type] || `<span class="badge badge-nowrap">${escapeHtml(type)}</span>`;
 }
 
 /**
@@ -661,6 +663,10 @@ function formatCallResult(result, isSuccessful, callType) {
     if (result) {
         // Очищаем префикс "Результат:" если есть
         let cleanResult = result.replace(/^Результат:\s*/i, '').trim();
+
+        // Убираем лишние слова для компактности
+        cleanResult = cleanResult.replace(/\s+звонок$/i, ''); // "Личный/нерабочий звонок" → "Личный/нерабочий"
+        cleanResult = cleanResult.replace(/\s+выполнена$/i, ''); // "Квалификация выполнена" → "Квалификация"
 
         let badgeClass = 'badge-info'; // По умолчанию синий
         let icon = '';
@@ -748,6 +754,38 @@ function formatSummary(summaryText) {
 }
 
 /**
+ * Форматирование имени менеджера с обрезкой текста
+ */
+function formatEmployeeName(employeeName) {
+    if (!employeeName || employeeName.trim() === '') return '-';
+
+    const maxLength = 25;
+    const text = employeeName.trim();
+
+    if (text.length > maxLength) {
+        return escapeHtml(text.substring(0, maxLength)) + '...';
+    }
+
+    return escapeHtml(text);
+}
+
+/**
+ * Форматирование названия отдела с обрезкой текста
+ */
+function formatDepartment(department) {
+    if (!department || department.trim() === '') return '-';
+
+    const maxLength = 30;
+    const text = department.trim();
+
+    if (text.length > maxLength) {
+        return escapeHtml(text.substring(0, maxLength)) + '...';
+    }
+
+    return escapeHtml(text);
+}
+
+/**
  * Инициализация tooltip для ячеек с резюме
  */
 function initSummaryTooltips() {
@@ -822,6 +860,88 @@ function showSummaryTooltip(event, text) {
  */
 function hideSummaryTooltip() {
     const tooltip = document.getElementById('summary-tooltip');
+    if (tooltip) {
+        tooltip.remove();
+    }
+}
+
+/**
+ * УНИВЕРСАЛЬНАЯ функция инициализации tooltip для обрезанных ячеек
+ * @param {string} selector - CSS селектор ячеек (например, '.summary-cell', '.employee-cell')
+ */
+function initTruncatedCellTooltips(selector) {
+    const cells = document.querySelectorAll(selector);
+
+    cells.forEach(cell => {
+        const fullText = cell.getAttribute('data-full-text');
+
+        // Показываем tooltip если текст обрезан CSS (scrollWidth) или есть полный текст отличный от отображаемого
+        if (fullText && fullText.trim() !== '' && fullText.trim() !== '-') {
+            const isTruncatedByCSS = cell.scrollWidth > cell.clientWidth;
+            const displayedText = cell.textContent.trim();
+            const isTruncated = isTruncatedByCSS || fullText !== displayedText;
+
+            if (isTruncated) {
+                cell.addEventListener('mouseenter', function(e) {
+                    showTruncatedTooltip(e, fullText);
+                });
+
+                cell.addEventListener('mouseleave', function() {
+                    hideTruncatedTooltip();
+                });
+
+                // Добавляем курсор pointer для индикации интерактивности
+                cell.style.cursor = 'pointer';
+            }
+        }
+    });
+}
+
+/**
+ * Показать tooltip с полным текстом
+ */
+function showTruncatedTooltip(event, text) {
+    // Удаляем существующий tooltip если есть
+    hideTruncatedTooltip();
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'truncated-tooltip';
+    tooltip.textContent = text;
+    tooltip.id = 'truncated-tooltip';
+
+    document.body.appendChild(tooltip);
+
+    // Позиционируем tooltip
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    // Позиция: под ячейкой, выровнено по левому краю
+    let left = rect.left;
+    let top = rect.bottom + 5;
+
+    // Проверяем, не выходит ли tooltip за правую границу экрана
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = window.innerWidth - tooltipRect.width - 10;
+    }
+
+    // Проверяем, не выходит ли tooltip за нижнюю границу экрана
+    if (top + tooltipRect.height > window.innerHeight) {
+        top = rect.top - tooltipRect.height - 5;
+    }
+
+    // Проверяем минимальные отступы от краев экрана
+    if (left < 5) left = 5;
+    if (top < 5) top = 5;
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
+
+/**
+ * Скрыть tooltip
+ */
+function hideTruncatedTooltip() {
+    const tooltip = document.getElementById('truncated-tooltip');
     if (tooltip) {
         tooltip.remove();
     }

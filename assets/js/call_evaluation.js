@@ -317,7 +317,11 @@ function renderAnalysis() {
     // Результат звонка с учетом call_type
     if (callData.call_result) {
         // Очищаем префикс "Результат:" если есть
-        const cleanResult = callData.call_result.replace(/^Результат:\s*/i, '').trim();
+        let cleanResult = callData.call_result.replace(/^Результат:\s*/i, '').trim();
+
+        // Убираем лишние слова для компактности
+        cleanResult = cleanResult.replace(/\s+звонок$/i, ''); // "Личный/нерабочий звонок" → "Личный/нерабочий"
+        cleanResult = cleanResult.replace(/\s+выполнена$/i, ''); // "Квалификация выполнена" → "Квалификация"
 
         // Логика совпадает с общей таблицей (calls_list.js)
         let badgeClass = 'badge-info'; // По умолчанию синий

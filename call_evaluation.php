@@ -9,7 +9,7 @@ checkAuth(); // Проверка авторизации
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оценка звонка - Система оценки звонков</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <!-- Левая боковая панель -->
@@ -58,7 +58,12 @@ checkAuth(); // Проверка авторизации
     <div class="main-content">
         <header class="page-header">
             <div class="header-nav">
-                <a href="index_new.php" class="btn btn-secondary">← Назад к списку</a>
+                <?php
+                // Получаем returnState для сохранения состояния фильтров
+                $returnState = isset($_GET['returnState']) ? htmlspecialchars($_GET['returnState']) : '';
+                $backURL = 'index_new.php' . $returnState;
+                ?>
+                <a href="<?= $backURL ?>" class="btn btn-secondary">← Назад к списку</a>
                 <h1>🎯 Оценка звонка</h1>
             </div>
         </header>

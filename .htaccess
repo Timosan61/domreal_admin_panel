@@ -1,15 +1,15 @@
 RewriteEngine On
+RewriteBase /
 
-# Если файл или директория существует, используем их
+# Редирект с /index_new.php на / (если кто-то зайдет напрямую)
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/+index_new\.php[?\s]
+RewriteRule ^index_new\.php$ / [R=301,L]
+
+# Внутренний rewrite с / на index_new.php (без редиректа)
+RewriteCond %{REQUEST_URI} ^/$
+RewriteRule ^$ /index_new.php [L]
+
+# Если файл или директория не существует, показываем index_new.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-
-# Разрешаем прямой доступ к PHP файлам
-RewriteRule ^api/ - [L]
-
-# Включаем CORS для API
-<IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
-</IfModule>
+RewriteRule ^(.*)$ /index_new.php [L,QSA]

@@ -5,16 +5,16 @@
  */
 
 class Database {
-    // Локальное подключение (основное) - для Docker используем IP хоста в Docker сети
-    private $host = "172.17.0.1";
+    // Локальное подключение (основное) - localhost на этом сервере
+    private $host = "localhost";
     private $port = "3306";
     private $db_name = "calls_db";
     private $username = "datalens_user";
     private $password = "datalens_readonly_2024";
 
-    // Удаленное подключение (fallback)
-    private $remote_host = "195.239.161.77";
-    private $remote_port = "13306";
+    // Удаленное подключение (fallback) - для Docker используем IP хоста
+    private $remote_host = "172.17.0.1";
+    private $remote_port = "3306";
 
     public $conn;
 
