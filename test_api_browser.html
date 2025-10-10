@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Analytics API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h3 { color: #333; margin-top: 20px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Testing Analytics API Endpoints</h1>
+    <p>Testing departments and managers API with browser session...</p>
+    <div id="results"></div>
+
+    <script>
+    async function testAPI() {
+        const results = document.getElementById('results');
+        const endpoints = [
+            {name: 'Departments', url: '/api/analytics/departments.php?date_from=2025-10-01&date_to=2025-10-08&limit=5'},
+            {name: 'Managers', url: '/api/analytics/managers.php?date_from=2025-10-01&date_to=2025-10-08&limit=5'}
+        ];
+
+        for (const endpoint of endpoints) {
+            try {
+                const startTime = Date.now();
+                const response = await fetch(endpoint.url);
+                const duration = Date.now() - startTime;
+                const data = await response.json();
+
+                results.innerHTML += '<h3 class="success">' + endpoint.name + ' ✓ (' + duration + 'ms)</h3>';
+                results.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                results.innerHTML += '<h3 class="error">' + endpoint.name + ' ✗</h3>';
+                results.innerHTML += '<p class="error">ERROR: ' + error.message + '</p>';
+            }
+        }
+    }
+    testAPI();
+    </script>
+</body>
+</html>

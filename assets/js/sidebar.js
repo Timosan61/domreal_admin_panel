@@ -46,6 +46,7 @@
         const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
         if (isCollapsed) {
             sidebar.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
         }
     }
 
@@ -57,6 +58,7 @@
         } else {
             // На desktop сворачиваем/разворачиваем
             sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed');
             const collapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('sidebarCollapsed', collapsed);
         }
@@ -104,6 +106,7 @@
             if (isMobile()) {
                 // Переключаемся в мобильный режим
                 sidebar.classList.remove('collapsed');
+                document.body.classList.remove('sidebar-collapsed');
                 closeMobileSidebar();
             } else {
                 // Переключаемся в desktop режим
@@ -113,8 +116,10 @@
                 const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
                 if (isCollapsed) {
                     sidebar.classList.add('collapsed');
+                    document.body.classList.add('sidebar-collapsed');
                 } else {
                     sidebar.classList.remove('collapsed');
+                    document.body.classList.remove('sidebar-collapsed');
                 }
             }
         }, 250);

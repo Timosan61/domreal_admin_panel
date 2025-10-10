@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Testing Analytics API Endpoints</h1>
+    <div id="results"></div>
+
+    <script>
+    async function testAPI() {
+        const results = document.getElementById('results');
+        const endpoints = [
+            '/api/analytics/departments.php?date_from=2025-10-01&date_to=2025-10-08&limit=5',
+            '/api/analytics/managers.php?date_from=2025-10-01&date_to=2025-10-08&limit=5'
+        ];
+
+        for (const endpoint of endpoints) {
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                results.innerHTML += `<h3>${endpoint}</h3>`;
+                results.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                results.innerHTML += `<h3>${endpoint}</h3>`;
+                results.innerHTML += `<p style="color: red;">ERROR: ${error.message}</p>`;
+            }
+        }
+    }
+    testAPI();
+    </script>
+</body>
+</html>
