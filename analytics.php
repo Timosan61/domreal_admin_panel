@@ -358,25 +358,88 @@ $user_role = $_SESSION['role'] ?? 'user';
             position: absolute;
             top: 100%;
             left: 0;
-            right: 0;
+            min-width: 100%;
+            width: max-content;
+            max-width: 31.25rem; /* 500px */
             background: white;
             border: 0.0625rem solid #ddd;
             border-radius: 0.25rem; /* 4px */
-            max-height: 12.5rem; /* 200px */
-            overflow-y: auto;
+            max-height: 25rem; /* 400px */
             display: none;
+            flex-direction: column;
             z-index: 100;
             margin-top: 0.125rem; /* 2px */
             box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
         }
 
         .multi-select-dropdown.active {
-            display: block;
+            display: flex;
+        }
+
+        .multi-select-header {
+            padding: 0.625rem; /* 10px */
+            border-bottom: 0.0625rem solid #e5e5e5;
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem; /* 6px */
+            flex-shrink: 0;
+        }
+
+        .multi-select-search {
+            flex: 1;
+            padding: 0.375rem 0.625rem; /* 6px 10px */
+            border: 0.0625rem solid #D0D0D0;
+            border-radius: 0.1875rem; /* 3px */
+            font-size: 0.8125rem; /* 13px */
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .multi-select-search:focus {
+            border-color: #2196F3;
+        }
+
+        .multi-select-header-buttons {
+            display: flex;
+            gap: 0.375rem; /* 6px */
+        }
+
+        .multi-select-btn {
+            padding: 0.3125rem 0.625rem; /* 5px 10px */
+            background: #f5f5f5;
+            border: none;
+            border-radius: 0.1875rem; /* 3px */
+            font-size: 0.75rem; /* 12px */
+            color: #2196F3;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .multi-select-btn:hover {
+            background: #E3F2FD;
+        }
+
+        .multi-select-btn:last-child {
+            color: #666;
+        }
+
+        .multi-select-btn:last-child:hover {
+            background: #FFEBEE;
+            color: #f44336;
+        }
+
+        .multi-select-options {
+            overflow-y: auto;
+            max-height: 21.875rem; /* 350px */
+            flex: 1;
         }
 
         .multi-select-option {
             padding: 0.5rem 0.75rem; /* 8px 12px */
             cursor: pointer;
+            display: flex;
+            align-items: flex-start;
         }
 
         .multi-select-option:hover {
@@ -385,6 +448,15 @@ $user_role = $_SESSION['role'] ?? 'user';
 
         .multi-select-option input {
             margin-right: 0.5rem; /* 8px */
+            margin-top: 0.25rem; /* 4px - выравнивание с текстом */
+            flex-shrink: 0;
+        }
+
+        .multi-select-option label {
+            flex: 1;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.5;
         }
 
         .multi-select-display {
@@ -436,7 +508,16 @@ $user_role = $_SESSION['role'] ?? 'user';
                                 <span>Все отделы</span>
                             </div>
                             <div class="multi-select-dropdown" id="departments-dropdown">
-                                <!-- Будет заполнено через JS -->
+                                <div class="multi-select-header">
+                                    <input type="text" class="multi-select-search" id="departments-search" placeholder="Поиск">
+                                    <div class="multi-select-header-buttons">
+                                        <button type="button" class="multi-select-btn" id="departments-select-all">Выбрать все</button>
+                                        <button type="button" class="multi-select-btn" id="departments-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multi-select-options" id="departments-options">
+                                    <!-- Будет заполнено через JS -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -448,7 +529,16 @@ $user_role = $_SESSION['role'] ?? 'user';
                                 <span>Все менеджеры</span>
                             </div>
                             <div class="multi-select-dropdown" id="managers-dropdown">
-                                <!-- Будет заполнено через JS -->
+                                <div class="multi-select-header">
+                                    <input type="text" class="multi-select-search" id="managers-search" placeholder="Поиск">
+                                    <div class="multi-select-header-buttons">
+                                        <button type="button" class="multi-select-btn" id="managers-select-all">Выбрать все</button>
+                                        <button type="button" class="multi-select-btn" id="managers-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multi-select-options" id="managers-options">
+                                    <!-- Будет заполнено через JS -->
+                                </div>
                             </div>
                         </div>
                     </div>

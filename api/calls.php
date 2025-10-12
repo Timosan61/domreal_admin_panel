@@ -66,11 +66,16 @@ $query = "SELECT
     ar.script_compliance_score,
     t.audio_duration_sec,
     aj.local_path as audio_path,
-    aj.status as audio_status
+    aj.status as audio_status,
+    ct.tag_type,
+    ct.note as tag_note,
+    ct.tagged_at,
+    ct.tagged_by_user
 FROM calls_raw cr
 LEFT JOIN analysis_results ar ON cr.callid = ar.callid
 LEFT JOIN transcripts t ON cr.callid = t.callid
 LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
+LEFT JOIN call_tags ct ON cr.callid = ct.callid
 WHERE 1=1";
 
 $params = [];
@@ -195,7 +200,11 @@ if (!empty($call_results)) {
         }
 
         // Категории других звонков
-        elseif ($result === 'показ') {
+        elseif ($result === 'показ назначен') {
+            $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ назначен%'";
+        } elseif ($result === 'показ состоялся') {
+            $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ состоялся%'";
+        } elseif ($result === 'показ') {
             $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ%'";
         } elseif ($result === 'перезвон') {
             $result_conditions[] = "(LOWER(ar.call_result) LIKE '%перезвон%' AND ar.call_type != 'first_call')";
@@ -218,6 +227,18 @@ if (!empty($call_results)) {
     if (!empty($result_conditions)) {
         $query .= " AND (" . implode(' OR ', $result_conditions) . ")";
     }
+}
+
+// Фильтр по тегам (множественный выбор: good,bad,question)
+if (!empty($tags)) {
+    $tags_array = explode(',', $tags);
+    $tags_placeholders = [];
+    foreach ($tags_array as $index => $tag) {
+        $param_name = ':tag_' . $index;
+        $tags_placeholders[] = $param_name;
+        $params[$param_name] = trim($tag);
+    }
+    $query .= " AND ct.tag_type IN (" . implode(', ', $tags_placeholders) . ")";
 }
 
 // Подсчет общего количества записей

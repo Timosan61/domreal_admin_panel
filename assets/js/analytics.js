@@ -43,6 +43,9 @@
         document.getElementById('apply-filters').addEventListener('click', applyFilters);
         document.getElementById('reset-filters').addEventListener('click', resetFilters);
 
+        // Initialize KPI click handlers for drilldown
+        initKPIClickHandlers();
+
         // Auto-resize charts on window resize and zoom
         const debouncedResize = debounce(resizeCharts, 250);
         window.addEventListener('resize', debouncedResize);
@@ -88,8 +91,16 @@
         const deptDropdown = document.getElementById('departments-dropdown');
 
         deptDisplay.addEventListener('click', function() {
+            const isOpening = !deptDropdown.classList.contains('active');
             deptDropdown.classList.toggle('active');
             document.getElementById('managers-dropdown').classList.remove('active');
+
+            // Очистка поиска при открытии
+            if (isOpening) {
+                const searchField = document.getElementById('departments-search');
+                searchField.value = '';
+                filterOptions('departments', '');
+            }
         });
 
         // Managers multi-select
@@ -97,8 +108,16 @@
         const mgrDropdown = document.getElementById('managers-dropdown');
 
         mgrDisplay.addEventListener('click', function() {
+            const isOpening = !mgrDropdown.classList.contains('active');
             mgrDropdown.classList.toggle('active');
             document.getElementById('departments-dropdown').classList.remove('active');
+
+            // Очистка поиска при открытии
+            if (isOpening) {
+                const searchField = document.getElementById('managers-search');
+                searchField.value = '';
+                filterOptions('managers', '');
+            }
         });
 
         // Close dropdowns when clicking outside
@@ -107,6 +126,47 @@
                 deptDropdown.classList.remove('active');
                 mgrDropdown.classList.remove('active');
             }
+        });
+
+        // Department buttons
+        document.getElementById('departments-select-all').addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectAllOptions('departments');
+        });
+
+        document.getElementById('departments-clear').addEventListener('click', function(e) {
+            e.stopPropagation();
+            clearAllOptions('departments');
+        });
+
+        // Manager buttons
+        document.getElementById('managers-select-all').addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectAllOptions('managers');
+        });
+
+        document.getElementById('managers-clear').addEventListener('click', function(e) {
+            e.stopPropagation();
+            clearAllOptions('managers');
+        });
+
+        // Search fields
+        document.getElementById('departments-search').addEventListener('input', function(e) {
+            e.stopPropagation();
+            filterOptions('departments', e.target.value);
+        });
+
+        document.getElementById('departments-search').addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        document.getElementById('managers-search').addEventListener('input', function(e) {
+            e.stopPropagation();
+            filterOptions('managers', e.target.value);
+        });
+
+        document.getElementById('managers-search').addEventListener('click', function(e) {
+            e.stopPropagation();
         });
     }
 
@@ -143,8 +203,8 @@
      * Render multi-select options
      */
     function renderMultiSelectOptions(type, options) {
-        const dropdown = document.getElementById(`${type}-dropdown`);
-        dropdown.innerHTML = '';
+        const optionsContainer = document.getElementById(`${type}-options`);
+        optionsContainer.innerHTML = '';
 
         options.forEach(option => {
             const div = document.createElement('div');
@@ -163,10 +223,14 @@
             label.htmlFor = checkbox.id;
             label.textContent = option;
             label.style.cursor = 'pointer';
+            label.style.flex = '1';
+            label.style.whiteSpace = 'normal';
+            label.style.wordBreak = 'break-word';
+            label.style.lineHeight = '1.5';
 
             div.appendChild(checkbox);
             div.appendChild(label);
-            dropdown.appendChild(div);
+            optionsContainer.appendChild(div);
         });
     }
 
@@ -174,10 +238,10 @@
      * Update multi-select display text
      */
     function updateMultiSelectDisplay(type) {
-        const dropdown = document.getElementById(`${type}-dropdown`);
+        const optionsContainer = document.getElementById(`${type}-options`);
         const display = document.getElementById(`${type}-display`).querySelector('span');
 
-        const checked = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+        const checked = optionsContainer.querySelectorAll('input[type="checkbox"]:checked');
         const values = Array.from(checked).map(cb => cb.value);
 
         if (values.length === 0) {
@@ -193,9 +257,53 @@
      * Get selected values from multi-select
      */
     function getMultiSelectValues(type) {
-        const dropdown = document.getElementById(`${type}-dropdown`);
-        const checked = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+        const optionsContainer = document.getElementById(`${type}-options`);
+        const checked = optionsContainer.querySelectorAll('input[type="checkbox"]:checked');
         return Array.from(checked).map(cb => cb.value);
+    }
+
+    /**
+     * Select all options in multi-select (only visible ones)
+     */
+    function selectAllOptions(type) {
+        const optionsContainer = document.getElementById(`${type}-options`);
+        const options = optionsContainer.querySelectorAll('.multi-select-option');
+
+        options.forEach(option => {
+            // Выбираем только видимые опции
+            if (option.style.display !== 'none') {
+                const checkbox = option.querySelector('input[type="checkbox"]');
+                checkbox.checked = true;
+            }
+        });
+
+        updateMultiSelectDisplay(type);
+    }
+
+    /**
+     * Clear all options in multi-select
+     */
+    function clearAllOptions(type) {
+        const optionsContainer = document.getElementById(`${type}-options`);
+        const checkboxes = optionsContainer.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateMultiSelectDisplay(type);
+    }
+
+    /**
+     * Filter options by search term
+     */
+    function filterOptions(type, searchTerm) {
+        const optionsContainer = document.getElementById(`${type}-options`);
+        const options = optionsContainer.querySelectorAll('.multi-select-option');
+        const term = searchTerm.toLowerCase();
+
+        options.forEach(option => {
+            const label = option.querySelector('label');
+            const text = label.textContent.toLowerCase();
+            const matches = text.includes(term);
+            option.style.display = matches ? 'flex' : 'none';
+        });
     }
 
     /**
@@ -391,6 +499,89 @@
         document.getElementById('kpi-conversion-rate').textContent = data.showing_completed.toLocaleString();
         document.getElementById('kpi-first-calls').textContent = data.first_calls.toLocaleString();
         document.getElementById('kpi-script-score').textContent = (data.avg_script_score * 100).toFixed(0) + '%';
+    }
+
+    /**
+     * Initialize KPI click handlers for drilldown
+     */
+    function initKPIClickHandlers() {
+        // Показ назначен
+        const successfulCallsCard = document.getElementById('kpi-successful-calls');
+        if (successfulCallsCard) {
+            successfulCallsCard.parentElement.style.cursor = 'pointer';
+            successfulCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters('показ назначен');
+            });
+        }
+
+        // Показ состоялся
+        const conversionRateCard = document.getElementById('kpi-conversion-rate');
+        if (conversionRateCard) {
+            conversionRateCard.parentElement.style.cursor = 'pointer';
+            conversionRateCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters('показ состоялся');
+            });
+        }
+
+        // Первые звонки
+        const firstCallsCard = document.getElementById('kpi-first-calls');
+        if (firstCallsCard) {
+            firstCallsCard.parentElement.style.cursor = 'pointer';
+            firstCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters(null, 'first_call');
+            });
+        }
+
+        // Всего звонков
+        const totalCallsCard = document.getElementById('kpi-total-calls');
+        if (totalCallsCard) {
+            totalCallsCard.parentElement.style.cursor = 'pointer';
+            totalCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters();
+            });
+        }
+
+        // Проанализировано
+        const analyzedCallsCard = document.getElementById('kpi-analyzed-calls');
+        if (analyzedCallsCard) {
+            analyzedCallsCard.parentElement.style.cursor = 'pointer';
+            analyzedCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters();
+            });
+        }
+    }
+
+    /**
+     * Open calls page with filters from analytics
+     */
+    function openCallsWithFilters(callResult = null, callType = null) {
+        const params = new URLSearchParams();
+
+        // Передаем фильтры из аналитики
+        params.set('date_from', currentFilters.date_from);
+        params.set('date_to', currentFilters.date_to);
+
+        if (currentFilters.departments.length > 0) {
+            params.set('departments', currentFilters.departments.join(','));
+        }
+
+        if (currentFilters.managers.length > 0) {
+            params.set('managers', currentFilters.managers.join(','));
+        }
+
+        if (callResult) {
+            params.set('call_results', callResult);
+        }
+
+        if (callType) {
+            params.set('call_type', callType);
+        }
+
+        // Флаг что пришли из аналитики
+        params.set('from_analytics', '1');
+
+        console.log('Drilldown to calls page with filters:', params.toString());
+        window.location.href = `/index_new.php?${params}`;
     }
 
     /**

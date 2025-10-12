@@ -38,7 +38,7 @@ checkAuth(); // Проверка авторизации
                 </svg>
                 <span class="sidebar-menu-text">Аналитика</span>
             </a>
-            <a href="#" class="sidebar-menu-item">
+            <a href="tags.php" class="sidebar-menu-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                     <line x1="7" y1="7" x2="7.01" y2="7"></line>
@@ -88,6 +88,16 @@ checkAuth(); // Проверка авторизации
                 <button class="btn btn-primary">Сохраненные фильтры</button>
             </div>
         </header>
+
+        <!-- Breadcrumb для возврата к аналитике -->
+        <div class="analytics-breadcrumb" id="analytics-breadcrumb" style="display: none;">
+            <a href="analytics.php" class="breadcrumb-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Вернуться к аналитике
+            </a>
+        </div>
 
         <!-- Панель фильтров -->
         <div class="filters-panel">
@@ -346,6 +356,10 @@ checkAuth(); // Проверка авторизации
             <table class="calls-table" id="calls-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="select-all-calls" title="Выбрать все">
+                        </th>
+                        <th style="width: 50px;">Тег</th>
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
                         <th>Результат</th>
                         <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
@@ -361,7 +375,7 @@ checkAuth(); // Проверка авторизации
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="11" class="loading">Загрузка данных...</td>
+                        <td colspan="13" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>
@@ -436,9 +450,75 @@ checkAuth(); // Проверка авторизации
         </div>
     </div>
 
+    <!-- Панель массовых действий -->
+    <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
+        <div class="bulk-actions-container">
+            <div class="bulk-actions-info">
+                <span>Выбрано: <strong id="selected-count">0</strong></span>
+            </div>
+            <div class="bulk-actions-buttons">
+                <button type="button" class="bulk-action-btn bulk-action-good" id="bulk-tag-good" title="Хорошо">
+                    <span class="bulk-action-icon">✅</span>
+                    <span class="bulk-action-text">Хорошо</span>
+                </button>
+                <button type="button" class="bulk-action-btn bulk-action-bad" id="bulk-tag-bad" title="Плохо">
+                    <span class="bulk-action-icon">❌</span>
+                    <span class="bulk-action-text">Плохо</span>
+                </button>
+                <button type="button" class="bulk-action-btn bulk-action-question" id="bulk-tag-question" title="Вопрос">
+                    <span class="bulk-action-icon">❓</span>
+                    <span class="bulk-action-text">Вопрос</span>
+                </button>
+                <button type="button" class="bulk-action-btn bulk-action-remove" id="bulk-remove-tags" title="Снять теги">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span class="bulk-action-text">Снять теги</span>
+                </button>
+            </div>
+            <button type="button" class="bulk-actions-close" id="bulk-actions-close" title="Очистить выбор">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для тегов -->
+    <div class="modal" id="tag-modal" style="display: none;">
+        <div class="modal-overlay" id="tag-modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="tag-modal-title">Добавить тег</h3>
+                <button type="button" class="modal-close" id="tag-modal-close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="tag-note">Заметка (опционально)</label>
+                    <textarea id="tag-note" rows="4" placeholder="Введите дополнительную заметку к тегу..."></textarea>
+                </div>
+                <div class="modal-info">
+                    <p>Тег будет применен к <strong id="tag-modal-count">0</strong> звонку(ам)</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="tag-modal-cancel">Отмена</button>
+                <button type="button" class="btn btn-primary" id="tag-modal-submit">Применить тег</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/wavesurfer.js@7"></script>
     <script src="assets/js/sidebar.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/multiselect.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/bulk_actions.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

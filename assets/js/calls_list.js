@@ -163,6 +163,23 @@ async function loadStateFromURL() {
     if (page) {
         currentPage = parseInt(page);
     }
+
+    // Проверяем, пришли ли мы из аналитики
+    const fromAnalytics = params.get('from_analytics');
+    if (fromAnalytics === '1') {
+        showAnalyticsBreadcrumb();
+    }
+}
+
+/**
+ * Показать breadcrumb для возврата к аналитике
+ */
+function showAnalyticsBreadcrumb() {
+    const breadcrumb = document.getElementById('analytics-breadcrumb');
+    if (breadcrumb) {
+        breadcrumb.style.display = 'block';
+        console.log('✅ Breadcrumb показан - пользователь пришел из аналитики');
+    }
 }
 
 /**
@@ -210,6 +227,17 @@ async function loadFilterOptions() {
                     label: manager
                 }));
                 managerMS.setOptions(options);
+            }
+
+            // Заполняем multiselect тегов
+            const tagsMS = multiselectInstances.get('tags-multiselect');
+            if (tagsMS) {
+                const tagOptions = [
+                    { name: 'tags[]', value: 'good', label: '✅ Хорошо' },
+                    { name: 'tags[]', value: 'bad', label: '❌ Плохо' },
+                    { name: 'tags[]', value: 'question', label: '❓ Вопрос' }
+                ];
+                tagsMS.setOptions(tagOptions);
             }
 
             // Типы звонков уже заданы в HTML
@@ -428,7 +456,7 @@ function getFiltersFromForm() {
  */
 async function loadCalls() {
     const tbody = document.getElementById('calls-tbody');
-    tbody.innerHTML = '<tr><td colspan="10" class="loading">Загрузка данных...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="loading">Загрузка данных...</td></tr>';
 
     try {
         // Формируем URL с параметрами
@@ -451,11 +479,11 @@ async function loadCalls() {
             renderPagination(result.pagination);
             updateStats(result.pagination);
         } else {
-            tbody.innerHTML = '<tr><td colspan="11" class="error">Ошибка загрузки данных</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="13" class="error">Ошибка загрузки данных</td></tr>';
         }
     } catch (error) {
         console.error('Ошибка загрузки звонков:', error);
-        tbody.innerHTML = '<tr><td colspan="11" class="error">Ошибка подключения к серверу</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="error">Ошибка подключения к серверу</td></tr>';
     }
 }
 
@@ -466,7 +494,7 @@ function renderCalls(calls) {
     const tbody = document.getElementById('calls-tbody');
 
     if (calls.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center">Звонки не найдены</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="text-center">Звонки не найдены</td></tr>';
         return;
     }
 
@@ -475,6 +503,12 @@ function renderCalls(calls) {
 
     tbody.innerHTML = calls.map(call => `
         <tr>
+            <td class="text-center">
+                <input type="checkbox" class="call-checkbox" data-callid="${call.callid}">
+            </td>
+            <td class="tag-cell ${!call.tag_type ? 'no-tag' : ''}" title="${formatTagTitle(call.tag_type, call.tag_note)}">
+                ${formatTag(call.tag_type)}
+            </td>
             <td class="employee-cell" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
             <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
             <td class="text-center">${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
@@ -511,6 +545,37 @@ function renderCalls(calls) {
 
     // Инициализация обработчиков для кнопок Play
     initPlayButtons();
+}
+
+/**
+ * Форматирование тега
+ */
+function formatTag(tagType) {
+    const tagEmojis = {
+        'good': '✅',
+        'bad': '❌',
+        'question': '❓'
+    };
+    return tagEmojis[tagType] || '—';
+}
+
+/**
+ * Форматирование title для тега
+ */
+function formatTagTitle(tagType, tagNote) {
+    if (!tagType) return 'Без тега';
+
+    const tagNames = {
+        'good': 'Хорошо',
+        'bad': 'Плохо',
+        'question': 'Вопрос'
+    };
+
+    let title = `Тег: ${tagNames[tagType]}`;
+    if (tagNote) {
+        title += `\nЗаметка: ${tagNote}`;
+    }
+    return title;
 }
 
 /**
