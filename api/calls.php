@@ -21,8 +21,7 @@ $departments = isset($_GET['departments']) ? $_GET['departments'] : ''; // Мн�
 $managers = isset($_GET['managers']) ? $_GET['managers'] : ''; // Множественный выбор
 $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
-$duration_min = isset($_GET['duration_min']) ? intval($_GET['duration_min']) : 0;
-$duration_max = isset($_GET['duration_max']) ? intval($_GET['duration_max']) : 999999;
+$duration_range = isset($_GET['duration_range']) ? $_GET['duration_range'] : '';
 $client_phone = isset($_GET['client_phone']) ? $_GET['client_phone'] : '';
 $directions = isset($_GET['directions']) ? $_GET['directions'] : ''; // Множественный выбор
 $ratings = isset($_GET['ratings']) ? $_GET['ratings'] : ''; // Множественный выбор (high,medium,low)
@@ -127,14 +126,17 @@ if (!empty($date_to)) {
     $params[':date_to'] = $date_to;
 }
 
-// Фильтр по длительности
-if ($duration_min > 0) {
-    $query .= " AND cr.duration_sec >= :duration_min";
-    $params[':duration_min'] = $duration_min;
-}
-if ($duration_max < 999999) {
-    $query .= " AND cr.duration_sec <= :duration_max";
-    $params[':duration_max'] = $duration_max;
+// Фильтр по длительности (новый формат диапазонов)
+if (!empty($duration_range)) {
+    $range_parts = explode('-', $duration_range);
+    if (count($range_parts) === 2) {
+        $duration_min = intval($range_parts[0]);
+        $duration_max = intval($range_parts[1]);
+
+        $query .= " AND cr.duration_sec >= :duration_min AND cr.duration_sec <= :duration_max";
+        $params[':duration_min'] = $duration_min;
+        $params[':duration_max'] = $duration_max;
+    }
 }
 
 // Фильтр по номеру клиента

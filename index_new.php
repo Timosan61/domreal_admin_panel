@@ -170,12 +170,19 @@ checkAuth(); // Проверка авторизации
                         <input type="date" id="date_to" name="date_to">
                     </div>
                     <div class="filter-group">
-                        <label for="duration_min">Длительность звонка</label>
-                        <input type="time" id="duration_min" name="duration_min" placeholder="От">
+                        <label for="duration_range">Длительность звонка</label>
+                        <select id="duration_range" name="duration_range">
+                            <option value="">Любая</option>
+                            <option value="0-60">До 1 мин</option>
+                            <option value="60-180">1-3 мин</option>
+                            <option value="180-600">3-10 мин</option>
+                            <option value="600-1800">10-30 мин</option>
+                            <option value="1800-999999">Более 30 мин</option>
+                        </select>
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <input type="time" id="duration_max" name="duration_max" placeholder="До">
+                        <div style="opacity: 0; pointer-events: none;"></div>
                     </div>
                 </div>
 
