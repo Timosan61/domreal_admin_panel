@@ -22,6 +22,7 @@ $managers = isset($_GET['managers']) ? $_GET['managers'] : ''; // Множест
 $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : '';
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $duration_range = isset($_GET['duration_range']) ? $_GET['duration_range'] : '';
+$hide_short_calls = isset($_GET['hide_short_calls']) ? $_GET['hide_short_calls'] : '1'; // По умолчанию включен
 $client_phone = isset($_GET['client_phone']) ? $_GET['client_phone'] : '';
 $directions = isset($_GET['directions']) ? $_GET['directions'] : ''; // Множественный выбор
 $ratings = isset($_GET['ratings']) ? $_GET['ratings'] : ''; // Множественный выбор (high,medium,low)
@@ -137,6 +138,11 @@ if (!empty($duration_range)) {
         $params[':duration_min'] = $duration_min;
         $params[':duration_max'] = $duration_max;
     }
+}
+
+// Фильтр "Скрыть до 10 сек" (toggle переключатель)
+if ($hide_short_calls === '1') {
+    $query .= " AND cr.duration_sec > 10";
 }
 
 // Фильтр по номеру клиента

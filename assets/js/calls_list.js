@@ -54,7 +54,7 @@ async function loadStateFromURL() {
 
     // Восстанавливаем фильтры
     currentFilters = {};
-    const filterKeys = ['call_type', 'date_from', 'date_to', 'search', 'client_phone', 'duration_range'];
+    const filterKeys = ['call_type', 'date_from', 'date_to', 'search', 'client_phone', 'duration_range', 'hide_short_calls'];
 
     // Восстанавливаем обычные фильтры (текстовые поля, обычные селекты)
     filterKeys.forEach(key => {
@@ -325,12 +325,29 @@ function setupEventListeners() {
             });
         }
 
+        // Восстанавливаем toggle в состояние "включен"
+        const hideShortCallsCheckbox = document.getElementById('hide-short-calls');
+        if (hideShortCallsCheckbox) {
+            hideShortCallsCheckbox.checked = true;
+        }
+
         currentPage = 1;
         currentFilters = {};
         saveStateToURL(); // Сохраняем состояние в URL
         loadManagersByDepartments([]); // Загружаем всех менеджеров
         loadCalls();
     });
+
+    // Обработчик toggle "Скрыть до 10 сек"
+    const hideShortCallsCheckbox = document.getElementById('hide-short-calls');
+    if (hideShortCallsCheckbox) {
+        hideShortCallsCheckbox.addEventListener('change', function() {
+            currentPage = 1;
+            currentFilters = getFiltersFromForm();
+            saveStateToURL();
+            loadCalls();
+        });
+    }
 
     // Зависимый фильтр: при изменении отделов обновляем список менеджеров
     const departmentMS = multiselectInstances.get('department-multiselect');
@@ -389,6 +406,12 @@ function getFiltersFromForm() {
         if (value) {
             filters[key] = value;
         }
+    }
+
+    // Обработка toggle "Скрыть до 10 сек" (checkbox всегда передается, даже если unchecked)
+    const hideShortCallsCheckbox = document.getElementById('hide-short-calls');
+    if (hideShortCallsCheckbox) {
+        filters['hide_short_calls'] = hideShortCallsCheckbox.checked ? '1' : '0';
     }
 
     // Обработка multiselect компонентов

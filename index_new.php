@@ -182,7 +182,13 @@ checkAuth(); // Проверка авторизации
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <div style="opacity: 0; pointer-events: none;"></div>
+                        <div class="toggle-filter-wrapper">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="hide-short-calls" name="hide_short_calls" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Скрыть до 10 сек</span>
+                        </div>
                     </div>
                 </div>
 
