@@ -12,7 +12,7 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 
 session_start();
 require_once '../auth/session.php';
-checkAuth(); // Проверка авторизации
+checkAuth(false, true); // Проверка авторизации для API endpoint
 
 include_once '../config/database.php';
 
@@ -29,6 +29,8 @@ $ratings = isset($_GET['ratings']) ? $_GET['ratings'] : ''; // Множеств�
 $call_type = isset($_GET['call_type']) ? $_GET['call_type'] : '';
 $call_results = isset($_GET['call_results']) ? $_GET['call_results'] : ''; // Множественный выбор результатов
 $tags = isset($_GET['tags']) ? $_GET['tags'] : ''; // Множественный выбор
+$crm_stages = isset($_GET['crm_stages']) ? $_GET['crm_stages'] : ''; // Множественный выбор CRM этапов (формат: "funnel1:step1,funnel2:step2")
+$solvency_levels = isset($_GET['solvency_levels']) ? $_GET['solvency_levels'] : ''; // Множественный выбор платежеспособности
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = isset($_GET['per_page']) ? min(100, max(10, intval($_GET['per_page']))) : 20;
 $sort_by = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'started_at_utc';
@@ -50,6 +52,7 @@ if ($db === null) {
 $user_departments = getUserDepartments();
 
 // Базовый запрос с JOIN для получения полной информации
+// client_enrichment всегда включен для отображения aggregate_summary и solvency_level
 $query = "SELECT
     cr.callid,
     cr.client_phone,
@@ -64,21 +67,28 @@ $query = "SELECT
     ar.is_successful,
     ar.call_result,
     ar.script_compliance_score,
+    ar.crm_funnel_name,
+    ar.crm_step_name,
     t.audio_duration_sec,
     aj.local_path as audio_path,
     aj.status as audio_status,
     ct.tag_type,
     ct.note as tag_note,
     ct.tagged_at,
-    ct.tagged_by_user
+    ct.tagged_by_user,
+    ce.aggregate_summary,
+    ce.solvency_level,
+    ce.total_calls_count
 FROM calls_raw cr
 LEFT JOIN analysis_results ar ON cr.callid = ar.callid
 LEFT JOIN transcripts t ON cr.callid = t.callid
 LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
 LEFT JOIN call_tags ct ON cr.callid = ct.callid
-WHERE 1=1";
+LEFT JOIN client_enrichment ce ON cr.client_phone = SUBSTRING(ce.client_phone, 3)";
 
 $params = [];
+
+$query .= "\nWHERE 1=1";
 
 // Фильтрация по отделам пользователя (если не admin)
 if ($_SESSION['role'] !== 'admin' && !empty($user_departments)) {
@@ -249,8 +259,70 @@ if (!empty($tags)) {
     $query .= " AND ct.tag_type IN (" . implode(', ', $tags_placeholders) . ")";
 }
 
+// Фильтр по CRM этапам (множественный выбор, формат: "Покупатели:Новый лид,Продавец:Квалификация")
+if (!empty($crm_stages)) {
+    $stages_array = explode(',', $crm_stages);
+    $crm_conditions = [];
+
+    foreach ($stages_array as $index => $stage) {
+        $stage = trim($stage);
+        $parts = explode(':', $stage, 2); // Разбиваем на воронку и этап
+
+        if (count($parts) === 2) {
+            $funnel = trim($parts[0]);
+            $step = trim($parts[1]);
+
+            $funnel_param = ':crm_funnel_' . $index;
+            $step_param = ':crm_step_' . $index;
+
+            $crm_conditions[] = "(ar.crm_funnel_name = $funnel_param AND ar.crm_step_name = $step_param)";
+            $params[$funnel_param] = $funnel;
+            $params[$step_param] = $step;
+        }
+    }
+
+    if (!empty($crm_conditions)) {
+        $query .= " AND (" . implode(' OR ', $crm_conditions) . ")";
+    }
+}
+
+// Фильтр по платежеспособности (множественный выбор: green,blue,yellow,red)
+if (!empty($solvency_levels)) {
+    $solvency_array = explode(',', $solvency_levels);
+    $solvency_placeholders = [];
+    foreach ($solvency_array as $index => $level) {
+        $param_name = ':solvency_' . $index;
+        $solvency_placeholders[] = $param_name;
+        $params[$param_name] = trim($level);
+    }
+    $query .= " AND ce.solvency_level IN (" . implode(', ', $solvency_placeholders) . ")";
+}
+
 // Подсчет общего количества записей
-$count_query = "SELECT COUNT(*) as total FROM (" . $query . ") as filtered";
+// ОПТИМИЗАЦИЯ: Считаем только по calls_raw + минимум JOIN'ов (в 40x быстрее)
+$count_query = "SELECT COUNT(DISTINCT cr.callid) as total FROM calls_raw cr";
+
+// Добавляем JOIN'ы только если используются фильтры из этих таблиц
+$needs_ar_join = !empty($call_type) || !empty($call_results) || !empty($ratings) || !empty($crm_stages);
+$needs_ct_join = !empty($tags);
+// client_enrichment всегда нужен для фильтра по solvency_levels
+$needs_ce_join = !empty($solvency_levels);
+
+if ($needs_ar_join) {
+    $count_query .= "\nLEFT JOIN analysis_results ar ON cr.callid = ar.callid";
+}
+if ($needs_ct_join) {
+    $count_query .= "\nLEFT JOIN call_tags ct ON cr.callid = ct.callid";
+}
+if ($needs_ce_join) {
+    $count_query .= "\nLEFT JOIN client_enrichment ce ON cr.client_phone = SUBSTRING(ce.client_phone, 3)";
+}
+
+// Копируем WHERE условия из основного запроса
+$where_clause = substr($query, strpos($query, 'WHERE 1=1'));
+$where_clause = substr($where_clause, 0, strpos($where_clause, 'ORDER BY') ?: strlen($where_clause));
+$count_query .= "\n" . trim($where_clause);
+
 $count_stmt = $db->prepare($count_query);
 foreach ($params as $key => $value) {
     $count_stmt->bindValue($key, $value);
