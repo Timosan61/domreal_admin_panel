@@ -52,6 +52,14 @@
         </a>
 
         <?php if ($_SESSION['role'] === 'admin'): ?>
+        <a href="money_tracker.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'money_tracker.php' ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span class="sidebar-menu-text">Money Tracker</span>
+        </a>
+
         <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>

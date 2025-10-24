@@ -12,20 +12,35 @@ if (session_status() === PHP_SESSION_NONE) {
 /**
  * Проверка авторизации пользователя
  * @param bool $require_admin - Требуется ли роль администратора
+ * @param bool $is_api - Является ли запрос API (вернуть JSON вместо редиректа)
  * @return array|null - Данные пользователя или null
  */
-function checkAuth($require_admin = false) {
+function checkAuth($require_admin = false, $is_api = false) {
     // Проверяем наличие user_id в сессии
     if (!isset($_SESSION['user_id'])) {
-        // Не авторизован - редирект на login
-        header('Location: /auth/login.php');
-        exit();
+        // Не авторизован
+        if ($is_api) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Не авторизован']);
+            exit();
+        } else {
+            header('Location: /auth/login.php');
+            exit();
+        }
     }
 
     // Если требуется админ роль
     if ($require_admin && (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin')) {
-        http_response_code(403);
-        die('Доступ запрещен. Требуются права администратора.');
+        if ($is_api) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Доступ запрещен. Требуются права администратора.']);
+            exit();
+        } else {
+            http_response_code(403);
+            die('Доступ запрещен. Требуются права администратора.');
+        }
     }
 
     // Подключаемся к БД для проверки актуальности сессии
@@ -57,8 +72,15 @@ function checkAuth($require_admin = false) {
     if (!$session_data) {
         // Сессия истекла или пользователь деактивирован
         session_destroy();
-        header('Location: /auth/login.php?error=session_expired');
-        exit();
+        if ($is_api) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Сессия истекла']);
+            exit();
+        } else {
+            header('Location: /auth/login.php?error=session_expired');
+            exit();
+        }
     }
 
     // Обновляем last_activity

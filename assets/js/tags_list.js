@@ -31,8 +31,7 @@ async function initializePage() {
  */
 async function loadFilterOptions() {
     try {
-        const response = await fetch('api/filters.php', {
-            credentials: 'same-origin',
+        const response = await fetchWithRetry('api/filters.php', {
             headers: {
                 'Accept': 'application/json'
             }
@@ -293,8 +292,7 @@ async function loadTags() {
         console.log('🔍 Отправка фильтров:', currentFilters);
         console.log('📡 API URL:', `api/tags.php?${params}`);
 
-        const response = await fetch(`api/tags.php?${params}`, {
-            credentials: 'same-origin',  // Отправляем cookies с запросом
+        const response = await fetchWithRetry(`api/tags.php?${params}`, {
             headers: {
                 'Accept': 'application/json'
             }

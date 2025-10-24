@@ -25,6 +25,7 @@ $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strt
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
 $departments = isset($_GET['departments']) ? $_GET['departments'] : '';
 $managers = isset($_GET['managers']) ? $_GET['managers'] : '';
+$hide_short_calls = isset($_GET['hide_short_calls']) ? $_GET['hide_short_calls'] : '1';
 
 // Подключение к БД
 $database = new Database();
@@ -76,6 +77,11 @@ if (!empty($managers)) {
         $params[$key] = trim($manager);
     }
     $where_conditions[] = "ar.employee_full_name IN (" . implode(',', $manager_placeholders) . ")";
+}
+
+// Фильтр "Скрыть до 10 сек"
+if ($hide_short_calls === '1') {
+    $where_conditions[] = "cr.duration_sec > 10";
 }
 
 $where_clause = implode(' AND ', $where_conditions);

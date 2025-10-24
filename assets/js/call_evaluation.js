@@ -26,6 +26,11 @@ async function initializePage() {
 
     await loadCallDetails(callid);
     setupAudioPlayer();
+
+    // Загружаем CRM данные
+    if (callData && callData.client_phone) {
+        renderCrmData();
+    }
 }
 
 /**
@@ -47,6 +52,7 @@ async function loadCallDetails(callid) {
             renderTranscript();
             renderChecklist();
             renderAnalysis();
+            renderCrmData();  // Добавлено: отрисовка CRM данных
             setupAudioSource();
         } else {
             showError(result.error || 'Ошибка загрузки данных');
@@ -157,7 +163,7 @@ function setupAudioPlayer() {
     const currentTimeSpan = document.getElementById('current-time');
     const totalTimeSpan = document.getElementById('total-time');
 
-    if (!audioPlayer) return;
+    if (!audioPlayer || !playPauseBtn || !seekBar || !volumeBar) return;
 
     // Play/Pause
     playPauseBtn.addEventListener('click', function() {
@@ -515,4 +521,78 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Отрисовка CRM данных из callData
+ */
+function renderCrmData() {
+    const crmBlock = document.getElementById('crm-data-block');
+
+    // Проверяем наличие CRM полей в callData
+    if (callData.crm_funnel_name && callData.crm_step_name) {
+        // Цветовая кодировка по воронкам
+        const funnelColors = {
+            'Покупатели': 'success',
+            'Продавец': 'info',
+            'Риелторы': 'warning'
+        };
+        const badgeColor = funnelColors[callData.crm_funnel_name] || 'secondary';
+
+        crmBlock.innerHTML = `
+            <table class="table table-sm" style="margin-bottom: 0;">
+                <tr>
+                    <th width="30%" style="border-top: none;">Воронка:</th>
+                    <td style="border-top: none;">
+                        <span class="badge badge-${badgeColor}" style="font-size: 14px; padding: 6px 12px;">${escapeHtml(callData.crm_funnel_name)}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Этап:</th>
+                    <td>${escapeHtml(callData.crm_step_name)}</td>
+                </tr>
+                <tr>
+                    <th>ID Заявки:</th>
+                    <td>
+                        ${callData.crm_requisition_id ?
+                            `<a href="https://api.joywork.ru/requisitions/${escapeHtml(callData.crm_requisition_id)}" target="_blank" style="color: #007bff;">
+                                ${escapeHtml(callData.crm_requisition_id)}
+                                <i class="fas fa-external-link-alt" style="font-size: 12px; margin-left: 4px;"></i>
+                            </a>` :
+                            '<span class="text-muted">N/A</span>'
+                        }
+                    </td>
+                </tr>
+                <tr>
+                    <th>Обновлено:</th>
+                    <td>
+                        <small class="text-muted">${callData.crm_last_sync ? formatDateTime(callData.crm_last_sync) : 'Не синхронизировано'}</small>
+                    </td>
+                </tr>
+            </table>
+        `;
+
+        // Агрегированное резюме клиента (если есть)
+        if (callData.aggregate_summary && callData.aggregate_summary.trim() !== '') {
+            crmBlock.innerHTML += `
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                    <h6 style="color: #138496; margin-bottom: 10px;">
+                        📊 Агрегированное резюме клиента
+                        ${callData.total_calls_count > 1 ? `<span class="badge badge-info" style="font-size: 0.75em; margin-left: 8px;">${callData.total_calls_count} звонков</span>` : ''}
+                    </h6>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.6;">
+                        ${escapeHtml(callData.aggregate_summary)}
+                    </div>
+                    ${callData.last_call_date ? `<small class="text-muted" style="display: block; margin-top: 8px;">Последний звонок: ${formatDateTime(callData.last_call_date)}</small>` : ''}
+                </div>
+            `;
+        }
+    } else {
+        crmBlock.innerHTML = `
+            <div class="alert alert-warning" role="alert" style="margin-bottom: 0;">
+                <i class="fas fa-exclamation-triangle"></i>
+                CRM данные не найдены для этого звонка
+            </div>
+        `;
+    }
 }

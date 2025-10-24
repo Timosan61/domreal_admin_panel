@@ -55,6 +55,13 @@ checkAuth(); // Проверка авторизации
                 <span class="sidebar-menu-text">Менеджеры</span>
             </a>
             <?php if ($_SESSION['role'] === 'admin'): ?>
+            <a href="money_tracker.php" class="sidebar-menu-item">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span class="sidebar-menu-text">Money Tracker</span>
+            </a>
             <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>
@@ -350,8 +357,149 @@ checkAuth(); // Проверка авторизации
                             </div>
                         </div>
                     </div>
-                    <div class="filter-group"></div>
-                    <div class="filter-group"></div>
+                    <div class="filter-group">
+                        <label>CRM Этап</label>
+                        <div class="multiselect" id="crm-stages-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <!-- Будет заполнено динамически -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Платежеспособность</label>
+                        <div class="multiselect" id="solvency-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="solvency_levels[]" value="green">
+                                        <span>🟢 Высокая (>10%)</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="solvency_levels[]" value="blue">
+                                        <span>🔵 Средняя (5-10%)</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="solvency_levels[]" value="yellow">
+                                        <span>🟡 Низкая (-5 до 5%)</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="solvency_levels[]" value="red">
+                                        <span>🔴 Очень низкая (<-5%)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Статус клиента</label>
+                        <div class="multiselect" id="client-status-multiselect">
+                            <div class="multiselect-trigger">
+                                <span class="multiselect-value">—</span>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="multiselect-dropdown" style="display: none;">
+                                <div class="multiselect-header">
+                                    <input type="text" class="multiselect-search" placeholder="Поиск">
+                                    <div class="multiselect-header-buttons">
+                                        <button type="button" class="multiselect-select-all">Выбрать все</button>
+                                        <button type="button" class="multiselect-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multiselect-options">
+                                    <optgroup label="🟢 Активные">
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Квалификация">
+                                            <span>Квалификация</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Подбор объектов">
+                                            <span>Подбор объектов</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Показ назначен">
+                                            <span>Показ назначен</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Показ состоялся">
+                                            <span>Показ состоялся</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Переговоры">
+                                            <span>Переговоры</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Перезвон назначен">
+                                            <span>Перезвон назначен</span>
+                                        </label>
+                                    </optgroup>
+                                    <optgroup label="🔵 Ожидание">
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Думает">
+                                            <span>Думает</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Ипотека в процессе">
+                                            <span>Ипотека в процессе</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Долгосрочный интерес">
+                                            <span>Долгосрочный интерес</span>
+                                        </label>
+                                    </optgroup>
+                                    <optgroup label="🟡 Проблемные">
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Не дозвонились">
+                                            <span>Не дозвонились</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Несоответствие бюджета">
+                                            <span>Несоответствие бюджета</span>
+                                        </label>
+                                    </optgroup>
+                                    <optgroup label="🔴 Закрытые">
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Отказ">
+                                            <span>Отказ</span>
+                                        </label>
+                                        <label class="multiselect-option">
+                                            <input type="checkbox" name="client_statuses[]" value="Не целевой">
+                                            <span>Не целевой</span>
+                                        </label>
+                                    </optgroup>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Применить</button>
@@ -377,18 +525,21 @@ checkAuth(); // Проверка авторизации
                         <th>Результат</th>
                         <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
                         <th>Резюме</th>
+                        <th>Агрегированный анализ</th>
+                        <th>Платежеспособность</th>
                         <th data-sort="started_at_utc">Дата и время <span class="sort-icon">↓</span></th>
-                        <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
                         <th data-sort="duration_sec">Длина <span class="sort-icon">↕</span></th>
                         <th>Номер</th>
+                        <th>CRM</th>
                         <th>Действия</th>
                         <th>Тип звонка</th>
                         <th data-sort="department">Отдел <span class="sort-icon">↕</span></th>
+                        <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="13" class="loading">Загрузка данных...</td>
+                        <td colspan="16" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>

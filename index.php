@@ -99,20 +99,27 @@
             <table class="calls-table" id="calls-table">
                 <thead>
                     <tr>
-                        <th data-sort="started_at_utc">Дата и время ↓</th>
+                        <th></th>
+                        <th>Тег</th>
                         <th data-sort="employee_name">Менеджер</th>
-                        <th data-sort="department">Отдел</th>
-                        <th>Клиент</th>
-                        <th data-sort="duration_sec">Длительность</th>
-                        <th>Тип</th>
-                        <th data-sort="script_compliance_score">Оценка</th>
                         <th>Результат</th>
+                        <th data-sort="script_compliance_score">Оценка</th>
+                        <th>Резюме</th>
+                        <th>Агрегированный анализ</th>
+                        <th>Платежеспособность</th>
+                        <th data-sort="started_at_utc">Дата и время ↓</th>
+                        <th data-sort="duration_sec">Длительность</th>
+                        <th>Клиент</th>
+                        <th>CRM этап</th>
                         <th>Действия</th>
+                        <th>Тип</th>
+                        <th data-sort="department">Отдел</th>
+                        <th>Направление</th>
                     </tr>
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="9" class="loading">Загрузка данных...</td>
+                        <td colspan="16" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>

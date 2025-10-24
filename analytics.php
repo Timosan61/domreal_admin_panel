@@ -544,6 +544,38 @@ $user_role = $_SESSION['role'] ?? 'user';
                     </div>
 
                     <div class="filter-group">
+                        <label>CRM Этап:</label>
+                        <div class="multi-select-wrapper">
+                            <div class="multi-select-display" id="crm-stages-display">
+                                <span>Все этапы</span>
+                            </div>
+                            <div class="multi-select-dropdown" id="crm-stages-dropdown">
+                                <div class="multi-select-header">
+                                    <input type="text" class="multi-select-search" id="crm-stages-search" placeholder="Поиск">
+                                    <div class="multi-select-header-buttons">
+                                        <button type="button" class="multi-select-btn" id="crm-stages-select-all">Выбрать все</button>
+                                        <button type="button" class="multi-select-btn" id="crm-stages-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multi-select-options" id="crm-stages-options">
+                                    <!-- Будет заполнено через JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <div class="toggle-filter-wrapper">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="hide-short-calls-analytics" name="hide_short_calls" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Скрыть до 10 сек</span>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
                         <label>&nbsp;</label>
                         <div class="filter-actions">
                             <button class="btn btn-primary" id="apply-filters">Применить</button>
@@ -633,6 +665,7 @@ $user_role = $_SESSION['role'] ?? 'user';
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <script src="assets/js/sidebar.js"></script>
+    <script src="assets/js/fetch_retry.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/analytics.js"></script>
 </body>
 </html>

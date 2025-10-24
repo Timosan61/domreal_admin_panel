@@ -25,6 +25,7 @@ $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strt
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
 $departments = isset($_GET['departments']) ? $_GET['departments'] : '';
 $managers = isset($_GET['managers']) ? $_GET['managers'] : '';
+$hide_short_calls = isset($_GET['hide_short_calls']) ? $_GET['hide_short_calls'] : '1';
 
 // Подключение к БД
 $database = new Database();
@@ -82,18 +83,36 @@ if (!empty($managers)) {
     $where_conditions[] = "ar.employee_full_name IN (" . implode(',', $manager_placeholders) . ")";
 }
 
+// Фильтр "Скрыть до 10 сек"
+if ($hide_short_calls === '1') {
+    $where_conditions[] = "cr.duration_sec > 10";
+}
+
 $where_clause = implode(' AND ', $where_conditions);
 
-// Запрос статистики выполнения скрипта
+// Запрос статистики выполнения скрипта (поддержка v3 и v4)
 $query = "
     SELECT
         COUNT(DISTINCT ar.callid) as total_first_calls,
-        SUM(CASE WHEN ar.script_check_location = 1 THEN 1 ELSE 0 END) as location_checked,
-        SUM(CASE WHEN ar.script_check_payment = 1 THEN 1 ELSE 0 END) as payment_checked,
-        SUM(CASE WHEN ar.script_check_goal = 1 THEN 1 ELSE 0 END) as goal_checked,
-        SUM(CASE WHEN ar.script_check_is_local = 1 THEN 1 ELSE 0 END) as is_local_checked,
-        SUM(CASE WHEN ar.script_check_budget = 1 THEN 1 ELSE 0 END) as budget_checked,
-        AVG(CASE WHEN ar.script_compliance_score IS NOT NULL THEN ar.script_compliance_score END) as avg_compliance_score
+
+        -- v3 statistics (5 пунктов)
+        SUM(CASE WHEN ar.script_version = 'v3' OR ar.script_version IS NULL THEN 1 ELSE 0 END) as total_v3,
+        SUM(CASE WHEN (ar.script_version = 'v3' OR ar.script_version IS NULL) AND ar.script_check_location = 1 THEN 1 ELSE 0 END) as v3_location_checked,
+        SUM(CASE WHEN (ar.script_version = 'v3' OR ar.script_version IS NULL) AND ar.script_check_payment = 1 THEN 1 ELSE 0 END) as v3_payment_checked,
+        SUM(CASE WHEN (ar.script_version = 'v3' OR ar.script_version IS NULL) AND ar.script_check_goal = 1 THEN 1 ELSE 0 END) as v3_goal_checked,
+        SUM(CASE WHEN (ar.script_version = 'v3' OR ar.script_version IS NULL) AND ar.script_check_is_local = 1 THEN 1 ELSE 0 END) as v3_is_local_checked,
+        SUM(CASE WHEN (ar.script_version = 'v3' OR ar.script_version IS NULL) AND ar.script_check_budget = 1 THEN 1 ELSE 0 END) as v3_budget_checked,
+        AVG(CASE WHEN (ar.script_version = 'v3' OR ar.script_version IS NULL) AND ar.script_compliance_score IS NOT NULL THEN ar.script_compliance_score END) as v3_avg_score,
+
+        -- v4 statistics (6 пунктов)
+        SUM(CASE WHEN ar.script_version = 'v4' THEN 1 ELSE 0 END) as total_v4,
+        SUM(CASE WHEN ar.script_version = 'v4' AND ar.script_check_v4_interest = 1 THEN 1 ELSE 0 END) as v4_interest_checked,
+        SUM(CASE WHEN ar.script_version = 'v4' AND ar.script_check_v4_location = 1 THEN 1 ELSE 0 END) as v4_location_checked,
+        SUM(CASE WHEN ar.script_version = 'v4' AND ar.script_check_v4_payment = 1 THEN 1 ELSE 0 END) as v4_payment_checked,
+        SUM(CASE WHEN ar.script_version = 'v4' AND ar.script_check_v4_goal = 1 THEN 1 ELSE 0 END) as v4_goal_checked,
+        SUM(CASE WHEN ar.script_version = 'v4' AND ar.script_check_v4_history = 1 THEN 1 ELSE 0 END) as v4_history_checked,
+        SUM(CASE WHEN ar.script_version = 'v4' AND ar.script_check_v4_action = 1 THEN 1 ELSE 0 END) as v4_action_checked,
+        AVG(CASE WHEN ar.script_version = 'v4' AND ar.script_compliance_score_v4 IS NOT NULL THEN ar.script_compliance_score_v4 END) as v4_avg_score
     FROM calls_raw cr
     INNER JOIN analysis_results ar ON cr.callid = ar.callid
     WHERE $where_clause
@@ -105,41 +124,89 @@ try {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     $total = (int)$row['total_first_calls'];
+    $total_v3 = (int)$row['total_v3'];
+    $total_v4 = (int)$row['total_v4'];
 
-    // Вычисляем проценты выполнения для каждого пункта скрипта
-    $script_items = [
-        [
-            'name' => 'Местоположение клиента',
-            'checked' => (int)$row['location_checked'],
-            'percentage' => $total > 0 ? round(((int)$row['location_checked'] / $total) * 100, 1) : 0
-        ],
-        [
-            'name' => 'Форма оплаты',
-            'checked' => (int)$row['payment_checked'],
-            'percentage' => $total > 0 ? round(((int)$row['payment_checked'] / $total) * 100, 1) : 0
-        ],
-        [
-            'name' => 'Цель покупки',
-            'checked' => (int)$row['goal_checked'],
-            'percentage' => $total > 0 ? round(((int)$row['goal_checked'] / $total) * 100, 1) : 0
-        ],
-        [
-            'name' => 'Местный ли клиент',
-            'checked' => (int)$row['is_local_checked'],
-            'percentage' => $total > 0 ? round(((int)$row['is_local_checked'] / $total) * 100, 1) : 0
-        ],
-        [
-            'name' => 'Бюджет',
-            'checked' => (int)$row['budget_checked'],
-            'percentage' => $total > 0 ? round(((int)$row['budget_checked'] / $total) * 100, 1) : 0
-        ]
-    ];
+    // Определяем, какую версию показывать (приоритет v4)
+    $use_v4 = $total_v4 > 0;
+
+    if ($use_v4) {
+        // Используем статистику v4 (6 пунктов)
+        $script_items = [
+            [
+                'name' => '5.1. Установка контекста и интерес',
+                'checked' => (int)$row['v4_interest_checked'],
+                'percentage' => $total_v4 > 0 ? round(((int)$row['v4_interest_checked'] / $total_v4) * 100, 1) : 0
+            ],
+            [
+                'name' => '5.2. В Сочи? Локация и срочность',
+                'checked' => (int)$row['v4_location_checked'],
+                'percentage' => $total_v4 > 0 ? round(((int)$row['v4_location_checked'] / $total_v4) * 100, 1) : 0
+            ],
+            [
+                'name' => '5.3. Финансовые условия',
+                'checked' => (int)$row['v4_payment_checked'],
+                'percentage' => $total_v4 > 0 ? round(((int)$row['v4_payment_checked'] / $total_v4) * 100, 1) : 0
+            ],
+            [
+                'name' => '5.4. Цель покупки',
+                'checked' => (int)$row['v4_goal_checked'],
+                'percentage' => $total_v4 > 0 ? round(((int)$row['v4_goal_checked'] / $total_v4) * 100, 1) : 0
+            ],
+            [
+                'name' => '5.5. История просмотров',
+                'checked' => (int)$row['v4_history_checked'],
+                'percentage' => $total_v4 > 0 ? round(((int)$row['v4_history_checked'] / $total_v4) * 100, 1) : 0
+            ],
+            [
+                'name' => '5.6. Немедленное действие',
+                'checked' => (int)$row['v4_action_checked'],
+                'percentage' => $total_v4 > 0 ? round(((int)$row['v4_action_checked'] / $total_v4) * 100, 1) : 0
+            ]
+        ];
+        $avg_score = $row['v4_avg_score'] ? round((float)$row['v4_avg_score'], 2) : 0;
+        $script_version = 'v4';
+    } else {
+        // Используем статистику v3 (5 пунктов) - для обратной совместимости
+        $script_items = [
+            [
+                'name' => 'Местоположение клиента',
+                'checked' => (int)$row['v3_location_checked'],
+                'percentage' => $total_v3 > 0 ? round(((int)$row['v3_location_checked'] / $total_v3) * 100, 1) : 0
+            ],
+            [
+                'name' => 'Форма оплаты',
+                'checked' => (int)$row['v3_payment_checked'],
+                'percentage' => $total_v3 > 0 ? round(((int)$row['v3_payment_checked'] / $total_v3) * 100, 1) : 0
+            ],
+            [
+                'name' => 'Цель покупки',
+                'checked' => (int)$row['v3_goal_checked'],
+                'percentage' => $total_v3 > 0 ? round(((int)$row['v3_goal_checked'] / $total_v3) * 100, 1) : 0
+            ],
+            [
+                'name' => 'Местный ли клиент',
+                'checked' => (int)$row['v3_is_local_checked'],
+                'percentage' => $total_v3 > 0 ? round(((int)$row['v3_is_local_checked'] / $total_v3) * 100, 1) : 0
+            ],
+            [
+                'name' => 'Бюджет',
+                'checked' => (int)$row['v3_budget_checked'],
+                'percentage' => $total_v3 > 0 ? round(((int)$row['v3_budget_checked'] / $total_v3) * 100, 1) : 0
+            ]
+        ];
+        $avg_score = $row['v3_avg_score'] ? round((float)$row['v3_avg_score'], 2) : 0;
+        $script_version = 'v3';
+    }
 
     $response = [
         'success' => true,
         'data' => [
             'total_first_calls' => $total,
-            'avg_compliance_score' => $row['avg_compliance_score'] ? round((float)$row['avg_compliance_score'], 2) : 0,
+            'total_v3' => $total_v3,
+            'total_v4' => $total_v4,
+            'script_version' => $script_version,
+            'avg_compliance_score' => $avg_score,
             'script_items' => $script_items
         ],
         'filters' => [

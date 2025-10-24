@@ -20,7 +20,9 @@
         date_from: null,
         date_to: null,
         departments: [],
-        managers: []
+        managers: [],
+        crm_stages: [],
+        hide_short_calls: '1'
     };
 
     // Multi-select state
@@ -42,6 +44,12 @@
         // Event listeners
         document.getElementById('apply-filters').addEventListener('click', applyFilters);
         document.getElementById('reset-filters').addEventListener('click', resetFilters);
+
+        // Toggle "Скрыть до 10 сек"
+        const hideShortCallsCheckbox = document.getElementById('hide-short-calls-analytics');
+        if (hideShortCallsCheckbox) {
+            hideShortCallsCheckbox.addEventListener('change', applyFilters);
+        }
 
         // Initialize KPI click handlers for drilldown
         initKPIClickHandlers();
@@ -168,6 +176,52 @@
         document.getElementById('managers-search').addEventListener('click', function(e) {
             e.stopPropagation();
         });
+
+        // CRM Stages multi-select
+        const crmDisplay = document.getElementById('crm-stages-display');
+        const crmDropdown = document.getElementById('crm-stages-dropdown');
+
+        crmDisplay.addEventListener('click', function() {
+            const isOpening = !crmDropdown.classList.contains('active');
+            crmDropdown.classList.toggle('active');
+            document.getElementById('departments-dropdown').classList.remove('active');
+            document.getElementById('managers-dropdown').classList.remove('active');
+
+            if (isOpening) {
+                const searchField = document.getElementById('crm-stages-search');
+                searchField.value = '';
+                filterOptions('crm-stages', '');
+            }
+        });
+
+        // CRM buttons
+        document.getElementById('crm-stages-select-all').addEventListener('click', function(e) {
+            e.stopPropagation();
+            selectAllOptions('crm-stages');
+        });
+
+        document.getElementById('crm-stages-clear').addEventListener('click', function(e) {
+            e.stopPropagation();
+            clearAllOptions('crm-stages');
+        });
+
+        // CRM search field
+        document.getElementById('crm-stages-search').addEventListener('input', function(e) {
+            e.stopPropagation();
+            filterOptions('crm-stages', e.target.value);
+        });
+
+        document.getElementById('crm-stages-search').addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        // Close CRM dropdown when clicking outside
+        const originalClickHandler = document.addEventListener;
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.multi-select-wrapper')) {
+                crmDropdown.classList.remove('active');
+            }
+        });
     }
 
     /**
@@ -176,7 +230,7 @@
     async function loadFilterOptions() {
         try {
             // Load departments
-            const deptResponse = await fetch('/api/filters/departments.php');
+            const deptResponse = await fetchWithRetry('/api/filters/departments.php');
             const deptData = await deptResponse.json();
             console.log('Departments filter data:', deptData);
 
@@ -186,13 +240,30 @@
             }
 
             // Load managers
-            const mgrResponse = await fetch('/api/filters/managers.php');
+            const mgrResponse = await fetchWithRetry('/api/filters/managers.php');
             const mgrData = await mgrResponse.json();
             console.log('Managers filter data:', mgrData);
 
             if (mgrData.success) {
                 multiSelectData.managers = mgrData.data;
                 renderMultiSelectOptions('managers', mgrData.data);
+            }
+
+            // Load CRM stages
+            const crmResponse = await fetchWithRetry('/api/crm_stages.php');
+            const crmData = await crmResponse.json();
+            console.log('CRM stages filter data:', crmData);
+
+            if (crmData.success) {
+                // Format: "Покупатели → Новый лид"
+                const crmStages = crmData.data.map(stage =>
+                    `${stage.crm_funnel_name}:${stage.crm_step_name}`
+                );
+                multiSelectData.crm_stages = crmStages;
+                renderMultiSelectOptions('crm-stages', crmStages.map(stage => {
+                    const [funnel, step] = stage.split(':');
+                    return `${funnel} → ${step}`;
+                }));
             }
         } catch (error) {
             console.error('Failed to load filter options:', error);
@@ -375,6 +446,10 @@
         currentFilters.date_to = document.getElementById('date_to').value;
         currentFilters.departments = getMultiSelectValues('departments');
         currentFilters.managers = getMultiSelectValues('managers');
+        currentFilters.crm_stages = getMultiSelectValues('crm-stages');
+
+        const hideShortCallsCheckbox = document.getElementById('hide-short-calls-analytics');
+        currentFilters.hide_short_calls = hideShortCallsCheckbox?.checked ? '1' : '0';
 
         loadDashboardData();
     }
@@ -395,6 +470,13 @@
         });
         updateMultiSelectDisplay('departments');
         updateMultiSelectDisplay('managers');
+        updateMultiSelectDisplay('crm-stages');
+
+        // Reset toggle "Скрыть до 10 сек"
+        const hideShortCallsCheckbox = document.getElementById('hide-short-calls-analytics');
+        if (hideShortCallsCheckbox) {
+            hideShortCallsCheckbox.checked = true;
+        }
 
         // Apply reset
         applyFilters();
@@ -416,6 +498,17 @@
             params.append('managers', currentFilters.managers.join(','));
         }
 
+        if (currentFilters.crm_stages.length > 0) {
+            // Convert display format back to "funnel:step" format
+            const crmStagesValues = currentFilters.crm_stages.map(stage => {
+                // "Покупатели → Новый лид" => "Покупатели:Новый лид"
+                return stage.replace(' → ', ':');
+            });
+            params.append('crm_stages', crmStagesValues.join(','));
+        }
+
+        params.append('hide_short_calls', currentFilters.hide_short_calls);
+
         return params.toString();
     }
 
@@ -432,12 +525,12 @@
             console.log('Loading dashboard data with queryString:', queryString);
 
             const [kpiData, funnelData, dynamicsData, departmentsData, managersData, scriptData] = await Promise.all([
-                fetch(`/api/analytics/kpi.php?${queryString}`).then(r => r.json()),
-                fetch(`/api/analytics/funnel.php?${queryString}`).then(r => r.json()),
-                fetch(`/api/analytics/dynamics.php?${queryString}`).then(r => r.json()),
-                fetch(`/api/analytics/departments.php?${queryString}`).then(r => r.json()),
-                fetch(`/api/analytics/managers.php?${queryString}`).then(r => r.json()),
-                fetch(`/api/analytics/script_quality.php?${queryString}`).then(r => r.json())
+                fetchWithRetry(`/api/analytics/kpi.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/funnel.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/dynamics.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/departments.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/managers.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/script_quality.php?${queryString}`).then(r => r.json())
             ]);
 
             console.log('All API responses:', {

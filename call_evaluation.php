@@ -38,6 +38,13 @@ checkAuth(); // Проверка авторизации
                 Менеджеры
             </a>
             <?php if ($_SESSION['role'] === 'admin'): ?>
+            <a href="money_tracker.php" class="sidebar-menu-item">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span class="sidebar-menu-text">Money Tracker</span>
+            </a>
             <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>
@@ -84,6 +91,18 @@ checkAuth(); // Проверка авторизации
             </div>
         </div>
 
+        <!-- CRM Information Block -->
+        <div class="card mb-3" style="border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <div class="card-header" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
+                <i class="fas fa-funnel-dollar"></i> <strong>CRM JoyWork</strong>
+            </div>
+            <div class="card-body" id="crm-data-block" style="padding: 20px;">
+                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
+                    <span class="sr-only">Загрузка...</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Транскрипция с диаризацией -->
         <div class="transcript-panel">
             <h2>📝 Транскрипция разговора</h2>
@@ -112,6 +131,6 @@ checkAuth(); // Проверка авторизации
         </div>
     </div>
 
-    <script src="assets/js/call_evaluation.js"></script>
+    <script src="assets/js/call_evaluation.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 
 session_start();
 require_once '../auth/session.php';
-checkAuth(); // Проверка авторизации
+checkAuth(false, true); // Проверка авторизации для API endpoint
 
 include_once '../config/database.php';
 

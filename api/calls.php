@@ -31,6 +31,7 @@ $call_results = isset($_GET['call_results']) ? $_GET['call_results'] : ''; // М
 $tags = isset($_GET['tags']) ? $_GET['tags'] : ''; // Множественный выбор
 $crm_stages = isset($_GET['crm_stages']) ? $_GET['crm_stages'] : ''; // Множественный выбор CRM этапов (формат: "funnel1:step1,funnel2:step2")
 $solvency_levels = isset($_GET['solvency_levels']) ? $_GET['solvency_levels'] : ''; // Множественный выбор платежеспособности
+$client_statuses = isset($_GET['client_statuses']) ? $_GET['client_statuses'] : ''; // Множественный выбор статусов клиента
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = isset($_GET['per_page']) ? min(100, max(10, intval($_GET['per_page']))) : 20;
 $sort_by = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'started_at_utc';
@@ -77,6 +78,7 @@ $query = "SELECT
     ct.tagged_at,
     ct.tagged_by_user,
     ce.aggregate_summary,
+    ce.client_overall_status,
     ce.solvency_level,
     ce.total_calls_count
 FROM calls_raw cr
@@ -298,6 +300,18 @@ if (!empty($solvency_levels)) {
     $query .= " AND ce.solvency_level IN (" . implode(', ', $solvency_placeholders) . ")";
 }
 
+// Фильтр по статусу клиента (множественный выбор из фиксированного набора)
+if (!empty($client_statuses)) {
+    $statuses_array = explode(',', $client_statuses);
+    $statuses_placeholders = [];
+    foreach ($statuses_array as $index => $status) {
+        $param_name = ':client_status_' . $index;
+        $statuses_placeholders[] = $param_name;
+        $params[$param_name] = trim($status);
+    }
+    $query .= " AND ce.client_overall_status IN (" . implode(', ', $statuses_placeholders) . ")";
+}
+
 // Подсчет общего количества записей
 // ОПТИМИЗАЦИЯ: Считаем только по calls_raw + минимум JOIN'ов (в 40x быстрее)
 $count_query = "SELECT COUNT(DISTINCT cr.callid) as total FROM calls_raw cr";
@@ -305,8 +319,8 @@ $count_query = "SELECT COUNT(DISTINCT cr.callid) as total FROM calls_raw cr";
 // Добавляем JOIN'ы только если используются фильтры из этих таблиц
 $needs_ar_join = !empty($call_type) || !empty($call_results) || !empty($ratings) || !empty($crm_stages);
 $needs_ct_join = !empty($tags);
-// client_enrichment всегда нужен для фильтра по solvency_levels
-$needs_ce_join = !empty($solvency_levels);
+// client_enrichment нужен для фильтра по solvency_levels и client_statuses
+$needs_ce_join = !empty($solvency_levels) || !empty($client_statuses);
 
 if ($needs_ar_join) {
     $count_query .= "\nLEFT JOIN analysis_results ar ON cr.callid = ar.callid";

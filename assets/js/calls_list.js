@@ -139,6 +139,28 @@ async function loadStateFromURL() {
                 resultMS.setValues(resultsArray);
             }
         }
+
+        // CRM этапы
+        const crmStages = params.get('crm_stages');
+        if (crmStages) {
+            currentFilters['crm_stages'] = crmStages;
+            const crmMS = multiselectInstances.get('crm-stages-multiselect');
+            if (crmMS) {
+                const crmArray = crmStages.split(',');
+                crmMS.setValues(crmArray);
+            }
+        }
+
+        // Платежеспособность
+        const solvencyLevels = params.get('solvency_levels');
+        if (solvencyLevels) {
+            currentFilters['solvency_levels'] = solvencyLevels;
+            const solvencyMS = multiselectInstances.get('solvency-multiselect');
+            if (solvencyMS) {
+                const solvencyArray = solvencyLevels.split(',');
+                solvencyMS.setValues(solvencyArray);
+            }
+        }
     }
 
     // Восстанавливаем сортировку
@@ -238,6 +260,21 @@ async function loadFilterOptions() {
                     { name: 'tags[]', value: 'question', label: '❓ Вопрос' }
                 ];
                 tagsMS.setOptions(tagOptions);
+            }
+
+            // Загружаем CRM этапы
+            const crmResponse = await fetch('api/crm_stages.php');
+            const crmData = await crmResponse.json();
+            if (crmData.success && crmData.data) {
+                const crmMS = multiselectInstances.get('crm-stages-multiselect');
+                if (crmMS) {
+                    const crmOptions = crmData.data.map(stage => ({
+                        name: 'crm_stages[]',
+                        value: `${stage.crm_funnel_name}:${stage.crm_step_name}`,
+                        label: `${stage.crm_funnel_name} → ${stage.crm_step_name}`
+                    }));
+                    crmMS.setOptions(crmOptions);
+                }
             }
 
             // Типы звонков уже заданы в HTML
@@ -469,6 +506,33 @@ function getFiltersFromForm() {
                 filters['call_results'] = results.join(',');
             }
         }
+
+        // CRM этапы
+        const crmMS = multiselectInstances.get('crm-stages-multiselect');
+        if (crmMS) {
+            const crmStages = crmMS.getValues();
+            if (crmStages.length > 0) {
+                filters['crm_stages'] = crmStages.join(',');
+            }
+        }
+
+        // Платежеспособность
+        const solvencyMS = multiselectInstances.get('solvency-multiselect');
+        if (solvencyMS) {
+            const solvencyLevels = solvencyMS.getValues();
+            if (solvencyLevels.length > 0) {
+                filters['solvency_levels'] = solvencyLevels.join(',');
+            }
+        }
+
+        // Статус клиента
+        const clientStatusMS = multiselectInstances.get('client-status-multiselect');
+        if (clientStatusMS) {
+            const clientStatuses = clientStatusMS.getValues();
+            if (clientStatuses.length > 0) {
+                filters['client_statuses'] = clientStatuses.join(',');
+            }
+        }
     }
 
     return filters;
@@ -479,7 +543,7 @@ function getFiltersFromForm() {
  */
 async function loadCalls() {
     const tbody = document.getElementById('calls-tbody');
-    tbody.innerHTML = '<tr><td colspan="13" class="loading">Загрузка данных...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="16" class="loading">Загрузка данных...</td></tr>';
 
     try {
         // Формируем URL с параметрами
@@ -494,7 +558,20 @@ async function loadCalls() {
         console.log('🔍 Отправка фильтров:', currentFilters);
         console.log('📡 API URL:', `api/calls.php?${params}`);
 
-        const response = await fetch(`api/calls.php?${params}`);
+        // Добавляем timeout для предотвращения зависания
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+            console.error('⏱️ Timeout: запрос превысил 30 секунд');
+        }, 30000); // 30 секунд
+
+        const response = await fetch(`api/calls.php?${params}`, {
+            signal: controller.signal
+        });
+
+        // Очистить таймер после успешного ответа
+        clearTimeout(timeoutId);
+
         const result = await response.json();
 
         if (result.success) {
@@ -502,11 +579,16 @@ async function loadCalls() {
             renderPagination(result.pagination);
             updateStats(result.pagination);
         } else {
-            tbody.innerHTML = '<tr><td colspan="13" class="error">Ошибка загрузки данных</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="16" class="error">Ошибка загрузки данных</td></tr>';
         }
     } catch (error) {
         console.error('Ошибка загрузки звонков:', error);
-        tbody.innerHTML = '<tr><td colspan="13" class="error">Ошибка подключения к серверу</td></tr>';
+
+        if (error.name === 'AbortError') {
+            tbody.innerHTML = '<tr><td colspan="16" class="error">⏱️ Превышено время ожидания (30 сек). Попробуйте упростить фильтры или обратитесь к администратору.</td></tr>';
+        } else {
+            tbody.innerHTML = '<tr><td colspan="16" class="error">Ошибка подключения к серверу</td></tr>';
+        }
     }
 }
 
@@ -517,7 +599,7 @@ function renderCalls(calls) {
     const tbody = document.getElementById('calls-tbody');
 
     if (calls.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center">Звонки не найдены</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center">Звонки не найдены</td></tr>';
         return;
     }
 
@@ -533,13 +615,15 @@ function renderCalls(calls) {
                 ${formatTag(call.tag_type)}
             </td>
             <td class="employee-cell" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
-            <td>${formatCallResult(call.call_result, call.is_successful, call.call_type)}</td>
+            <td>${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
             <td class="text-center">${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
             <td class="summary-cell" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
+            <td class="aggregate-cell" data-full-text="${escapeHtml(call.aggregate_summary || '')}" data-call-count="${call.total_calls_count || 0}">${formatAggregate(call.aggregate_summary, call.total_calls_count)}</td>
+            <td class="solvency-cell">${formatSolvency(call.solvency_level)}</td>
             <td>${formatDateTime(call.started_at_utc)}</td>
-            <td>${formatDirection(call.direction)}</td>
             <td class="text-center">${formatDuration(call.duration_sec)}</td>
             <td>${escapeHtml(call.client_phone || '-')}</td>
+            <td class="crm-cell">${formatCrmStage(call.crm_funnel_name, call.crm_step_name)}</td>
             <td class="actions-cell">
                 <button class="btn-play-audio ${currentPlayingCallId === call.callid ? 'playing' : ''}"
                         data-callid="${call.callid}"
@@ -558,12 +642,14 @@ function renderCalls(calls) {
             </td>
             <td>${formatCallType(call.call_type)}</td>
             <td class="department-cell" data-full-text="${escapeHtml(call.department || '-')}">${formatDepartment(call.department)}</td>
+            <td>${formatDirection(call.direction)}</td>
         </tr>
     `).join('');
 
     // Инициализация tooltip для обрезанных ячеек
     initTruncatedCellTooltips('.employee-cell');
     initTruncatedCellTooltips('.summary-cell');
+    initTruncatedCellTooltips('.aggregate-cell');
     initTruncatedCellTooltips('.department-cell');
 
     // Инициализация обработчиков для кнопок Play
@@ -842,6 +928,34 @@ function formatSummary(summaryText) {
 }
 
 /**
+ * Форматирование агрегированного анализа клиента с обрезкой текста
+ */
+function formatAggregate(aggregateText, totalCalls) {
+    if (!aggregateText || aggregateText.trim() === '') {
+        // Если нет агрегированного анализа, показываем просто количество звонков
+        if (totalCalls && totalCalls > 0) {
+            return `<span class="text-muted" style="font-size: 0.9em;">${totalCalls} звонков</span>`;
+        }
+        return '-';
+    }
+
+    const maxLength = 40;
+    const text = aggregateText.trim();
+
+    // Добавляем метку с количеством звонков если есть
+    let prefix = '';
+    if (totalCalls && totalCalls > 1) {
+        prefix = `<span class="badge badge-info" style="font-size: 0.75em; margin-right: 4px;">${totalCalls}</span>`;
+    }
+
+    if (text.length > maxLength) {
+        return prefix + escapeHtml(text.substring(0, maxLength)) + '...';
+    }
+
+    return prefix + escapeHtml(text);
+}
+
+/**
  * Форматирование имени менеджера с обрезкой текста
  */
 function formatEmployeeName(employeeName) {
@@ -1048,6 +1162,51 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Форматирование CRM воронки и этапа
+ */
+function formatCrmStage(funnelName, stepName) {
+    if (!funnelName || !stepName) {
+        return '<span class="badge badge-secondary">Нет данных</span>';
+    }
+
+    // Цветовая кодировка по воронкам
+    const colors = {
+        'Покупатели': 'success',
+        'Продавец': 'info',
+        'Риелторы': 'warning'
+    };
+
+    const color = colors[funnelName] || 'secondary';
+
+    return `
+        <span class="badge badge-${color}">
+            ${escapeHtml(funnelName)}
+        </span>
+        <br>
+        <small class="text-muted">${escapeHtml(stepName)}</small>
+    `;
+}
+
+/**
+ * Форматирование платежеспособности клиента
+ */
+function formatSolvency(solvencyLevel) {
+    if (!solvencyLevel) {
+        return '<span class="text-muted">—</span>';
+    }
+
+    const badges = {
+        'green': { text: '🟢 Высокая', class: 'success' },
+        'blue': { text: '🔵 Средняя', class: 'info' },
+        'yellow': { text: '🟡 Низкая', class: 'warning' },
+        'red': { text: '🔴 Очень низкая', class: 'danger' }
+    };
+
+    const badge = badges[solvencyLevel] || { text: solvencyLevel, class: 'secondary' };
+    return `<span class="badge badge-${badge.class}">${badge.text}</span>`;
 }
 
 /* ========================================

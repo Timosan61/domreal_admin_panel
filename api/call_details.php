@@ -12,7 +12,7 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 
 session_start();
 require_once '../auth/session.php';
-checkAuth(); // Проверка авторизации
+checkAuth(false, true); // Проверка авторизации для API endpoint
 
 include_once '../config/database.php';
 
@@ -55,16 +55,36 @@ $query = "SELECT
     ar.script_check_is_local,
     ar.script_check_budget,
     ar.script_check_details,
+    ar.script_version,
+    ar.script_compliance_score_v4,
+    ar.script_check_v4_interest,
+    ar.script_check_v4_location,
+    ar.script_check_v4_payment,
+    ar.script_check_v4_goal,
+    ar.script_check_v4_history,
+    ar.script_check_v4_action,
+    ar.script_check_details_v4,
     ar.raw_response as llm_analysis,
+    ar.crm_funnel_id,
+    ar.crm_funnel_name,
+    ar.crm_step_id,
+    ar.crm_step_name,
+    ar.crm_requisition_id,
+    ar.crm_last_sync,
     aj.local_path as audio_path,
     aj.status as audio_status,
     aj.error_text as audio_error,
     aj.file_size_bytes,
-    aj.file_format
+    aj.file_format,
+    ce.aggregate_summary,
+    ce.total_calls_count,
+    ce.successful_calls_count,
+    ce.last_call_date
 FROM calls_raw cr
 LEFT JOIN transcripts t ON cr.callid = t.callid
 LEFT JOIN analysis_results ar ON cr.callid = ar.callid
 LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
+LEFT JOIN client_enrichment ce ON CONCAT('+7', cr.client_phone) = ce.client_phone
 WHERE cr.callid = :callid
 LIMIT 1";
 
@@ -115,45 +135,130 @@ if (!empty($call['payload_json'])) {
 $checklist = [];
 $metrics = [];
 
-if (!empty($call['metrics_json'])) {
-    $metrics = json_decode($call['metrics_json'], true);
-
-    // Формируем чеклист на основе metrics_json
-    if ($call['call_type'] === 'first_call' && isset($metrics['script_checks'])) {
-        $checks = $metrics['script_checks'];
-
+// Определяем версию скрипта и формируем соответствующий чеклист
+if ($call['call_type'] === 'first_call') {
+    if ($call['script_version'] === 'v4') {
+        // Новый чеклист v4 (6 пунктов)
         $checklist = [
             [
-                'id' => 'location',
-                'label' => 'Местоположение клиента выяснено',
-                'checked' => isset($checks['location']) ? boolval($checks['location']) : false,
-                'description' => 'Менеджер уточнил, где именно клиент ищет недвижимость'
+                'id' => 'v4_interest',
+                'label' => '5.1. Установка контекста и интерес',
+                'checked' => boolval($call['script_check_v4_interest']),
+                'description' => 'Менеджер выяснил стадию заинтересованности клиента (активный поиск / изучение рынка)'
             ],
             [
-                'id' => 'payment',
-                'label' => 'Форма оплаты выяснена',
-                'checked' => isset($checks['payment']) ? boolval($checks['payment']) : false,
-                'description' => 'Уточнена форма оплаты (наличные, ипотека, рассрочка)'
+                'id' => 'v4_location',
+                'label' => '5.2. В Сочи? Локация и срочность',
+                'checked' => boolval($call['script_check_v4_location']),
+                'description' => 'Менеджер уточнил местоположение клиента и возможность очного показа'
             ],
             [
-                'id' => 'goal',
-                'label' => 'Цель покупки выяснена',
-                'checked' => isset($checks['goal']) ? boolval($checks['goal']) : false,
-                'description' => 'Выяснена цель покупки (инвестиция, для себя, для сдачи)'
+                'id' => 'v4_payment',
+                'label' => '5.3. Финансовые условия',
+                'checked' => boolval($call['script_check_v4_payment']),
+                'description' => 'Менеджер выяснил способ оплаты (наличные/ипотека/рассрочка)'
             ],
             [
-                'id' => 'is_local',
-                'label' => 'Местный ли клиент',
-                'checked' => isset($checks['is_local']) ? boolval($checks['is_local']) : false,
-                'description' => 'Определено, находится ли клиент в городе или регионе'
+                'id' => 'v4_goal',
+                'label' => '5.4. Цель покупки',
+                'checked' => boolval($call['script_check_v4_goal']),
+                'description' => 'Менеджер выяснил цель покупки (для себя/инвестиция/сдача в аренду)'
             ],
             [
-                'id' => 'budget',
-                'label' => 'Бюджет выяснен',
-                'checked' => isset($checks['budget']) ? boolval($checks['budget']) : false,
-                'description' => 'Уточнен бюджет клиента на покупку'
+                'id' => 'v4_history',
+                'label' => '5.5. История просмотров',
+                'checked' => boolval($call['script_check_v4_history']),
+                'description' => 'Менеджер выяснил предыдущий опыт поиска недвижимости и причины отказа'
+            ],
+            [
+                'id' => 'v4_action',
+                'label' => '5.6. Немедленное действие',
+                'checked' => boolval($call['script_check_v4_action']),
+                'description' => 'Менеджер договорился о конкретном следующем шаге (отправка КП / созвон / онлайн-показ / время встречи)'
             ]
         ];
+
+        // Используем score v4
+        if ($call['script_compliance_score_v4'] !== null) {
+            $call['script_compliance_score'] = $call['script_compliance_score_v4'];
+        }
+    } else {
+        // Старый чеклист v3 (5 пунктов) - для обратной совместимости
+        if (!empty($call['metrics_json'])) {
+            $metrics = json_decode($call['metrics_json'], true);
+
+            // Формируем чеклист на основе metrics_json
+            if (isset($metrics['script_checks'])) {
+                $checks = $metrics['script_checks'];
+
+                $checklist = [
+                    [
+                        'id' => 'location',
+                        'label' => 'Местоположение клиента выяснено',
+                        'checked' => isset($checks['location']) ? boolval($checks['location']) : false,
+                        'description' => 'Менеджер уточнил, где именно клиент ищет недвижимость'
+                    ],
+                    [
+                        'id' => 'payment',
+                        'label' => 'Форма оплаты выяснена',
+                        'checked' => isset($checks['payment']) ? boolval($checks['payment']) : false,
+                        'description' => 'Уточнена форма оплаты (наличные, ипотека, рассрочка)'
+                    ],
+                    [
+                        'id' => 'goal',
+                        'label' => 'Цель покупки выяснена',
+                        'checked' => isset($checks['goal']) ? boolval($checks['goal']) : false,
+                        'description' => 'Выяснена цель покупки (инвестиция, для себя, для сдачи)'
+                    ],
+                    [
+                        'id' => 'is_local',
+                        'label' => 'Местный ли клиент',
+                        'checked' => isset($checks['is_local']) ? boolval($checks['is_local']) : false,
+                        'description' => 'Определено, находится ли клиент в городе или регионе'
+                    ],
+                    [
+                        'id' => 'budget',
+                        'label' => 'Бюджет выяснен',
+                        'checked' => isset($checks['budget']) ? boolval($checks['budget']) : false,
+                        'description' => 'Уточнен бюджет клиента на покупку'
+                    ]
+                ];
+            }
+        } else {
+            // Fallback на прямые поля v3 из БД
+            $checklist = [
+                [
+                    'id' => 'location',
+                    'label' => 'Местоположение клиента выяснено',
+                    'checked' => boolval($call['script_check_location']),
+                    'description' => 'Менеджер уточнил, где именно клиент ищет недвижимость'
+                ],
+                [
+                    'id' => 'payment',
+                    'label' => 'Форма оплаты выяснена',
+                    'checked' => boolval($call['script_check_payment']),
+                    'description' => 'Уточнена форма оплаты (наличные, ипотека, рассрочка)'
+                ],
+                [
+                    'id' => 'goal',
+                    'label' => 'Цель покупки выяснена',
+                    'checked' => boolval($call['script_check_goal']),
+                    'description' => 'Выяснена цель покупки (инвестиция, для себя, для сдачи)'
+                ],
+                [
+                    'id' => 'is_local',
+                    'label' => 'Местный ли клиент',
+                    'checked' => boolval($call['script_check_is_local']),
+                    'description' => 'Определено, находится ли клиент в городе или регионе'
+                ],
+                [
+                    'id' => 'budget',
+                    'label' => 'Бюджет выяснен',
+                    'checked' => boolval($call['script_check_budget']),
+                    'description' => 'Уточнен бюджет клиента на покупку'
+                ]
+            ];
+        }
     }
 }
 
