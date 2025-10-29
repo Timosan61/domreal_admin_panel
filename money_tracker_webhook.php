@@ -459,6 +459,54 @@ $webhook_url = "http://195.239.161.77:18080/api/webhook_gck_money_tracker.php";
                 <div id="test-result" style="margin-top: 1rem;"></div>
             </div>
 
+            <!-- Webhook Forwarding Settings -->
+            <div class="config-section">
+                <h2>Настройки переадресации вебхуков</h2>
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    Временная функция для дублирования вебхуков на старый URL во время тестирования
+                </p>
+
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="forward-enabled" style="width: auto;">
+                            <span>Включить переадресацию вебхуков</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>URL для переадресации:</label>
+                        <input type="text" id="forward-url" placeholder="https://example.com/webhook">
+                        <div class="form-help">
+                            Вебхуки будут автоматически дублироваться на этот URL
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Таймаут (секунды):</label>
+                        <input type="number" id="forward-timeout" min="1" max="60" value="10" style="width: 100px;">
+                        <div class="form-help">
+                            Максимальное время ожидания ответа (1-60 секунд)
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="test-button" onclick="saveForwardSettings()" style="background: #28a745;">Сохранить настройки</button>
+                        <button class="test-button" onclick="testForwarding()">Тест переадресации</button>
+                        <button class="test-button" onclick="viewForwardLogs()" style="background: #6c757d;">Просмотр логов</button>
+                    </div>
+                </div>
+
+                <!-- Forward Logs Display -->
+                <div id="forward-logs" style="display: none; background: #f8f9fa; padding: 1.5rem; border-radius: 4px; margin-top: 1rem;">
+                    <h3 style="margin-top: 0;">Последние записи лога переадресации</h3>
+                    <pre id="forward-logs-content" style="background: #fff; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto; font-size: 12px;"></pre>
+                </div>
+
+                <!-- Test Result Display -->
+                <div id="test-result" style="display: none; margin-top: 1rem;"></div>
+            </div>
+
             <!-- Google Sheets Clients Management -->
             <div class="config-section">
                 <h2>Управление клиентами Google Sheets</h2>
@@ -868,6 +916,118 @@ $webhook_url = "http://195.239.161.77:18080/api/webhook_gck_money_tracker.php";
             if (localStorage.getItem('sidebarCollapsed') === 'true') {
                 body.classList.add('sidebar-collapsed');
             }
+        });
+
+        // ========================================
+        // Webhook Forwarding Functions
+        // ========================================
+
+        // Load forward settings on page load
+        function loadForwardSettings() {
+            fetch('api/webhook_forward_settings.php?action=get')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const settings = data.settings;
+                        document.getElementById('forward-enabled').checked = settings.webhook_forward_enabled?.value === 'true';
+                        document.getElementById('forward-url').value = settings.webhook_forward_url?.value || '';
+                        document.getElementById('forward-timeout').value = settings.webhook_forward_timeout?.value || '10';
+                    }
+                })
+                .catch(error => console.error('Error loading forward settings:', error));
+        }
+
+        // Save forward settings
+        function saveForwardSettings() {
+            const enabled = document.getElementById('forward-enabled').checked;
+            const url = document.getElementById('forward-url').value.trim();
+            const timeout = parseInt(document.getElementById('forward-timeout').value);
+
+            fetch('api/webhook_forward_settings.php?action=update', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled, url, timeout})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Настройки переадресации сохранены', 'success');
+                } else {
+                    showToast('Ошибка: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Ошибка сохранения: ' + error.message, 'error');
+            });
+        }
+
+        // Test forwarding
+        function testForwarding() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div style="padding: 1rem; background: #fff3cd; border-radius: 4px;">Отправка тестового запроса...</div>';
+
+            fetch('api/webhook_forward_settings.php?action=test', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div style="padding: 1rem; background: #d4edda; border-radius: 4px; color: #155724;">
+                            <strong>✅ Тест успешен</strong><br>
+                            HTTP код: ${data.http_code}<br>
+                            Время ответа: ${data.response_time_ms}ms<br>
+                            ${data.response_body ? '<pre style="margin-top: 0.5rem; white-space: pre-wrap; word-wrap: break-word;">' + data.response_body + '</pre>' : ''}
+                        </div>
+                    `;
+                    showToast('Тест переадресации успешен', 'success');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="padding: 1rem; background: #f8d7da; border-radius: 4px; color: #721c24;">
+                            <strong>❌ Ошибка теста</strong><br>
+                            ${data.error}
+                        </div>
+                    `;
+                    showToast('Ошибка теста: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `
+                    <div style="padding: 1rem; background: #f8d7da; border-radius: 4px; color: #721c24;">
+                        <strong>❌ Ошибка</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+                showToast('Ошибка теста: ' + error.message, 'error');
+            });
+        }
+
+        // View forward logs
+        function viewForwardLogs() {
+            const logsDiv = document.getElementById('forward-logs');
+            const logsContent = document.getElementById('forward-logs-content');
+
+            if (logsDiv.style.display === 'none') {
+                // Load logs
+                fetch('api/webhook_forward_settings.php?action=get_logs')
+                    .then(response => response.text())
+                    .then(data => {
+                        logsContent.textContent = data || 'Лог пуст';
+                        logsDiv.style.display = 'block';
+                    })
+                    .catch(error => {
+                        logsContent.textContent = 'Ошибка загрузки логов: ' + error.message;
+                        logsDiv.style.display = 'block';
+                    });
+            } else {
+                logsDiv.style.display = 'none';
+            }
+        }
+
+        // Auto-load forward settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadForwardSettings();
         });
     </script>
 </body>
