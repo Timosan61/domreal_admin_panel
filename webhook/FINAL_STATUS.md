@@ -49,7 +49,7 @@
 
 ### 4. ✅ Мониторинг в реальном времени
 
-**URL:** http://195.239.161.77:18080/webhook/monitor.php
+**URL:** https://domrilhost.ru:18080/webhook/monitor.php
 
 **Показывает:**
 - 🌐 Creatium requests
@@ -64,7 +64,7 @@
 
 ### 5. ✅ Админ-панель
 
-**URL:** http://195.239.161.77:18080/admin_panel/lidtracker/leads.php
+**URL:** https://domrilhost.ru:18080/admin_panel/lidtracker/leads.php
 
 **Новые возможности:**
 - 🔍 Глобальный поиск по всем новым полям
@@ -131,7 +131,7 @@ tail -f /home/artem/Domreal_Whisper/admin_panel/webhook/gck_debug.log
 **Решение:**
 1. Зайти в панель Creatium
 2. Найти раздел "Webhooks"
-3. URL: `http://195.239.161.77:18080/webhook/creatium.php`
+3. URL: `https://domrilhost.ru:18080/webhook/creatium.php`
 4. Нажать "Test" или пересохранить URL
 5. После успешного теста вебхук активируется
 
@@ -142,13 +142,13 @@ tail -f /home/artem/Domreal_Whisper/admin_panel/webhook/gck_debug.log
 ## 🎯 Быстрый тест
 
 ### 1. Откройте монитор
-http://195.239.161.77:18080/webhook/monitor.php
+https://domrilhost.ru:18080/webhook/monitor.php
 
 ### 2. Отправьте тестовый запрос
 
 **GCK (работает):**
 ```bash
-curl -X POST http://195.239.161.77:18080/webhook/gck.php \
+curl -X POST https://domrilhost.ru:18080/webhook/gck.php \
   -H "Content-Type: application/json" \
   -d '{
     "phones": ["11111111111"],
@@ -162,7 +162,7 @@ curl -X POST http://195.239.161.77:18080/webhook/gck.php \
 
 **Marquiz (работает):**
 ```bash
-curl -X POST http://195.239.161.77:18080/webhook/marquiz.php \
+curl -X POST https://domrilhost.ru:18080/webhook/marquiz.php \
   -H "Content-Type: application/json" \
   -d '{
     "quiz": {"name": "Тестовый квиз"},
@@ -172,7 +172,7 @@ curl -X POST http://195.239.161.77:18080/webhook/marquiz.php \
 
 **Creatium (работает код, но нужно переподключить в панели):**
 ```bash
-curl -X POST http://195.239.161.77:18080/webhook/creatium.php \
+curl -X POST https://domrilhost.ru:18080/webhook/creatium.php \
   -H "Content-Type: application/json" \
   -d '{
     "site": {"name": "Тестовый сайт"},

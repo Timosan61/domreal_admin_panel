@@ -6,7 +6,7 @@ echo "╔═══════════════════════�
 echo "║         🔴 МОНИТОРИНГ CREATIUM WEBHOOK (РЕАЛЬНОЕ ВРЕМЯ)      ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "📍 URL: http://195.239.161.77:18080/webhook/creatium.php"
+echo "📍 URL: https://domrilhost.ru:18080/webhook/creatium.php"
 echo "⏰ Запущено: $(date '+%H:%M:%S')"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

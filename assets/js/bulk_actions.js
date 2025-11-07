@@ -157,6 +157,11 @@ class BulkActions {
             this.openTagModal('question', '❓ Вопрос');
         });
 
+        // Кнопка "Проблемный"
+        document.getElementById('bulk-tag-problem')?.addEventListener('click', () => {
+            this.openTagModal('problem', '⚠️ Проблемный');
+        });
+
         // Кнопка "Снять теги"
         document.getElementById('bulk-remove-tags')?.addEventListener('click', () => {
             this.removeTags();
@@ -171,6 +176,16 @@ class BulkActions {
         this.tagModalTitle.textContent = `Применить тег: ${title}`;
         this.tagModalCount.textContent = this.selectedCallIds.size;
         this.tagNoteTextarea.value = '';
+
+        // Для тега 'problem' описание обязательно
+        if (tagType === 'problem') {
+            this.tagNoteTextarea.placeholder = 'Обязательно опишите проблему: что не так в этом звонке?';
+            this.tagNoteTextarea.setAttribute('required', 'true');
+        } else {
+            this.tagNoteTextarea.placeholder = 'Введите дополнительную заметку к тегу...';
+            this.tagNoteTextarea.removeAttribute('required');
+        }
+
         this.tagModal.style.display = 'flex';
     }
 
@@ -210,6 +225,14 @@ class BulkActions {
         }
 
         const note = this.tagNoteTextarea.value.trim();
+
+        // Для тега 'problem' описание обязательно
+        if (this.currentTagType === 'problem' && !note) {
+            alert('⚠️ Для проблемных звонков необходимо указать описание проблемы!');
+            this.tagNoteTextarea.focus();
+            return;
+        }
+
         const callids = Array.from(this.selectedCallIds);
 
         const submitBtn = document.getElementById('tag-modal-submit');
@@ -321,7 +344,8 @@ class BulkActions {
         const tagEmojis = {
             'good': '✅',
             'bad': '❌',
-            'question': '❓'
+            'question': '❓',
+            'problem': '⚠️'
         };
 
         callids.forEach(callid => {

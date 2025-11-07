@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Enable error logging
 ini_set('log_errors', 1);
-ini_set('error_log', '/var/www/html/logs/webhook_gck_money_tracker.log');
+ini_set('error_log', __DIR__ . '/../../logs/webhook_gck_money_tracker.log');
 
 // Include database configuration
 include_once '../config/database.php';
@@ -50,7 +50,7 @@ include_once '../config/database.php';
  * Forward webhook to external URL (asynchronous, non-blocking)
  */
 function forward_webhook_async($db, $raw_payload) {
-    $log_file = '/var/www/html/logs/webhook_forward.log';
+    $log_file = __DIR__ . '/../../logs/webhook_forward.log';
 
     try {
         // Get forward settings
@@ -319,8 +319,7 @@ if ($batch_id && $added > 0) {
     try {
         $update_batch = "UPDATE enrichment_batches SET
             total_records = :total,
-            pending_records = :pending,
-            updated_at = NOW()
+            pending_records = :pending
             WHERE id = :batch_id";
         $update_stmt = $db->prepare($update_batch);
         $update_stmt->execute([

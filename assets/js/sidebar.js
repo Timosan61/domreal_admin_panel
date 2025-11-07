@@ -41,12 +41,25 @@
         document.body.appendChild(mobileMenuBtn);
     }
 
+    // ВРЕМЕННО: Сброс состояния sidebar для всех пользователей (можно удалить через неделю)
+    const resetFlag = localStorage.getItem('sidebarResetDone');
+    if (!resetFlag) {
+        localStorage.removeItem('sidebarCollapsed');
+        localStorage.setItem('sidebarResetDone', 'true');
+    }
+
     // Загрузка сохраненного состояния из localStorage (только для desktop)
+    // По умолчанию sidebar развернут
     if (!isMobile()) {
-        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (isCollapsed) {
+        const savedState = localStorage.getItem('sidebarCollapsed');
+        // Применяем только если явно сохранено состояние
+        if (savedState === 'true') {
             sidebar.classList.add('collapsed');
             document.body.classList.add('sidebar-collapsed');
+        } else {
+            // Убедимся что sidebar развернут по умолчанию
+            sidebar.classList.remove('collapsed');
+            document.body.classList.remove('sidebar-collapsed');
         }
     }
 

@@ -48,11 +48,11 @@ try {
                 exit();
             }
 
-            if (!isset($data['tag_type']) || !in_array($data['tag_type'], ['good', 'bad', 'question'])) {
+            if (!isset($data['tag_type']) || !in_array($data['tag_type'], ['good', 'bad', 'question', 'problem'])) {
                 http_response_code(400);
                 echo json_encode([
                     "success" => false,
-                    "error" => "Valid tag_type is required (good, bad, question)"
+                    "error" => "Valid tag_type is required (good, bad, question, problem)"
                 ]);
                 exit();
             }

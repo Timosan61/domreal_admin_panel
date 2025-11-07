@@ -32,6 +32,10 @@ require_once '../auth/session.php';
 // КРИТИЧЕСКИ ВАЖНО: Проверка админских прав (API режим)
 checkAuth($require_admin = true, $is_api = true);
 
+// ВАЖНО: Освобождаем блокировку сессии сразу после авторизации
+// Это позволяет параллельным запросам выполняться одновременно (fix для зависания пагинации)
+session_write_close();
+
 include_once '../config/database.php';
 
 // Получаем параметры фильтрации
@@ -43,8 +47,10 @@ $status = isset($_GET['status']) ? $_GET['status'] : '';
 $inn_filter = isset($_GET['inn_filter']) ? $_GET['inn_filter'] : '';
 $source_filter = isset($_GET['source_filter']) ? $_GET['source_filter'] : '';
 $data_source_filter = isset($_GET['data_source_filter']) ? $_GET['data_source_filter'] : '';
+$webhook_source_filter = isset($_GET['webhook_source_filter']) ? $_GET['webhook_source_filter'] : ''; // NEW: Фильтр GCK vs Calls
 $phone_search = isset($_GET['phone_search']) ? $_GET['phone_search'] : '';
 $solvency_levels = isset($_GET['solvency_levels']) ? $_GET['solvency_levels'] : '';
+$batch_id = isset($_GET['batch_id']) ? intval($_GET['batch_id']) : 0;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = isset($_GET['per_page']) ? min(100, max(10, intval($_GET['per_page']))) : 50;
 $sort_by = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'created_at';
@@ -229,7 +235,9 @@ $query = "SELECT
     dadata_registration_date,
     data_source,
     company_inn,
-    company_solvency_score
+    company_solvency_score,
+    -- Webhook source (для фильтра GCK vs Beeline)
+    webhook_source
 FROM client_enrichment
 WHERE 1=1";
 
@@ -265,6 +273,12 @@ if (!empty($status)) {
     $params[':status'] = $status;
 }
 
+// Фильтр по batch_id (загрузке)
+if ($batch_id > 0) {
+    $query .= " AND batch_id = :batch_id";
+    $params[':batch_id'] = $batch_id;
+}
+
 // Фильтр по наличию ИНН
 if ($inn_filter === 'yes') {
     $query .= " AND inn IS NOT NULL AND inn != ''";
@@ -282,6 +296,15 @@ if (!empty($source_filter)) {
 if (!empty($data_source_filter)) {
     $query .= " AND data_source = :data_source_filter";
     $params[':data_source_filter'] = $data_source_filter;
+}
+
+// Фильтр по webhook source (GCK / Beeline Calls)
+if (!empty($webhook_source_filter)) {
+    if ($webhook_source_filter === 'gck') {
+        $query .= " AND webhook_source = 'gck'";
+    } elseif ($webhook_source_filter === 'calls') {
+        $query .= " AND (webhook_source IS NULL OR webhook_source = '')";
+    }
 }
 
 // Фильтр по номеру телефона

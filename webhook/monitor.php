@@ -115,9 +115,9 @@
         <div class="header">
             <h1>🔴 WEBHOOK MONITOR (ALL)</h1>
             <div style="margin-top: 10px;">
-                <strong>Creatium:</strong> http://195.239.161.77:18080/webhook/creatium.php<br>
-                <strong>GCK:</strong> http://195.239.161.77:18080/webhook/gck.php<br>
-                <strong>Marquiz:</strong> http://195.239.161.77:18080/webhook/marquiz.php
+                <strong>Creatium:</strong> https://domrilhost.ru:18080/webhook/creatium.php<br>
+                <strong>GCK:</strong> https://domrilhost.ru:18080/webhook/gck.php<br>
+                <strong>Marquiz:</strong> https://domrilhost.ru:18080/webhook/marquiz.php
             </div>
             <div class="status">
                 <div class="status-item">

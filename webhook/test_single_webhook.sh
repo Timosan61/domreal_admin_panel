@@ -36,7 +36,7 @@ echo ""
 
 # Отправка запроса
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
-  -X POST "http://195.239.161.77/admin_panel/webhook/creatium.php" \
+  -X POST "https://domrilhost.ru/admin_panel/webhook/creatium.php" \
   -H "Content-Type: application/json" \
   -d "$TEST_PAYLOAD")
 
@@ -113,8 +113,8 @@ fi
 echo ""
 echo ""
 echo "💡 Полезные ссылки:"
-echo "   Веб-мониторинг: http://195.239.161.77/admin_panel/webhook/status.php"
-echo "   Админ-панель:   http://195.239.161.77/admin_panel/lidtracker/leads.php"
+echo "   Веб-мониторинг: https://domrilhost.ru/admin_panel/webhook/status.php"
+echo "   Админ-панель:   https://domrilhost.ru/admin_panel/lidtracker/leads.php"
 echo ""
 echo "🔧 Troubleshooting: /home/artem/Domreal_Whisper/admin_panel/webhook/TROUBLESHOOTING.md"
 echo ""

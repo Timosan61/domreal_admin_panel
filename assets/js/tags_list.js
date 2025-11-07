@@ -412,7 +412,8 @@ function formatTag(tagType) {
     const tagEmojis = {
         'good': '✅',
         'bad': '❌',
-        'question': '❓'
+        'question': '❓',
+        'problem': '⚠️'
     };
     return tagEmojis[tagType] || '—';
 }
@@ -426,7 +427,8 @@ function formatTagTitle(tagType, tagNote) {
     const tagNames = {
         'good': 'Хорошо',
         'bad': 'Плохо',
-        'question': 'Вопрос'
+        'question': 'Вопрос',
+        'problem': 'Проблемный'
     };
 
     let title = `Тег: ${tagNames[tagType]}`;

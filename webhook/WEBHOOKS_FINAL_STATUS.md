@@ -10,9 +10,9 @@
 
 | Вебхук   | Статус | URL | Тестов пройдено |
 |----------|--------|-----|-----------------|
-| Creatium | ✅ Готов | http://195.239.161.77/webhook/creatium.php | 2/2 |
-| GCK      | ✅ Готов | http://195.239.161.77/webhook/gck.php      | 1/1 |
-| Marquiz  | ✅ Готов | http://195.239.161.77/webhook/marquiz.php  | 2/2 |
+| Creatium | ✅ Готов | https://domrilhost.ru/webhook/creatium.php | 2/2 |
+| GCK      | ✅ Готов | https://domrilhost.ru/webhook/gck.php      | 1/1 |
+| Marquiz  | ✅ Готов | https://domrilhost.ru/webhook/marquiz.php  | 2/2 |
 
 ---
 
@@ -156,17 +156,17 @@
 ### Вебхуки (для настройки в сервисах)
 
 ```
-✅ Creatium:  http://195.239.161.77/webhook/creatium.php
-✅ GCK:       http://195.239.161.77/webhook/gck.php
-✅ Marquiz:   http://195.239.161.77/webhook/marquiz.php
+✅ Creatium:  https://domrilhost.ru/webhook/creatium.php
+✅ GCK:       https://domrilhost.ru/webhook/gck.php
+✅ Marquiz:   https://domrilhost.ru/webhook/marquiz.php
 ```
 
 ### Мониторинг и админка
 
 ```
-🔍 Веб-мониторинг:    http://195.239.161.77/webhook/status.php
-📋 Список лидов:      http://195.239.161.77/lidtracker/leads.php
-🧪 Диагностика:       http://195.239.161.77/lidtracker/debug.php
+🔍 Веб-мониторинг:    https://domrilhost.ru/webhook/status.php
+📋 Список лидов:      https://domrilhost.ru/lidtracker/leads.php
+🧪 Диагностика:       https://domrilhost.ru/lidtracker/debug.php
 ```
 
 ---
@@ -189,7 +189,7 @@ bash check_webhook_status.sh
 ### Ручной тест (Marquiz с официальным форматом)
 
 ```bash
-curl -X POST http://195.239.161.77/webhook/marquiz.php \
+curl -X POST https://domrilhost.ru/webhook/marquiz.php \
   -H "Content-Type: application/json" \
   -d @/home/artem/Domreal_Whisper/LidTracker/Marquiz/example_payload.json
 ```

@@ -10,6 +10,11 @@ header("Access-Control-Allow-Methods: GET");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
+// Отключаем кеширование для получения актуальных aggregate_summary
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 session_start();
 require_once '../auth/session.php';
 checkAuth(false, true); // Проверка авторизации для API endpoint
@@ -63,11 +68,12 @@ $query = "SELECT
     cr.duration_sec,
     cr.started_at_utc,
     cr.call_url,
+    cr.is_first_call,
     ar.call_type,
     ar.summary_text,
     ar.is_successful,
     ar.call_result,
-    ar.script_compliance_score,
+    COALESCE(ar.script_compliance_score_v4, ar.script_compliance_score) as script_compliance_score,
     ar.crm_funnel_name,
     ar.crm_step_name,
     t.audio_duration_sec,
@@ -86,7 +92,7 @@ LEFT JOIN analysis_results ar ON cr.callid = ar.callid
 LEFT JOIN transcripts t ON cr.callid = t.callid
 LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
 LEFT JOIN call_tags ct ON cr.callid = ct.callid
-LEFT JOIN client_enrichment ce ON cr.client_phone = SUBSTRING(ce.client_phone, 3)";
+LEFT JOIN client_enrichment ce ON CONCAT('+7', cr.client_phone) = ce.client_phone";
 
 $params = [];
 
@@ -182,12 +188,13 @@ if (!empty($ratings)) {
 
     foreach ($ratings_array as $rating) {
         $rating = trim($rating);
+        $score_field = 'COALESCE(ar.script_compliance_score_v4, ar.script_compliance_score)';
         if ($rating === 'high') {
-            $rating_conditions[] = '(ar.script_compliance_score >= 0.8 AND ar.script_compliance_score <= 1.0)';
+            $rating_conditions[] = "($score_field >= 0.8 AND $score_field <= 1.0)";
         } elseif ($rating === 'medium') {
-            $rating_conditions[] = '(ar.script_compliance_score >= 0.6 AND ar.script_compliance_score < 0.8)';
+            $rating_conditions[] = "($score_field >= 0.6 AND $score_field < 0.8)";
         } elseif ($rating === 'low') {
-            $rating_conditions[] = '(ar.script_compliance_score >= 0 AND ar.script_compliance_score < 0.6)';
+            $rating_conditions[] = "($score_field >= 0 AND $score_field < 0.6)";
         }
     }
 
@@ -196,10 +203,19 @@ if (!empty($ratings)) {
     }
 }
 
-// Фильтр по типу звонка
+// Фильтр по типу звонка (3 типа: первичный, повторный, несостоявшийся)
 if (!empty($call_type)) {
-    $query .= " AND ar.call_type = :call_type";
-    $params[':call_type'] = $call_type;
+    if ($call_type === 'failed_call') {
+        // Несостоявшийся: короткие звонки (≤30 сек)
+        $query .= " AND cr.duration_sec <= 30";
+    } elseif ($call_type === 'first_call') {
+        // Первичный: is_first_call=1 И длительность >30 сек
+        $query .= " AND cr.is_first_call = 1 AND cr.duration_sec > 30";
+    } elseif ($call_type === 'repeat_call') {
+        // Повторный: is_first_call=0 И длительность >30 сек
+        $query .= " AND cr.is_first_call = 0 AND cr.duration_sec > 30";
+    }
+    // Убрали поддержку устаревшего значения 'other'
 }
 
 // Фильтр по результату звонка (множественный выбор через LIKE)
@@ -221,9 +237,16 @@ if (!empty($call_results)) {
 
         // Категории других звонков
         elseif ($result === 'показ назначен') {
-            $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ назначен%'";
+            // Ищем все варианты назначенного показа (как в kpi.php)
+            $result_conditions[] = "(ar.call_result IN ('Назначен показ', 'Подтвержден показ', 'Показ назначен')
+                OR ar.call_result LIKE 'Показ назначен%'
+                OR ar.call_result LIKE '%Результат: Показ назначен%')";
         } elseif ($result === 'показ состоялся') {
-            $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ состоялся%'";
+            // Ищем все варианты состоявшегося показа (как в kpi.php)
+            $result_conditions[] = "(ar.call_result = 'Показ проведен'
+                OR ar.call_result = 'Показ состоялся'
+                OR ar.call_result LIKE 'Показ состоялся%'
+                OR ar.call_result LIKE '%Результат: Показ состоялся%')";
         } elseif ($result === 'показ') {
             $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ%'";
         } elseif ($result === 'перезвон') {
@@ -329,7 +352,7 @@ if ($needs_ct_join) {
     $count_query .= "\nLEFT JOIN call_tags ct ON cr.callid = ct.callid";
 }
 if ($needs_ce_join) {
-    $count_query .= "\nLEFT JOIN client_enrichment ce ON cr.client_phone = SUBSTRING(ce.client_phone, 3)";
+    $count_query .= "\nLEFT JOIN client_enrichment ce ON CONCAT('+7', cr.client_phone) = ce.client_phone";
 }
 
 // Копируем WHERE условия из основного запроса

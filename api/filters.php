@@ -30,24 +30,35 @@ if ($db === null) {
 $user_departments = getUserDepartments();
 
 // Фильтр по отделам в зависимости от роли
+// ВАЖНО: Показываем только отделы с активностью за последние 7 дней (агрессивная фильтрация неактивных)
+$active_date_threshold = date('Y-m-d H:i:s', strtotime('-7 days'));
+
 if ($_SESSION['role'] === 'admin') {
-    // Админ видит все отделы
-    $departments_query = "SELECT DISTINCT department FROM calls_raw WHERE department IS NOT NULL AND department != '' ORDER BY department";
+    // Админ видит только активные отделы (звонки за последние 7 дней)
+    $departments_query = "SELECT DISTINCT department
+                          FROM calls_raw
+                          WHERE department IS NOT NULL
+                            AND department != ''
+                            AND started_at_utc >= :active_threshold
+                          ORDER BY department";
     $departments_stmt = $db->prepare($departments_query);
+    $departments_stmt->bindValue(':active_threshold', $active_date_threshold);
 } else {
-    // РОП видит только свои отделы
+    // РОП видит только свои активные отделы
     if (empty($user_departments)) {
         $departments = [];
     } else {
         $placeholders = [];
-        $params = [];
+        $params = [':active_threshold' => $active_date_threshold];
         foreach ($user_departments as $index => $dept) {
             $param_name = ':dept_' . $index;
             $placeholders[] = $param_name;
             $params[$param_name] = $dept;
         }
-        $departments_query = "SELECT DISTINCT department FROM calls_raw
+        $departments_query = "SELECT DISTINCT department
+                              FROM calls_raw
                               WHERE department IN (" . implode(', ', $placeholders) . ")
+                                AND started_at_utc >= :active_threshold
                               ORDER BY department";
         $departments_stmt = $db->prepare($departments_query);
         foreach ($params as $key => $value) {
@@ -108,11 +119,9 @@ if (empty($allowed_departments)) {
     $managers = $managers_stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-// Получаем типы звонков
-$call_types_query = "SELECT DISTINCT call_type FROM analysis_results WHERE call_type IS NOT NULL AND call_type != '' ORDER BY call_type";
-$call_types_stmt = $db->prepare($call_types_query);
-$call_types_stmt->execute();
-$call_types = $call_types_stmt->fetchAll(PDO::FETCH_COLUMN);
+// Типы звонков (статический массив - 3 типа)
+// Не используем запрос к БД, т.к. типы определяются на лету по is_first_call + duration_sec
+$call_types = ['first_call', 'repeat_call', 'failed_call'];
 
 // Формируем ответ
 $response = [

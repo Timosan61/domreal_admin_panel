@@ -19,7 +19,7 @@ sudo tail -f /var/log/nginx/error.log
 
 ```bash
 # Тест с внешнего IP (должен вернуть 400 - это нормально)
-curl -X POST http://195.239.161.77/admin_panel/webhook/creatium.php \
+curl -X POST https://domrilhost.ru/admin_panel/webhook/creatium.php \
   -H "Content-Type: application/json" \
   -d '{}'
 
@@ -47,7 +47,7 @@ sudo chmod 644 /home/artem/Domreal_Whisper/admin_panel/webhook/*.php
 ### 4️⃣ Проверьте конфигурацию Creatium
 
 В админ-панели Creatium убедитесь:
-- ✅ URL вебхука правильный: `http://195.239.161.77/admin_panel/webhook/creatium.php`
+- ✅ URL вебхука правильный: `https://domrilhost.ru/admin_panel/webhook/creatium.php`
 - ✅ Метод: `POST`
 - ✅ Формат: `JSON`
 - ✅ Вебхук включен (активен)
@@ -79,7 +79,7 @@ sudo chmod 644 /home/artem/Domreal_Whisper/admin_panel/webhook/*.php
 Отправьте его на вебхук:
 
 ```bash
-curl -X POST http://195.239.161.77/admin_panel/webhook/creatium.php \
+curl -X POST https://domrilhost.ru/admin_panel/webhook/creatium.php \
   -H "Content-Type: application/json" \
   -d @test_payload.json \
   -v
@@ -226,7 +226,7 @@ bash /home/artem/Domreal_Whisper/admin_panel/webhook/check_webhook_status.sh
 Или откройте веб-интерфейс:
 
 ```
-http://195.239.161.77/admin_panel/webhook/status.php
+https://domrilhost.ru/admin_panel/webhook/status.php
 ```
 
 ---

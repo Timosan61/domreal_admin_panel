@@ -228,7 +228,7 @@ private function validatePhone($phone) {
 
 ### Команда для теста:
 ```bash
-curl -X POST http://195.239.161.77:18080/webhook/creatium.php \
+curl -X POST https://domrilhost.ru:18080/webhook/creatium.php \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d 'site[name]=Тестовый сайт&order[fields_by_name][Имя]=Тест&order[fields_by_name][Номер телефона]=+7 (999) 123-45-67'
 ```
@@ -248,7 +248,7 @@ php check_lead_details.php 44
 ```
 
 ### Проверка в мониторе:
-http://195.239.161.77:18080/webhook/monitor.php
+https://domrilhost.ru:18080/webhook/monitor.php
 
 ---
 

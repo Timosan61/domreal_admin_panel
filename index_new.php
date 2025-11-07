@@ -10,90 +10,28 @@ checkAuth(); // Проверка авторизации
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Звонки - Система оценки звонков</title>
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
+    <style>
+        /* Временное скрытие столбца и фильтра "Платежеспособность" */
+        th:nth-child(8),
+        td.solvency-cell,
+        #solvency-multiselect {
+            display: none !important;
+        }
+
+        /* Скрываем label фильтра платежеспособности */
+        .filter-group:has(#solvency-multiselect) {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Левая боковая панель -->
-    <aside class="sidebar">
-        <div class="sidebar-toggle">
-            <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Свернуть/развернуть меню">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-        <nav class="sidebar-menu">
-            <a href="index_new.php" class="sidebar-menu-item active">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                </svg>
-                <span class="sidebar-menu-text">Звонки</span>
-            </a>
-            <a href="analytics.php" class="sidebar-menu-item">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="20" x2="12" y2="10"></line>
-                    <line x1="18" y1="20" x2="18" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="16"></line>
-                </svg>
-                <span class="sidebar-menu-text">Аналитика</span>
-            </a>
-            <a href="tags.php" class="sidebar-menu-item">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                </svg>
-                <span class="sidebar-menu-text">Теги</span>
-            </a>
-            <a href="#" class="sidebar-menu-item">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                <span class="sidebar-menu-text">Менеджеры</span>
-            </a>
-            <?php if ($_SESSION['role'] === 'admin'): ?>
-            <a href="money_tracker.php" class="sidebar-menu-item">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-                <span class="sidebar-menu-text">Money Tracker</span>
-            </a>
-            <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>
-                </svg>
-                <span class="sidebar-menu-text">ADMIN</span>
-            </a>
-            <?php endif; ?>
-        </nav>
-        <div class="sidebar-user">
-            <div class="sidebar-user-avatar"><?= strtoupper(substr($_SESSION['username'], 0, 1)) ?></div>
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-name"><?= htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['username']) ?></div>
-                <a href="auth/logout.php" style="font-size: 12px; color: #6c757d; text-decoration: none;">Выйти</a>
-            </div>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
     <div class="main-content">
         <!-- Заголовок страницы -->
         <header class="page-header">
             <h1>Звонки</h1>
-            <div class="page-header-actions">
-                <button class="btn btn-secondary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Скачать в Excel
-                </button>
-                <button class="btn btn-primary">Сохраненные фильтры</button>
-            </div>
         </header>
 
         <!-- Breadcrumb для возврата к аналитике -->
@@ -161,11 +99,12 @@ checkAuth(); // Проверка авторизации
                         <input type="text" id="client_phone" name="client_phone" placeholder="">
                     </div>
                     <div class="filter-group">
-                        <label for="call_type">Первый звонок</label>
+                        <label for="call_type">Тип звонка</label>
                         <select id="call_type" name="call_type">
-                            <option value="">—</option>
-                            <option value="first_call">Да</option>
-                            <option value="other">Нет</option>
+                            <option value="">Все</option>
+                            <option value="first_call">1️⃣ Первичный</option>
+                            <option value="repeat_call">🔁 Повторный</option>
+                            <option value="failed_call">⏱️ Несостоявшийся (≤30 сек)</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -266,8 +205,16 @@ checkAuth(); // Проверка авторизации
                                     <!-- Другие звонки -->
                                     <div class="multiselect-group-header">Другие звонки</div>
                                     <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="показ назначен">
+                                        <span>📅 Показ назначен</span>
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" name="call_results[]" value="показ состоялся">
+                                        <span>🏠 Показ состоялся</span>
+                                    </label>
+                                    <label class="multiselect-option">
                                         <input type="checkbox" name="call_results[]" value="показ">
-                                        <span>🏠 Показ</span>
+                                        <span>🔍 Показ (все)</span>
                                     </label>
                                     <label class="multiselect-option">
                                         <input type="checkbox" name="call_results[]" value="перезвон">
@@ -523,7 +470,7 @@ checkAuth(); // Проверка авторизации
                         <th style="width: 50px;">Тег</th>
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
                         <th>Результат</th>
-                        <th data-sort="script_compliance_score">Оценка <span class="sort-icon">↕</span></th>
+                        <th data-sort="script_compliance_score_v4">Оценка <span class="sort-icon">↕</span></th>
                         <th>Резюме</th>
                         <th>Агрегированный анализ</th>
                         <th>Платежеспособность</th>
@@ -633,6 +580,10 @@ checkAuth(); // Проверка авторизации
                     <span class="bulk-action-icon">❓</span>
                     <span class="bulk-action-text">Вопрос</span>
                 </button>
+                <button type="button" class="bulk-action-btn bulk-action-problem" id="bulk-tag-problem" title="Проблемный">
+                    <span class="bulk-action-icon">⚠️</span>
+                    <span class="bulk-action-text">Проблемный</span>
+                </button>
                 <button type="button" class="bulk-action-btn bulk-action-remove" id="bulk-remove-tags" title="Снять теги">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -684,5 +635,8 @@ checkAuth(); // Проверка авторизации
     <script src="assets/js/multiselect.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/bulk_actions.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
+
+    <!-- LLM Mode Switcher Widget -->
+    <?php include 'components/llm_mode_switcher.php'; ?>
 </body>
 </html>

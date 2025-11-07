@@ -23,6 +23,7 @@ $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $status = isset($_GET['status']) ? $_GET['status'] : '';
 $inn_filter = isset($_GET['inn_filter']) ? $_GET['inn_filter'] : '';
 $source_filter = isset($_GET['source_filter']) ? $_GET['source_filter'] : '';
+$webhook_source_filter = isset($_GET['webhook_source_filter']) ? $_GET['webhook_source_filter'] : ''; // NEW: Фильтр GCK vs Calls
 $rusprofile_filter = isset($_GET['rusprofile_filter']) ? $_GET['rusprofile_filter'] : '';
 $solvency_filter = isset($_GET['solvency_filter']) ? $_GET['solvency_filter'] : '';
 $phone_search = isset($_GET['phone_search']) ? $_GET['phone_search'] : '';
@@ -115,6 +116,15 @@ if ($solvency_filter === 'yes') {
 if (!empty($phone_search)) {
     $query .= " AND client_phone LIKE :phone_search";
     $params[':phone_search'] = '%' . $phone_search . '%';
+}
+
+// Фильтр по webhook source (GCK / Beeline Calls)
+if (!empty($webhook_source_filter)) {
+    if ($webhook_source_filter === 'gck') {
+        $query .= " AND webhook_source = 'gck'";
+    } elseif ($webhook_source_filter === 'calls') {
+        $query .= " AND (webhook_source IS NULL OR webhook_source = '')";
+    }
 }
 
 // Добавляем сортировку

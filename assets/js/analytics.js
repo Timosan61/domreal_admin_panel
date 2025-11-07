@@ -10,9 +10,12 @@
     let charts = {
         funnel: null,
         dynamics: null,
-        departments: null,
-        managers: null,
-        scriptQuality: null
+        firstCallScores: null,
+        repeatCallScores: null,
+        firstCallResults: null,
+        repeatCallResults: null,
+        firstCallConversion: null,
+        repeatCallConversion: null
     };
 
     // Current filters
@@ -21,8 +24,7 @@
         date_to: null,
         departments: [],
         managers: [],
-        crm_stages: [],
-        hide_short_calls: '1'
+        crm_stages: []
     };
 
     // Multi-select state
@@ -44,12 +46,6 @@
         // Event listeners
         document.getElementById('apply-filters').addEventListener('click', applyFilters);
         document.getElementById('reset-filters').addEventListener('click', resetFilters);
-
-        // Toggle "Скрыть до 10 сек"
-        const hideShortCallsCheckbox = document.getElementById('hide-short-calls-analytics');
-        if (hideShortCallsCheckbox) {
-            hideShortCallsCheckbox.addEventListener('change', applyFilters);
-        }
 
         // Initialize KPI click handlers for drilldown
         initKPIClickHandlers();
@@ -381,11 +377,39 @@
      * Initialize all ECharts instances
      */
     function initCharts() {
-        charts.funnel = echarts.init(document.getElementById('funnel-chart'));
-        charts.dynamics = echarts.init(document.getElementById('dynamics-chart'));
-        charts.departments = echarts.init(document.getElementById('departments-chart'));
-        charts.managers = echarts.init(document.getElementById('managers-chart'));
-        charts.scriptQuality = echarts.init(document.getElementById('script-quality-chart'));
+        const funnelEl = document.getElementById('funnel-chart');
+        const dynamicsEl = document.getElementById('dynamics-chart');
+        const firstCallScoresEl = document.getElementById('first-call-scores-chart');
+        const repeatCallScoresEl = document.getElementById('repeat-call-scores-chart');
+        const firstCallResultsEl = document.getElementById('first-call-results-chart');
+        const repeatCallResultsEl = document.getElementById('repeat-call-results-chart');
+        const firstCallConversionEl = document.getElementById('first-call-conversion-chart');
+        const repeatCallConversionEl = document.getElementById('repeat-call-conversion-chart');
+
+        if (!funnelEl || !dynamicsEl || !firstCallScoresEl || !repeatCallScoresEl || !firstCallResultsEl || !repeatCallResultsEl || !firstCallConversionEl || !repeatCallConversionEl) {
+            console.error('One or more chart containers not found:', {
+                funnel: !!funnelEl,
+                dynamics: !!dynamicsEl,
+                firstCallScores: !!firstCallScoresEl,
+                repeatCallScores: !!repeatCallScoresEl,
+                firstCallResults: !!firstCallResultsEl,
+                repeatCallResults: !!repeatCallResultsEl,
+                firstCallConversion: !!firstCallConversionEl,
+                repeatCallConversion: !!repeatCallConversionEl
+            });
+            return;
+        }
+
+        charts.funnel = echarts.init(funnelEl);
+        charts.dynamics = echarts.init(dynamicsEl);
+        charts.firstCallScores = echarts.init(firstCallScoresEl);
+        charts.repeatCallScores = echarts.init(repeatCallScoresEl);
+        charts.firstCallResults = echarts.init(firstCallResultsEl);
+        charts.repeatCallResults = echarts.init(repeatCallResultsEl);
+        charts.firstCallConversion = echarts.init(firstCallConversionEl);
+        charts.repeatCallConversion = echarts.init(repeatCallConversionEl);
+
+        console.log('All charts initialized successfully');
 
         // Use ResizeObserver for better resize detection
         if (window.ResizeObserver) {
@@ -407,6 +431,11 @@
         Object.values(charts).forEach(chart => {
             if (chart) chart.resize();
         });
+
+        // Resize communication charts
+        if (window.communicationCharts && window.communicationCharts.resize) {
+            window.communicationCharts.resize();
+        }
     }
 
     /**
@@ -448,9 +477,6 @@
         currentFilters.managers = getMultiSelectValues('managers');
         currentFilters.crm_stages = getMultiSelectValues('crm-stages');
 
-        const hideShortCallsCheckbox = document.getElementById('hide-short-calls-analytics');
-        currentFilters.hide_short_calls = hideShortCallsCheckbox?.checked ? '1' : '0';
-
         loadDashboardData();
     }
 
@@ -471,12 +497,6 @@
         updateMultiSelectDisplay('departments');
         updateMultiSelectDisplay('managers');
         updateMultiSelectDisplay('crm-stages');
-
-        // Reset toggle "Скрыть до 10 сек"
-        const hideShortCallsCheckbox = document.getElementById('hide-short-calls-analytics');
-        if (hideShortCallsCheckbox) {
-            hideShortCallsCheckbox.checked = true;
-        }
 
         // Apply reset
         applyFilters();
@@ -507,8 +527,6 @@
             params.append('crm_stages', crmStagesValues.join(','));
         }
 
-        params.append('hide_short_calls', currentFilters.hide_short_calls);
-
         return params.toString();
     }
 
@@ -524,22 +542,24 @@
             // Load all data in parallel
             console.log('Loading dashboard data with queryString:', queryString);
 
-            const [kpiData, funnelData, dynamicsData, departmentsData, managersData, scriptData] = await Promise.all([
+            const [kpiData, funnelData, dynamicsData,
+                   firstCallScoresData, repeatCallScoresData, firstCallResultsData, repeatCallResultsData, firstCallConversionData] = await Promise.all([
                 fetchWithRetry(`/api/analytics/kpi.php?${queryString}`).then(r => r.json()),
                 fetchWithRetry(`/api/analytics/funnel.php?${queryString}`).then(r => r.json()),
                 fetchWithRetry(`/api/analytics/dynamics.php?${queryString}`).then(r => r.json()),
-                fetchWithRetry(`/api/analytics/departments.php?${queryString}`).then(r => r.json()),
-                fetchWithRetry(`/api/analytics/managers.php?${queryString}`).then(r => r.json()),
-                fetchWithRetry(`/api/analytics/script_quality.php?${queryString}`).then(r => r.json())
+                fetchWithRetry(`/api/analytics/first_call_scores.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/repeat_call_scores.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/first_call_results.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/repeat_call_results.php?${queryString}`).then(r => r.json()),
+                fetchWithRetry(`/api/analytics/first_call_conversion.php?${queryString}`).then(r => r.json())
             ]);
 
             console.log('All API responses:', {
                 kpiData,
                 funnelData,
                 dynamicsData,
-                departmentsData,
-                managersData,
-                scriptData
+                firstCallScoresData,
+                repeatCallScoresData
             });
 
             // Update KPI cards
@@ -556,22 +576,41 @@
                 updateDynamicsChart(dynamicsData.data);
             }
 
-            if (departmentsData.success) {
-                updateDepartmentsChart(departmentsData.data);
+            if (firstCallScoresData.success) {
+                updateFirstCallScoresChart(firstCallScoresData.data);
             } else {
-                console.error('Departments API error:', departmentsData);
+                console.error('First call scores API error:', firstCallScoresData);
             }
 
-            if (managersData.success) {
-                updateManagersChart(managersData.data);
+            if (repeatCallScoresData.success) {
+                updateRepeatCallScoresChart(repeatCallScoresData.data);
             } else {
-                console.error('Managers API error:', managersData);
+                console.error('Repeat call scores API error:', repeatCallScoresData);
             }
 
-            if (scriptData.success) {
-                updateScriptQualityChart(scriptData.data);
+            if (firstCallResultsData.success) {
+                updateFirstCallResultsChart(firstCallResultsData.data);
             } else {
-                console.error('Script quality API error:', scriptData);
+                console.error('First call results API error:', firstCallResultsData);
+            }
+
+            if (repeatCallResultsData.success) {
+                updateRepeatCallResultsChart(repeatCallResultsData.data);
+            } else {
+                console.error('Repeat call results API error:', repeatCallResultsData);
+            }
+
+            if (firstCallConversionData.success) {
+                updateFirstCallConversionChart(firstCallConversionData.data);
+            } else {
+                console.error('First call conversion API error:', firstCallConversionData);
+            }
+
+            // Load communication metrics charts
+            if (window.communicationCharts) {
+                console.log('Loading communication metrics charts');
+                window.communicationCharts.loadInterruptions(currentFilters);
+                window.communicationCharts.loadTalkListen(currentFilters);
             }
 
         } catch (error) {
@@ -587,17 +626,53 @@
      */
     function updateKPICards(data) {
         document.getElementById('kpi-total-calls').textContent = data.total_calls.toLocaleString();
-        document.getElementById('kpi-analyzed-calls').textContent = data.analyzed_calls.toLocaleString();
+        document.getElementById('kpi-first-calls').textContent = data.first_calls.toLocaleString();
+        document.getElementById('kpi-repeat-calls').textContent = data.repeat_calls.toLocaleString();
+        document.getElementById('kpi-failed-calls').textContent = data.failed_calls.toLocaleString();
         document.getElementById('kpi-successful-calls').textContent = data.showing_scheduled.toLocaleString();
         document.getElementById('kpi-conversion-rate').textContent = data.showing_completed.toLocaleString();
-        document.getElementById('kpi-first-calls').textContent = data.first_calls.toLocaleString();
-        document.getElementById('kpi-script-score').textContent = (data.avg_script_score * 100).toFixed(0) + '%';
     }
 
     /**
      * Initialize KPI click handlers for drilldown
      */
     function initKPIClickHandlers() {
+        // Всего звонков
+        const totalCallsCard = document.getElementById('kpi-total-calls');
+        if (totalCallsCard) {
+            totalCallsCard.parentElement.style.cursor = 'pointer';
+            totalCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters();
+            });
+        }
+
+        // Первые звонки
+        const firstCallsCard = document.getElementById('kpi-first-calls');
+        if (firstCallsCard) {
+            firstCallsCard.parentElement.style.cursor = 'pointer';
+            firstCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters(null, 'first_call');
+            });
+        }
+
+        // Повторные звонки
+        const repeatCallsCard = document.getElementById('kpi-repeat-calls');
+        if (repeatCallsCard) {
+            repeatCallsCard.parentElement.style.cursor = 'pointer';
+            repeatCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters(null, 'repeat_call');
+            });
+        }
+
+        // Несостоявшиеся звонки
+        const failedCallsCard = document.getElementById('kpi-failed-calls');
+        if (failedCallsCard) {
+            failedCallsCard.parentElement.style.cursor = 'pointer';
+            failedCallsCard.parentElement.addEventListener('click', () => {
+                openCallsWithFilters(null, 'failed_call');
+            });
+        }
+
         // Показ назначен
         const successfulCallsCard = document.getElementById('kpi-successful-calls');
         if (successfulCallsCard) {
@@ -615,39 +690,12 @@
                 openCallsWithFilters('показ состоялся');
             });
         }
-
-        // Первые звонки
-        const firstCallsCard = document.getElementById('kpi-first-calls');
-        if (firstCallsCard) {
-            firstCallsCard.parentElement.style.cursor = 'pointer';
-            firstCallsCard.parentElement.addEventListener('click', () => {
-                openCallsWithFilters(null, 'first_call');
-            });
-        }
-
-        // Всего звонков
-        const totalCallsCard = document.getElementById('kpi-total-calls');
-        if (totalCallsCard) {
-            totalCallsCard.parentElement.style.cursor = 'pointer';
-            totalCallsCard.parentElement.addEventListener('click', () => {
-                openCallsWithFilters();
-            });
-        }
-
-        // Проанализировано
-        const analyzedCallsCard = document.getElementById('kpi-analyzed-calls');
-        if (analyzedCallsCard) {
-            analyzedCallsCard.parentElement.style.cursor = 'pointer';
-            analyzedCallsCard.parentElement.addEventListener('click', () => {
-                openCallsWithFilters();
-            });
-        }
     }
 
     /**
      * Open calls page with filters from analytics
      */
-    function openCallsWithFilters(callResult = null, callType = null) {
+    function openCallsWithFilters(callResult = null, callType = null, managerName = null) {
         const params = new URLSearchParams();
 
         // Передаем фильтры из аналитики
@@ -658,7 +706,10 @@
             params.set('departments', currentFilters.departments.join(','));
         }
 
-        if (currentFilters.managers.length > 0) {
+        // Если передан конкретный менеджер - используем его, иначе фильтр из панели
+        if (managerName) {
+            params.set('managers', managerName);
+        } else if (currentFilters.managers.length > 0) {
             params.set('managers', currentFilters.managers.join(','));
         }
 
@@ -676,6 +727,9 @@
         console.log('Drilldown to calls page with filters:', params.toString());
         window.location.href = `/index_new.php?${params}`;
     }
+
+    // Экспортируем функцию в глобальную область для использования из других модулей
+    window.openCallsWithFilters = openCallsWithFilters;
 
     /**
      * Update funnel chart
@@ -1075,6 +1129,1115 @@
 
         charts.scriptQuality.setOption(option);
     }
+
+    /**
+     * Update first call scores chart
+     */
+    function updateFirstCallScoresChart(data) {
+        console.log('updateFirstCallScoresChart data:', data);
+
+        if (!data || !data.managers || data.managers.length === 0) {
+            console.warn('No first call scores data');
+            charts.firstCallScores.setOption({
+                title: {
+                    text: 'Нет данных для отображения',
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: {
+                        color: '#999',
+                        fontSize: 14
+                    }
+                }
+            });
+            return;
+        }
+
+        // РЕВЕРС массивов - лучшие вверху, худшие внизу
+        const reversedManagers = [...data.managers].reverse();
+        const reversedTotalCalls = [...data.total_calls].reverse();
+        const reversedAvgScores = [...data.avg_scores].reverse();
+        const reversedScore0_25 = [...data.score_distribution.score_0_25].reverse();
+        const reversedScore25_50 = [...data.score_distribution.score_25_50].reverse();
+        const reversedScore50_75 = [...data.score_distribution.score_50_75].reverse();
+        const reversedScore75_100 = [...data.score_distribution.score_75_100].reverse();
+
+        // Подготовка данных для stacked bar
+        const managers = reversedManagers.map((manager, idx) => {
+            const totalCalls = reversedTotalCalls[idx];
+            const avgScore = reversedAvgScores[idx];
+            return `${manager} (${totalCalls} зв., ${avgScore}%)`;
+        });
+
+        // Динамическая высота с ограничением: минимум 500px, максимум 700px
+        const calculatedHeight = managers.length * 40 + 150;
+        const chartHeight = Math.min(Math.max(500, calculatedHeight), 700);
+        const chartContainer = document.getElementById('first-call-scores-chart');
+
+        console.log(`[First Scores] Managers: ${managers.length}, Calculated: ${calculatedHeight}px, Final: ${chartHeight}px`);
+
+        chartContainer.style.height = chartHeight + 'px';
+        chartContainer.style.maxHeight = '700px';
+        charts.firstCallScores.resize();
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                },
+                formatter: function(params) {
+                    const managerName = reversedManagers[params[0].dataIndex];
+                    const totalCalls = reversedTotalCalls[params[0].dataIndex];
+                    const avgScore = reversedAvgScores[params[0].dataIndex];
+                    let tooltip = `<b>${managerName}</b><br/>`;
+                    tooltip += `Всего звонков: ${totalCalls}<br/>`;
+                    tooltip += `Средний балл: ${avgScore}%<br/><br/>`;
+                    tooltip += `<b>Распределение оценок:</b><br/>`;
+                    params.forEach(item => {
+                        tooltip += `${item.marker} ${item.seriesName}: ${item.value}<br/>`;
+                    });
+                    return tooltip;
+                }
+            },
+            legend: {
+                data: ['0-25% (красный)', '25-50% (оранжевый)', '50-75% (желтый)', '75-100% (зеленый)'],
+                top: 5,
+                left: 'center'
+            },
+            grid: {
+                left: '20%',
+                right: '10%',
+                bottom: '10%',
+                top: '8%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: 'Количество звонков'
+            },
+            yAxis: {
+                type: 'category',
+                data: managers,
+                axisLabel: {
+                    interval: 0,
+                    fontSize: 11
+                }
+            },
+            series: [
+                {
+                    name: '0-25% (красный)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore0_25,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#e53935' },
+                                { offset: 1, color: '#ef5350' }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: '25-50% (оранжевый)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore25_50,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#ff9800' },
+                                { offset: 1, color: '#ffa726' }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: '50-75% (желтый)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore50_75,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#fdd835' },
+                                { offset: 1, color: '#ffeb3b' }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: '75-100% (зеленый)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore75_100,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#66bb6a' },
+                                { offset: 1, color: '#81c784' }
+                            ]
+                        }
+                    }
+                }
+            ]
+        };
+
+        // Добавляем DataZoom если данных много
+        if (calculatedHeight > 700) {
+            const visiblePercent = (700 / calculatedHeight * 100);
+            option.dataZoom = [
+                {
+                    type: 'slider',
+                    yAxisIndex: 0,
+                    right: 10,
+                    width: 20,
+                    start: 100 - visiblePercent,  // Показываем верх списка (лучшие результаты)
+                    end: 100,
+                    textStyle: {
+                        fontSize: 10
+                    },
+                    handleSize: '80%',
+                    showDetail: false,
+                    zoomLock: true,
+                    fillerColor: 'rgba(33, 150, 243, 0.15)',
+                    borderColor: '#2196F3'
+                },
+                {
+                    type: 'inside',
+                    yAxisIndex: 0,
+                    start: 100 - visiblePercent,  // Показываем верх списка
+                    end: 100,
+                    zoomOnMouseWheel: false,
+                    moveOnMouseWheel: true,
+                    zoomLock: true
+                }
+            ];
+            console.log(`[First Scores DataZoom] Visible: ${visiblePercent.toFixed(1)}%`);
+        }
+
+        charts.firstCallScores.setOption(option);
+
+        // Drilldown при клике
+        charts.firstCallScores.off('click');
+        charts.firstCallScores.on('click', function(params) {
+            if (params.componentType === 'series') {
+                const managerName = reversedManagers[params.dataIndex];
+                openCallsWithFilters(null, 'first_call', managerName);
+            }
+        });
+    }
+
+    /**
+     * Update repeat call scores chart
+     */
+    function updateRepeatCallScoresChart(data) {
+        console.log('updateRepeatCallScoresChart data:', data);
+
+        if (!data || !data.managers || data.managers.length === 0) {
+            console.warn('No repeat call scores data');
+            charts.repeatCallScores.setOption({
+                title: {
+                    text: 'Нет данных для отображения',
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: {
+                        color: '#999',
+                        fontSize: 14
+                    }
+                }
+            });
+            return;
+        }
+
+        // РЕВЕРС массивов - лучшие вверху, худшие внизу
+        const reversedManagers = [...data.managers].reverse();
+        const reversedTotalCalls = [...data.total_calls].reverse();
+        const reversedAvgScores = [...data.avg_scores].reverse();
+        const reversedScore0_25 = [...data.score_distribution.score_0_25].reverse();
+        const reversedScore25_50 = [...data.score_distribution.score_25_50].reverse();
+        const reversedScore50_75 = [...data.score_distribution.score_50_75].reverse();
+        const reversedScore75_100 = [...data.score_distribution.score_75_100].reverse();
+
+        // Подготовка данных для stacked bar
+        const managers = reversedManagers.map((manager, idx) => {
+            const totalCalls = reversedTotalCalls[idx];
+            const avgScore = reversedAvgScores[idx];
+            return `${manager} (${totalCalls} зв., ${avgScore}%)`;
+        });
+
+        // Динамическая высота с ограничением: минимум 500px, максимум 700px
+        const calculatedHeight = managers.length * 40 + 150;
+        const chartHeight = Math.min(Math.max(500, calculatedHeight), 700);
+        const chartContainer = document.getElementById('repeat-call-scores-chart');
+
+        console.log(`[Repeat Scores] Managers: ${managers.length}, Calculated: ${calculatedHeight}px, Final: ${chartHeight}px`);
+
+        chartContainer.style.height = chartHeight + 'px';
+        chartContainer.style.maxHeight = '700px';
+        charts.repeatCallScores.resize();
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                },
+                formatter: function(params) {
+                    const managerName = reversedManagers[params[0].dataIndex];
+                    const totalCalls = reversedTotalCalls[params[0].dataIndex];
+                    const avgScore = reversedAvgScores[params[0].dataIndex];
+                    let tooltip = `<b>${managerName}</b><br/>`;
+                    tooltip += `Всего звонков: ${totalCalls}<br/>`;
+                    tooltip += `Средний балл: ${avgScore}%<br/><br/>`;
+                    tooltip += `<b>Распределение оценок:</b><br/>`;
+                    params.forEach(item => {
+                        tooltip += `${item.marker} ${item.seriesName}: ${item.value}<br/>`;
+                    });
+                    return tooltip;
+                }
+            },
+            legend: {
+                data: ['0-25% (красный)', '25-50% (оранжевый)', '50-75% (желтый)', '75-100% (зеленый)'],
+                top: 5,
+                left: 'center'
+            },
+            grid: {
+                left: '20%',
+                right: '10%',
+                bottom: '10%',
+                top: '8%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: 'Количество звонков'
+            },
+            yAxis: {
+                type: 'category',
+                data: managers,
+                axisLabel: {
+                    interval: 0,
+                    fontSize: 11
+                }
+            },
+            series: [
+                {
+                    name: '0-25% (красный)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore0_25,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#e53935' },
+                                { offset: 1, color: '#ef5350' }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: '25-50% (оранжевый)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore25_50,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#ff9800' },
+                                { offset: 1, color: '#ffa726' }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: '50-75% (желтый)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore50_75,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#fdd835' },
+                                { offset: 1, color: '#ffeb3b' }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: '75-100% (зеленый)',
+                    type: 'bar',
+                    stack: 'total',
+                    data: reversedScore75_100,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#66bb6a' },
+                                { offset: 1, color: '#81c784' }
+                            ]
+                        }
+                    }
+                }
+            ]
+        };
+
+        // Добавляем DataZoom если данных много
+        if (calculatedHeight > 700) {
+            const visiblePercent = (700 / calculatedHeight * 100);
+            option.dataZoom = [
+                {
+                    type: 'slider',
+                    yAxisIndex: 0,
+                    right: 10,
+                    width: 20,
+                    start: 100 - visiblePercent,  // Показываем верх списка (лучшие результаты)
+                    end: 100,
+                    textStyle: {
+                        fontSize: 10
+                    },
+                    handleSize: '80%',
+                    showDetail: false,
+                    zoomLock: true,
+                    fillerColor: 'rgba(255, 152, 0, 0.15)',
+                    borderColor: '#FF9800'
+                },
+                {
+                    type: 'inside',
+                    yAxisIndex: 0,
+                    start: 100 - visiblePercent,  // Показываем верх списка
+                    end: 100,
+                    zoomOnMouseWheel: false,
+                    moveOnMouseWheel: true,
+                    zoomLock: true
+                }
+            ];
+            console.log(`[Repeat Scores DataZoom] Visible: ${visiblePercent.toFixed(1)}%`);
+        }
+
+        charts.repeatCallScores.setOption(option);
+
+        // Drilldown при клике
+        charts.repeatCallScores.off('click');
+        charts.repeatCallScores.on('click', function(params) {
+            if (params.componentType === 'series') {
+                const managerName = reversedManagers[params.dataIndex];
+                openCallsWithFilters(null, 'repeat_call', managerName);
+            }
+        });
+    }
+
+    /**
+     * Update first call results chart (распределение результатов первого звонка)
+     */
+    function updateFirstCallResultsChart(data) {
+        console.log('updateFirstCallResultsChart data:', data);
+
+        if (!data || !data.managers || data.managers.length === 0) {
+            console.warn('No first call results data');
+            charts.firstCallResults.setOption({
+                title: {
+                    text: 'Нет данных для отображения',
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: { color: '#999', fontSize: 14 }
+                }
+            });
+            return;
+        }
+
+        // РЕВЕРС - лучшие вверху (по total_calls)
+        const indices = data.managers.map((_, idx) => idx);
+        indices.reverse();
+
+        const managers = indices.map(idx => {
+            const totalCalls = data.total_calls[idx];
+            return `${data.managers[idx]} (${totalCalls} зв.)`;
+        });
+
+        // Динамическая высота с ограничением: минимум 500px, максимум 700px
+        const calculatedHeight = managers.length * 40 + 150;
+        const chartHeight = Math.min(Math.max(500, calculatedHeight), 700);
+        const chartContainer = document.getElementById('first-call-results-chart');
+
+        console.log(`[First Results] Managers: ${managers.length}, Calculated: ${calculatedHeight}px, Final: ${chartHeight}px`);
+
+        chartContainer.style.height = chartHeight + 'px';
+        chartContainer.style.maxHeight = '700px';
+        charts.firstCallResults.resize();
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    const idx = indices[params[0].dataIndex];
+                    const managerName = data.managers[idx];
+                    const totalCalls = data.total_calls[idx];
+                    let tooltip = `<b>${managerName}</b><br/>`;
+                    tooltip += `Всего звонков: ${totalCalls}<br/><br/>`;
+                    tooltip += `<b>Распределение результатов:</b><br/>`;
+                    params.forEach(item => {
+                        if (item.value > 0) {
+                            tooltip += `${item.marker} ${item.seriesName}: ${item.value}<br/>`;
+                        }
+                    });
+                    return tooltip;
+                }
+            },
+            legend: {
+                data: [
+                    '📅 Назначен показ', '🏠 Показ проведен', '📤 Отправлены варианты',
+                    '⏳ Думает', '⏸️ Ожидается ответ', '📞 Консультация',
+                    '📵 Недозвон', '❌ Отказ', '📞 Личный/нерабочий'
+                ],
+                show: false  // Скрыта как в оценках
+            },
+            grid: {
+                left: '25%',
+                right: '10%',
+                bottom: '15%',
+                top: '5%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: 'Количество звонков'
+            },
+            yAxis: {
+                type: 'category',
+                data: managers,
+                axisLabel: {
+                    interval: 0,
+                    fontSize: 10
+                }
+            },
+            series: [
+                // ПОЗИТИВНЫЕ (зеленые оттенки)
+                {
+                    name: '📅 Назначен показ',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.show_scheduled[idx]),
+                    itemStyle: { color: '#66bb6a' }
+                },
+                {
+                    name: '🏠 Показ проведен',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.show_done[idx]),
+                    itemStyle: { color: '#81c784' }
+                },
+                {
+                    name: '📤 Отправлены варианты',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.materials_sent[idx]),
+                    itemStyle: { color: '#aed581' }
+                },
+
+                // ОЖИДАНИЕ (желтые оттенки)
+                {
+                    name: '⏳ Думает',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.thinking[idx]),
+                    itemStyle: { color: '#fdd835' }
+                },
+                {
+                    name: '⏸️ Ожидается ответ',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.waiting[idx]),
+                    itemStyle: { color: '#ffeb3b' }
+                },
+                {
+                    name: '📞 Консультация',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.consultation[idx]),
+                    itemStyle: { color: '#fff59d' }
+                },
+
+                // НЕГАТИВНЫЕ (серый + красные оттенки)
+                {
+                    name: '📵 Недозвон',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.no_answer[idx]),
+                    itemStyle: { color: '#9e9e9e' }
+                },
+                {
+                    name: '❌ Отказ',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.rejection[idx]),
+                    itemStyle: { color: '#ef5350' }
+                },
+                {
+                    name: '📞 Личный/нерабочий',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.personal[idx]),
+                    itemStyle: { color: '#bdbdbd' }
+                }
+            ]
+        };
+
+        // Добавляем DataZoom если данных много
+        if (calculatedHeight > 700) {
+            const visiblePercent = (700 / calculatedHeight * 100);
+            option.dataZoom = [
+                {
+                    type: 'slider',
+                    yAxisIndex: 0,
+                    right: 10,
+                    width: 20,
+                    start: 100 - visiblePercent,  // Показываем верх списка (лучшие результаты)
+                    end: 100,
+                    zoomLock: true,
+                    fillerColor: 'rgba(33, 150, 243, 0.15)',
+                    borderColor: '#2196F3'
+                },
+                {
+                    type: 'inside',
+                    yAxisIndex: 0,
+                    start: 100 - visiblePercent,
+                    end: 100,
+                    zoomOnMouseWheel: false,  // Отключаем зум колесом
+                    moveOnMouseWheel: true,   // Включаем скролл колесом
+                    zoomLock: true
+                }
+            ];
+        }
+
+        charts.firstCallResults.setOption(option);
+
+        // Drilldown
+        charts.firstCallResults.off('click');
+        charts.firstCallResults.on('click', function(params) {
+            if (params.componentType === 'series') {
+                const idx = indices[params.dataIndex];
+                const managerName = data.managers[idx];
+                openCallsWithFilters(null, 'first_call', managerName);
+            }
+        });
+    }
+
+    /**
+     * Update repeat call results chart (распределение результатов повторного звонка)
+     */
+    function updateRepeatCallResultsChart(data) {
+        console.log('updateRepeatCallResultsChart data:', data);
+
+        if (!data || !data.managers || data.managers.length === 0) {
+            console.warn('No repeat call results data');
+            charts.repeatCallResults.setOption({
+                title: {
+                    text: 'Нет данных для отображения',
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: { color: '#999', fontSize: 14 }
+                }
+            });
+            return;
+        }
+
+        // РЕВЕРС - лучшие вверху (по total_calls)
+        const indices = data.managers.map((_, idx) => idx);
+        indices.reverse();
+
+        const managers = indices.map(idx => {
+            const totalCalls = data.total_calls[idx];
+            return `${data.managers[idx]} (${totalCalls} зв.)`;
+        });
+
+        // Динамическая высота с ограничением: минимум 500px, максимум 700px
+        const calculatedHeight = managers.length * 40 + 150;
+        const chartHeight = Math.min(Math.max(500, calculatedHeight), 700);
+        const chartContainer = document.getElementById('repeat-call-results-chart');
+
+        console.log(`[Repeat Results] Managers: ${managers.length}, Calculated: ${calculatedHeight}px, Final: ${chartHeight}px`);
+
+        chartContainer.style.height = chartHeight + 'px';
+        chartContainer.style.maxHeight = '700px';
+        charts.repeatCallResults.resize();
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function(params) {
+                    const idx = indices[params[0].dataIndex];
+                    const managerName = data.managers[idx];
+                    const totalCalls = data.total_calls[idx];
+                    let tooltip = `<b>${managerName}</b><br/>`;
+                    tooltip += `Всего звонков: ${totalCalls}<br/><br/>`;
+                    tooltip += `<b>Распределение результатов:</b><br/>`;
+                    params.forEach(item => {
+                        if (item.value > 0) {
+                            tooltip += `${item.marker} ${item.seriesName}: ${item.value}<br/>`;
+                        }
+                    });
+                    return tooltip;
+                }
+            },
+            legend: {
+                data: [
+                    '📅 Назначен показ', '🏠 Показ проведен', '📤 Отправлены варианты',
+                    '⏳ Думает', '⏸️ Ожидается ответ', '📞 Консультация',
+                    '📵 Недозвон', '❌ Отказ', '📞 Личный/нерабочий'
+                ],
+                show: false  // Скрыта как в оценках
+            },
+            grid: {
+                left: '25%',
+                right: '10%',
+                bottom: '15%',
+                top: '5%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: 'Количество звонков'
+            },
+            yAxis: {
+                type: 'category',
+                data: managers,
+                axisLabel: {
+                    interval: 0,
+                    fontSize: 10
+                }
+            },
+            series: [
+                // ПОЗИТИВНЫЕ (зеленые оттенки)
+                {
+                    name: '📅 Назначен показ',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.show_scheduled[idx]),
+                    itemStyle: { color: '#66bb6a' }
+                },
+                {
+                    name: '🏠 Показ проведен',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.show_done[idx]),
+                    itemStyle: { color: '#81c784' }
+                },
+                {
+                    name: '📤 Отправлены варианты',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.materials_sent[idx]),
+                    itemStyle: { color: '#aed581' }
+                },
+
+                // ОЖИДАНИЕ (желтые оттенки)
+                {
+                    name: '⏳ Думает',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.thinking[idx]),
+                    itemStyle: { color: '#fdd835' }
+                },
+                {
+                    name: '⏸️ Ожидается ответ',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.waiting[idx]),
+                    itemStyle: { color: '#ffeb3b' }
+                },
+                {
+                    name: '📞 Консультация',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.consultation[idx]),
+                    itemStyle: { color: '#fff59d' }
+                },
+
+                // НЕГАТИВНЫЕ (серый + красные оттенки)
+                {
+                    name: '📵 Недозвон',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.no_answer[idx]),
+                    itemStyle: { color: '#9e9e9e' }
+                },
+                {
+                    name: '❌ Отказ',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.rejection[idx]),
+                    itemStyle: { color: '#ef5350' }
+                },
+                {
+                    name: '📞 Личный/нерабочий',
+                    type: 'bar',
+                    stack: 'total',
+                    data: indices.map(idx => data.distribution.personal[idx]),
+                    itemStyle: { color: '#bdbdbd' }
+                }
+            ]
+        };
+
+        // Добавляем DataZoom если данных много
+        if (calculatedHeight > 700) {
+            const visiblePercent = (700 / calculatedHeight * 100);
+            option.dataZoom = [
+                {
+                    type: 'slider',
+                    yAxisIndex: 0,
+                    right: 10,
+                    width: 20,
+                    start: 100 - visiblePercent,  // Показываем верх списка (лучшие результаты)
+                    end: 100,
+                    zoomLock: true,
+                    fillerColor: 'rgba(255, 152, 0, 0.15)',  // Оранжевый для повторных
+                    borderColor: '#FF9800'
+                },
+                {
+                    type: 'inside',
+                    yAxisIndex: 0,
+                    start: 100 - visiblePercent,
+                    end: 100,
+                    zoomOnMouseWheel: false,  // Отключаем зум колесом
+                    moveOnMouseWheel: true,   // Включаем скролл колесом
+                    zoomLock: true
+                }
+            ];
+        }
+
+        charts.repeatCallResults.setOption(option);
+
+        // Drilldown
+        charts.repeatCallResults.off('click');
+        charts.repeatCallResults.on('click', function(params) {
+            if (params.componentType === 'series') {
+                const idx = indices[params.dataIndex];
+                const managerName = data.managers[idx];
+                openCallsWithFilters(null, 'repeat_call', managerName);
+            }
+        });
+    }
+
+    /**
+     * Update Conversion Charts (First and Repeat separately)
+     */
+    function updateFirstCallConversionChart(data) {
+        console.log('updateFirstCallConversionChart data:', data);
+
+        // Вызываем отрисовку двух отдельных графиков
+        if (typeof window.drawSingleConversionChart === 'function') {
+            // Используем новую функцию из conversion_charts_split.js
+            console.log('[Split Charts] Using external drawSingleConversionChart');
+            window.drawSingleConversionChart(data, 'first', charts);
+            window.drawSingleConversionChart(data, 'repeat', charts);
+        } else {
+            // Fallback: старая реализация
+            console.warn('[Fallback] drawSingleConversionChart not found, using legacy');
+            drawConversionChartLegacy(data);
+        }
+    }
+
+    /**
+     * Legacy Draw Conversion Chart
+     */
+    function drawConversionChartLegacy(data) {
+        console.log('[Legacy] drawConversionChartLegacy');
+
+        if (!data || !data.managers || data.managers.length === 0) {
+            console.warn('No first call conversion data');
+            charts.firstCallConversion.setOption({
+                title: {
+                    text: 'Нет данных для отображения',
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: {
+                        color: '#999',
+                        fontSize: 14
+                    }
+                }
+            });
+            return;
+        }
+
+        // РЕВЕРС массивов - лучшие вверху, худшие внизу
+        const reversedManagers = [...data.managers].reverse();
+        const reversedFirstConversion = [...data.first_conversion].reverse();
+        const reversedRepeatConversion = [...data.repeat_conversion].reverse();
+        const reversedOverallConversion = [...data.overall_conversion].reverse();
+        const reversedFirstTotal = [...data.first_total].reverse();
+        const reversedRepeatTotal = [...data.repeat_total].reverse();
+        const reversedTotalCalls = [...data.total_calls].reverse();
+
+        // Подготовка данных для оси Y
+        const managers = reversedManagers.map((manager, idx) => {
+            const totalCalls = reversedTotalCalls[idx];
+            const firstTotal = reversedFirstTotal[idx];
+            const repeatTotal = reversedRepeatTotal[idx];
+            return `${manager} (1й: ${firstTotal}, пов: ${repeatTotal})`;
+        });
+
+        // Динамическая высота с ограничением: минимум 500px, максимум 700px
+        const calculatedHeight = managers.length * 40 + 150;
+        const chartHeight = Math.min(Math.max(500, calculatedHeight), 700);
+        const chartContainer = document.getElementById('first-call-conversion-chart');
+
+        console.log(`[Conversion Chart] Managers: ${managers.length}, Calculated: ${calculatedHeight}px, Final: ${chartHeight}px`);
+
+        chartContainer.style.height = chartHeight + 'px';
+        chartContainer.style.maxHeight = '700px'; // Дополнительное ограничение
+        charts.firstCallConversion.resize();
+
+        // Summary statistics
+        const summary = data.summary || {};
+        const avgFirstConv = summary.avg_first_conversion || 0;
+        const avgRepeatConv = summary.avg_repeat_conversion || 0;
+        const difference = summary.difference || 0;
+
+        // Создаем базовую конфигурацию графика
+        const option = {
+            title: {
+                text: `Среднее: 1-й зв. ${avgFirstConv}% | Повтор. ${avgRepeatConv}% | Разница ${difference > 0 ? '+' : ''}${difference}%`,
+                left: 'center',
+                top: 10,
+                textStyle: {
+                    fontSize: 13,
+                    fontWeight: 'normal',
+                    color: '#666'
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                },
+                formatter: function(params) {
+                    const idx = params[0].dataIndex;
+                    const managerName = reversedManagers[idx];
+                    const firstConv = reversedFirstConversion[idx];
+                    const repeatConv = reversedRepeatConversion[idx];
+                    const overallConv = reversedOverallConversion[idx];
+                    const firstTotal = reversedFirstTotal[idx];
+                    const repeatTotal = reversedRepeatTotal[idx];
+                    const totalCalls = reversedTotalCalls[idx];
+
+                    let tooltip = `<b>${managerName}</b><br/>`;
+                    tooltip += `Всего звонков: ${totalCalls}<br/><br/>`;
+                    tooltip += `<b>Первые звонки:</b> ${firstTotal} зв. → ${firstConv}%<br/>`;
+                    tooltip += `<b>Повторные звонки:</b> ${repeatTotal} зв. → ${repeatConv}%<br/>`;
+                    tooltip += `<b>Общая конверсия:</b> ${overallConv}%<br/>`;
+
+                    const diff = firstConv - repeatConv;
+                    if (diff > 0) {
+                        tooltip += `<br/><span style="color: #4caf50;">▲ Первые лучше на ${diff.toFixed(1)}%</span>`;
+                    } else if (diff < 0) {
+                        tooltip += `<br/><span style="color: #f44336;">▼ Повторные лучше на ${Math.abs(diff).toFixed(1)}%</span>`;
+                    } else {
+                        tooltip += `<br/><span style="color: #999;">= Одинаковая конверсия</span>`;
+                    }
+
+                    return tooltip;
+                }
+            },
+            legend: {
+                data: ['Первый звонок', 'Повторный звонок', 'Общая конверсия'],
+                top: 10,
+                left: 'center'
+            },
+            grid: {
+                left: '25%',
+                right: calculatedHeight > 700 ? '12%' : '10%',  // Больше места для ползунка
+                bottom: '5%',
+                top: '10%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'value',
+                name: 'Конверсия (%)',
+                min: 0,
+                max: 100,
+                axisLabel: {
+                    formatter: '{value}%'
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: managers,
+                axisLabel: {
+                    interval: 0,
+                    fontSize: 11
+                }
+            },
+            series: [
+                {
+                    name: 'Первый звонок',
+                    type: 'bar',
+                    data: reversedFirstConversion,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#2196F3' },
+                                { offset: 1, color: '#42A5F5' }
+                            ]
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: '{c}%',
+                        fontSize: 10
+                    },
+                    barGap: '10%'
+                },
+                {
+                    name: 'Повторный звонок',
+                    type: 'bar',
+                    data: reversedRepeatConversion,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#FF9800' },
+                                { offset: 1, color: '#FFB74D' }
+                            ]
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: '{c}%',
+                        fontSize: 10
+                    }
+                },
+                {
+                    name: 'Общая конверсия',
+                    type: 'bar',
+                    data: reversedOverallConversion,
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 1,
+                            y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#9E9E9E' },
+                                { offset: 1, color: '#BDBDBD' }
+                            ]
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: '{c}%',
+                        fontSize: 10
+                    }
+                }
+            ]
+        };
+
+        // Добавляем DataZoom только если данных больше, чем помещается на экране
+        if (calculatedHeight > 700) {
+            const visiblePercent = (700 / calculatedHeight * 100);
+            option.dataZoom = [
+                {
+                    type: 'slider',
+                    yAxisIndex: 0,
+                    right: 10,
+                    width: 20,
+                    start: 100 - visiblePercent,  // Показываем верх списка (лучшие результаты)
+                    end: 100,
+                    textStyle: {
+                        fontSize: 10
+                    },
+                    handleSize: '80%',
+                    showDetail: false,
+                    zoomLock: true,  // Блокируем zoom, только прокрутка
+                    fillerColor: 'rgba(33, 150, 243, 0.15)',
+                    borderColor: '#2196F3'
+                },
+                {
+                    type: 'inside',
+                    yAxisIndex: 0,
+                    start: 100 - visiblePercent,  // Показываем верх списка
+                    end: 100,
+                    zoomOnMouseWheel: false,  // Отключаем zoom колесиком
+                    moveOnMouseWheel: true,   // Включаем прокрутку колесиком
+                    zoomLock: true            // Полная блокировка zoom
+                }
+            ];
+            console.log(`[DataZoom] Enabled. Visible: ${visiblePercent.toFixed(1)}% of ${managers.length} managers`);
+        }
+
+        charts.firstCallConversion.setOption(option, true);
+
+        // Add click handler for drill-down
+        charts.firstCallConversion.off('click');
+        charts.firstCallConversion.on('click', function(params) {
+            if (params.componentType === 'series') {
+                const idx = params.dataIndex;
+                const managerName = reversedManagers[idx];
+                const isFirstCall = params.seriesName === 'Первый звонок' ? 'first_call' :
+                                   params.seriesName === 'Повторный звонок' ? 'repeat_call' : null;
+                if (isFirstCall) {
+                    openCallsWithFilters(null, isFirstCall, managerName);
+                }
+            }
+        });
+    }
+
+    // Export currentFilters to global scope for communication_charts.js
+    window.currentFilters = currentFilters;
 
     // Initialize on DOM ready
     if (document.readyState === 'loading') {

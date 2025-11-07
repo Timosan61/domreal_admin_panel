@@ -150,20 +150,113 @@ $user_role = $_SESSION['role'] ?? 'user';
 
         .filters-grid {
             display: grid;
-            grid-template-columns: 9.375rem 9.375rem 12.5rem 12.5rem auto; /* 150px 150px 200px 200px auto */
+            grid-template-columns: 9.375rem 9.375rem 12.5rem 12.5rem 1fr; /* 150px 150px 200px 200px flex */
             gap: 0.625rem; /* 10px */
             align-items: end;
+        }
+
+        .filter-group-combined {
+            grid-column: 5 / -1; /* Занимает всю оставшуюся ширину */
+        }
+
+        .combined-filters-row {
+            display: flex;
+            gap: 0.75rem; /* 12px */
+            align-items: center;
+        }
+
+        .crm-compact {
+            width: 12.5rem; /* 200px - уменьшенная ширина для CRM */
+        }
+
+        .toggle-filter-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* 8px */
+            white-space: nowrap;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 2.5rem; /* 40px */
+            height: 1.25rem; /* 20px */
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 1.25rem; /* 20px */
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 0.875rem; /* 14px */
+            width: 0.875rem; /* 14px */
+            left: 0.1875rem; /* 3px */
+            bottom: 0.1875rem; /* 3px */
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(1.25rem); /* 20px */
+        }
+
+        .toggle-label {
+            font-size: 0.8125rem; /* 13px */
+            color: #666;
         }
 
         @media (max-width: 75rem) { /* 1200px */
             .filters-grid {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .filter-group-combined {
+                grid-column: 1 / -1;
+            }
+
+            .combined-filters-row {
+                flex-wrap: wrap;
+            }
         }
 
         @media (max-width: 48rem) { /* 768px */
             .filters-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .filter-group-combined {
+                grid-column: 1;
+            }
+
+            .combined-filters-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .crm-compact {
+                width: 100%;
             }
         }
 
@@ -266,6 +359,7 @@ $user_role = $_SESSION['role'] ?? 'user';
             font-size: 0.75rem; /* 12px */
             color: #666;
             margin-bottom: 0.5rem; /* 8px */
+            text-align: center;
         }
 
         .kpi-card-value {
@@ -273,11 +367,13 @@ $user_role = $_SESSION['role'] ?? 'user';
             font-weight: 600;
             color: #333;
             margin-bottom: 0.25rem; /* 4px */
+            text-align: center;
         }
 
         .kpi-card-subtitle {
             font-size: 0.6875rem; /* 11px */
             color: #999;
+            text-align: center;
         }
 
         /* Chart Container */
@@ -296,7 +392,68 @@ $user_role = $_SESSION['role'] ?? 'user';
             font-size: 1rem; /* 16px */
             font-weight: 600;
             color: #333;
-            margin-bottom: 0.75rem; /* 12px */
+            margin-bottom: 0.5rem; /* 8px - уменьшенный отступ */
+            text-align: center; /* Центрируем все заголовки по умолчанию */
+        }
+
+        .chart-title.centered {
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+
+        .chart-criteria {
+            background-color: #f8f9fa;
+            border-left: 4px solid #2196F3;
+            padding: 0.5rem 0.75rem; /* 8px 12px - уменьшен */
+            margin: -0.625rem 0 0.75rem 0; /* -10px 0 12px 0 - уменьшен нижний */
+            font-size: 0.75rem; /* 12px - уменьшен */
+            line-height: 1.5; /* уменьшен */
+        }
+
+        .chart-criteria strong {
+            color: #333;
+            display: block;
+            margin-bottom: 0.375rem; /* 6px - уменьшен */
+            text-align: center;
+            font-size: 0.8125rem; /* 13px */
+        }
+
+        .chart-criteria-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.375rem 0.75rem; /* 6px 12px - уменьшен */
+        }
+
+        .chart-criteria-grid.single-row {
+            grid-template-columns: 1fr;
+        }
+
+        @media (max-width: 48rem) { /* 768px */
+            .chart-criteria-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-criteria ul {
+            margin: 0;
+            padding-left: 1rem; /* 16px - уменьшен */
+            list-style-type: disc;
+        }
+
+        .chart-criteria li {
+            margin: 0.125rem 0; /* 2px 0 - уменьшен */
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .chart-criteria em {
+            color: #666;
+            font-style: italic;
+            display: block;
+            margin-top: 0.625rem; /* 10px */
+            padding-top: 0.625rem; /* 10px */
+            border-top: 1px solid #dee2e6;
         }
 
         .chart-canvas {
@@ -313,6 +470,14 @@ $user_role = $_SESSION['role'] ?? 'user';
         .chart-canvas.large {
             height: 31.25rem; /* 500px */
             min-height: 25rem; /* 400px */
+        }
+
+        /* Ограничение контейнеров графиков конверсии и оценок */
+        #first-call-conversion-chart,
+        #repeat-call-conversion-chart,
+        #first-call-scores-chart,
+        #repeat-call-scores-chart {
+            overflow: hidden; /* Скрываем всё что выходит за пределы */
         }
 
 
@@ -477,6 +642,89 @@ $user_role = $_SESSION['role'] ?? 'user';
             font-size: 0.5625rem; /* 9px */
             color: #666;
         }
+
+        /* Tooltip Styles */
+        .chart-title.has-tooltip {
+            cursor: help;
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted #999;
+        }
+
+        .chart-title.has-tooltip:hover {
+            color: #2196F3;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 0.5rem;
+            background: #ffffff;
+            border: 2px solid #2196F3;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-width: 25rem;
+            max-width: 50rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        /* Позиционирование tooltip на маленьких экранах */
+        @media (max-width: 48rem) {
+            .tooltip {
+                left: 10%;
+                transform: translateX(0);
+                min-width: 80%;
+            }
+        }
+
+        .tooltip.active {
+            display: block;
+        }
+
+        .tooltip strong {
+            color: #333;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .tooltip p {
+            margin: 0.5rem 0;
+            color: #555;
+        }
+
+        .tooltip-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        @media (max-width: 48rem) {
+            .tooltip-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tooltip ul {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.25rem;
+            list-style-type: disc;
+        }
+
+        .tooltip li {
+            margin: 0.25rem 0;
+            color: #555;
+        }
+
     </style>
 </head>
 <body>
@@ -488,8 +736,6 @@ $user_role = $_SESSION['role'] ?? 'user';
         <div class="analytics-content">
             <!-- Header with Filters -->
             <div class="analytics-header">
-                <h1>📊 Аналитика</h1>
-
                 <div class="filters-grid">
                     <div class="filter-group">
                         <label for="date_from">Дата с:</label>
@@ -543,43 +789,31 @@ $user_role = $_SESSION['role'] ?? 'user';
                         </div>
                     </div>
 
-                    <div class="filter-group">
+                    <div class="filter-group filter-group-combined">
                         <label>CRM Этап:</label>
-                        <div class="multi-select-wrapper">
-                            <div class="multi-select-display" id="crm-stages-display">
-                                <span>Все этапы</span>
-                            </div>
-                            <div class="multi-select-dropdown" id="crm-stages-dropdown">
-                                <div class="multi-select-header">
-                                    <input type="text" class="multi-select-search" id="crm-stages-search" placeholder="Поиск">
-                                    <div class="multi-select-header-buttons">
-                                        <button type="button" class="multi-select-btn" id="crm-stages-select-all">Выбрать все</button>
-                                        <button type="button" class="multi-select-btn" id="crm-stages-clear">Сбросить</button>
+                        <div class="combined-filters-row">
+                            <div class="multi-select-wrapper crm-compact">
+                                <div class="multi-select-display" id="crm-stages-display">
+                                    <span>Все этапы</span>
+                                </div>
+                                <div class="multi-select-dropdown" id="crm-stages-dropdown">
+                                    <div class="multi-select-header">
+                                        <input type="text" class="multi-select-search" id="crm-stages-search" placeholder="Поиск">
+                                        <div class="multi-select-header-buttons">
+                                            <button type="button" class="multi-select-btn" id="crm-stages-select-all">Выбрать все</button>
+                                            <button type="button" class="multi-select-btn" id="crm-stages-clear">Сбросить</button>
+                                        </div>
+                                    </div>
+                                    <div class="multi-select-options" id="crm-stages-options">
+                                        <!-- Будет заполнено через JS -->
                                     </div>
                                 </div>
-                                <div class="multi-select-options" id="crm-stages-options">
-                                    <!-- Будет заполнено через JS -->
-                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="filter-group">
-                        <label>&nbsp;</label>
-                        <div class="toggle-filter-wrapper">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="hide-short-calls-analytics" name="hide_short_calls" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                            <span class="toggle-label">Скрыть до 10 сек</span>
-                        </div>
-                    </div>
-
-                    <div class="filter-group">
-                        <label>&nbsp;</label>
-                        <div class="filter-actions">
-                            <button class="btn btn-primary" id="apply-filters">Применить</button>
-                            <button class="btn btn-secondary" id="reset-filters">Сбросить</button>
+                            <div class="filter-actions">
+                                <button class="btn btn-primary" id="apply-filters">Применить</button>
+                                <button class="btn btn-secondary" id="reset-filters">Сбросить</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -595,9 +829,19 @@ $user_role = $_SESSION['role'] ?? 'user';
                         <div class="kpi-card-subtitle">за выбранный период</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-card-title">Проанализировано</div>
-                        <div class="kpi-card-value" id="kpi-analyzed-calls">-</div>
-                        <div class="kpi-card-subtitle">звонков с анализом</div>
+                        <div class="kpi-card-title">Первые звонки</div>
+                        <div class="kpi-card-value" id="kpi-first-calls">-</div>
+                        <div class="kpi-card-subtitle">новых клиентов</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Повторные звонки</div>
+                        <div class="kpi-card-value" id="kpi-repeat-calls">-</div>
+                        <div class="kpi-card-subtitle">существующих клиентов</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Несостоявшиеся звонки</div>
+                        <div class="kpi-card-value" id="kpi-failed-calls">-</div>
+                        <div class="kpi-card-subtitle">≤30 секунд</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-card-title">Показ назначен</div>
@@ -609,48 +853,214 @@ $user_role = $_SESSION['role'] ?? 'user';
                         <div class="kpi-card-value" id="kpi-conversion-rate">-</div>
                         <div class="kpi-card-subtitle">завершенных показов</div>
                     </div>
-                    <div class="kpi-card">
-                        <div class="kpi-card-title">Первые звонки</div>
-                        <div class="kpi-card-value" id="kpi-first-calls">-</div>
-                        <div class="kpi-card-subtitle">новых клиентов</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-card-title">Средний балл скрипта</div>
-                        <div class="kpi-card-value" id="kpi-script-score">-</div>
-                        <div class="kpi-card-subtitle">выполнение скрипта</div>
-                    </div>
                 </div>
 
                 <!-- Dashboard Grid -->
                 <div class="dashboard-grid">
-                    <!-- Departments Chart -->
+                    <!-- First Call Conversion Chart -->
                     <div class="chart-container">
-                        <div class="chart-title">Результативность отделов (Топ-10)</div>
-                        <div id="departments-chart" class="chart-canvas large"></div>
+                        <div class="chart-title centered has-tooltip" id="first-conversion-title">
+                            📞 Конверсия первых звонков
+                            <div class="tooltip" id="first-conversion-tooltip">
+                                <strong>Как считается конверсия первых звонков:</strong>
+                                <p>Конверсия = (Успешные первые звонки / Всего первых звонков) × 100%</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Положительные результаты:</strong>
+                                    <ul>
+                                        <li>Назначен/подтвержден показ</li>
+                                        <li>Показ проведен</li>
+                                        <li>Отправлены новые варианты</li>
+                                        <li>Клиент подтвердил интерес</li>
+                                        <li>Назначена консультация</li>
+                                        <li>Бронь / Сделка закрыта</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="first-call-conversion-chart" class="chart-canvas large"></div>
                     </div>
 
-                    <!-- Managers Chart -->
+                    <!-- Repeat Call Conversion Chart -->
                     <div class="chart-container">
-                        <div class="chart-title">Топ-10 менеджеров</div>
-                        <div id="managers-chart" class="chart-canvas large"></div>
+                        <div class="chart-title centered has-tooltip" id="repeat-conversion-title">
+                            🔁 Конверсия повторных звонков
+                            <div class="tooltip" id="repeat-conversion-tooltip">
+                                <strong>Как считается конверсия повторных звонков:</strong>
+                                <p>Конверсия = (Успешные повторные звонки / Всего повторных звонков) × 100%</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Положительные результаты:</strong>
+                                    <ul>
+                                        <li>Назначен/подтвержден показ</li>
+                                        <li>Показ проведен</li>
+                                        <li>Отправлены новые варианты</li>
+                                        <li>Клиент подтвердил интерес</li>
+                                        <li>Назначена консультация</li>
+                                        <li>Бронь / Сделка закрыта</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="repeat-call-conversion-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- First Call Scores Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="first-call-scores-title">
+                            📞 Оценки первого звонка
+                            <div class="tooltip" id="first-call-scores-tooltip">
+                                <strong>Критерии оценки:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>Представился и назвал компанию</li>
+                                        <li>Узнал потребности клиента</li>
+                                        <li>Предложил конкретные варианты</li>
+                                    </ul>
+                                    <ul>
+                                        <li>Обработал возражения</li>
+                                        <li>Зафиксировал следующий шаг</li>
+                                        <li>Использовал неформальный диалог</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="first-call-scores-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Repeat Call Scores Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="repeat-call-scores-title">
+                            🔁 Оценки повторного звонка
+                            <div class="tooltip" id="repeat-call-scores-tooltip">
+                                <strong>Критерии оценки:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>Представился и напомнил контекст</li>
+                                        <li>Предложил конкретные действия</li>
+                                        <li>Зафиксировал следующий шаг</li>
+                                    </ul>
+                                    <ul>
+                                        <li>Обработал возражения</li>
+                                        <li>Использовал неформальный диалог</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="repeat-call-scores-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- First Call Results Distribution Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="first-call-results-title">
+                            📊 Результаты первого звонка
+                            <div class="tooltip" id="first-call-results-tooltip">
+                                <strong>Категории результатов:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>✅ Назначен показ</li>
+                                        <li>✅ Подтвержден показ</li>
+                                        <li>✅ Показ проведен</li>
+                                        <li>✅ Отправлены варианты</li>
+                                    </ul>
+                                    <ul>
+                                        <li>⏳ Отложенное решение</li>
+                                        <li>⏸️ Ожидается ответ</li>
+                                        <li>📵 Недозвон</li>
+                                        <li>❌ Отказ / не целевой</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="first-call-results-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Repeat Call Results Distribution Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="repeat-call-results-title">
+                            📊 Результаты повторного звонка
+                            <div class="tooltip" id="repeat-call-results-tooltip">
+                                <strong>Категории результатов:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>✅ Подтвержден показ</li>
+                                        <li>✅ Показ проведен</li>
+                                        <li>💰 Бронь / задаток</li>
+                                        <li>🏆 Сделка закрыта</li>
+                                    </ul>
+                                    <ul>
+                                        <li>⏳ Отложенное решение</li>
+                                        <li>⏸️ Ожидается ответ</li>
+                                        <li>📵 Недозвон</li>
+                                        <li>❌ Отказ / неактуально</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="repeat-call-results-chart" class="chart-canvas large"></div>
                     </div>
 
                     <!-- Funnel Chart -->
                     <div class="chart-container">
-                        <div class="chart-title">Воронка конверсии</div>
-                        <div id="funnel-chart" class="chart-canvas"></div>
+                        <div class="chart-title centered">Воронка конверсии</div>
+                        <div id="funnel-chart" class="chart-canvas large"></div>
                     </div>
 
                     <!-- Dynamics Chart -->
                     <div class="chart-container">
-                        <div class="chart-title">Динамика звонков по дням</div>
-                        <div id="dynamics-chart" class="chart-canvas"></div>
+                        <div class="chart-title centered">Динамика звонков по дням</div>
+                        <div id="dynamics-chart" class="chart-canvas large"></div>
                     </div>
 
-                    <!-- Script Quality Chart -->
+                    <!-- Communication Metrics Section -->
+
+                    <!-- Interruptions Chart -->
                     <div class="chart-container">
-                        <div class="chart-title">Качество выполнения скрипта первого звонка</div>
-                        <div id="script-quality-chart" class="chart-canvas"></div>
+                        <div class="chart-title centered has-tooltip" id="interruptions-title">
+                            📞 Анализ перебиваний менеджеров
+                            <div class="tooltip" id="interruptions-tooltip">
+                                <strong>Метрика перебиваний:</strong>
+                                <p>Процент случаев, когда менеджер начинает говорить до окончания реплики клиента (пауза &lt;0.5 сек)</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Хорошие показатели:</strong>
+                                    <ul>
+                                        <li>&lt;20% - Отличное активное слушание</li>
+                                        <li>20-30% - Хороший баланс</li>
+                                    </ul>
+                                    <strong style="color: #dc3545;">⚠️ Требуют внимания:</strong>
+                                    <ul>
+                                        <li>30-50% - Частые перебивания</li>
+                                        <li>&gt;50% - Критично высокий уровень</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="interruptions-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Talk-to-Listen Ratio Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="talk-listen-title">
+                            🗣️ Соотношение Talk-to-Listen
+                            <div class="tooltip" id="talk-listen-tooltip">
+                                <strong>Метрика Talk-to-Listen:</strong>
+                                <p>Соотношение времени речи менеджера к времени речи клиента</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Оптимальные значения:</strong>
+                                    <ul>
+                                        <li>0.5-1.5 - Сбалансированный диалог</li>
+                                        <li>&lt;0.5 - Менеджер больше слушает (консультация)</li>
+                                    </ul>
+                                    <strong style="color: #ffc107;">⚡ Доминация менеджера:</strong>
+                                    <ul>
+                                        <li>1.5-2.0 - Менеджер доминирует</li>
+                                    </ul>
+                                    <strong style="color: #dc3545;">⚠️ Проблема:</strong>
+                                    <ul>
+                                        <li>&gt;2.0 - Монолог вместо диалога</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="talk-listen-chart" class="chart-canvas large"></div>
                     </div>
                 </div>
             </div>
@@ -666,6 +1076,86 @@ $user_role = $_SESSION['role'] ?? 'user';
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <script src="assets/js/sidebar.js"></script>
     <script src="assets/js/fetch_retry.js?v=<?php echo time(); ?>"></script>
-    <script src="assets/js/analytics.js"></script>
+    <script src="assets/js/analytics.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/conversion_charts_split.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/communication_charts.js?v=<?php echo time(); ?>"></script>
+
+    <!-- Tooltip Management Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Получаем все элементы с tooltip'ами
+            const tooltipTriggers = [
+                {
+                    title: document.getElementById('first-conversion-title'),
+                    tooltip: document.getElementById('first-conversion-tooltip')
+                },
+                {
+                    title: document.getElementById('repeat-conversion-title'),
+                    tooltip: document.getElementById('repeat-conversion-tooltip')
+                },
+                {
+                    title: document.getElementById('first-call-scores-title'),
+                    tooltip: document.getElementById('first-call-scores-tooltip')
+                },
+                {
+                    title: document.getElementById('repeat-call-scores-title'),
+                    tooltip: document.getElementById('repeat-call-scores-tooltip')
+                },
+                {
+                    title: document.getElementById('first-call-results-title'),
+                    tooltip: document.getElementById('first-call-results-tooltip')
+                },
+                {
+                    title: document.getElementById('repeat-call-results-title'),
+                    tooltip: document.getElementById('repeat-call-results-tooltip')
+                },
+                {
+                    title: document.getElementById('interruptions-title'),
+                    tooltip: document.getElementById('interruptions-tooltip')
+                },
+                {
+                    title: document.getElementById('talk-listen-title'),
+                    tooltip: document.getElementById('talk-listen-tooltip')
+                }
+            ];
+
+            // Добавляем обработчики событий для каждого tooltip
+            tooltipTriggers.forEach(function(item) {
+                if (item.title && item.tooltip) {
+                    // Показать tooltip при наведении на заголовок
+                    item.title.addEventListener('mouseenter', function() {
+                        item.tooltip.classList.add('active');
+                    });
+
+                    // Скрыть tooltip при уходе мыши с заголовка
+                    item.title.addEventListener('mouseleave', function() {
+                        item.tooltip.classList.remove('active');
+                    });
+
+                    // Оставить tooltip видимым при наведении на сам tooltip
+                    item.tooltip.addEventListener('mouseenter', function() {
+                        item.tooltip.classList.add('active');
+                    });
+
+                    // Скрыть tooltip при уходе мыши с самого tooltip
+                    item.tooltip.addEventListener('mouseleave', function() {
+                        item.tooltip.classList.remove('active');
+                    });
+                }
+            });
+
+            // Скрыть все tooltip'ы при клике вне их области
+            document.addEventListener('click', function(event) {
+                const isTooltipClick = event.target.closest('.has-tooltip') || event.target.closest('.tooltip');
+                if (!isTooltipClick) {
+                    tooltipTriggers.forEach(function(item) {
+                        if (item.tooltip) {
+                            item.tooltip.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

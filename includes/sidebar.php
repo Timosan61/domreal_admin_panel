@@ -33,13 +33,25 @@
             <span class="sidebar-menu-text">Аналитика</span>
         </a>
 
-        <a href="#" class="sidebar-menu-item">
+        <a href="tags.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'tags.php' ? 'active' : ''; ?>">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                 <line x1="7" y1="7" x2="7.01" y2="7"></line>
             </svg>
             <span class="sidebar-menu-text">Теги</span>
         </a>
+
+        <?php if ($_SESSION['role'] === 'admin'): ?>
+        <a href="lidtracker/index.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' && strpos($_SERVER['REQUEST_URI'], 'lidtracker') !== false ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span class="sidebar-menu-text">LidTracker</span>
+        </a>
+        <?php endif; ?>
 
         <a href="#" class="sidebar-menu-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -58,6 +70,30 @@
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
             <span class="sidebar-menu-text">Money Tracker</span>
+        </a>
+
+        <a href="money_tracker_webhook.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'money_tracker_webhook.php' ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            <span class="sidebar-menu-text">MT Webhook</span>
+        </a>
+
+        <a href="playground.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'playground.php' ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+            <span class="sidebar-menu-text">Playground</span>
+        </a>
+
+        <a href="llm_settings.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'llm_settings.php' ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 1v6m0 6v6m5.2-15.8l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m15.8 5.2l-4.2-4.2m0-6l-4.2-4.2"></path>
+            </svg>
+            <span class="sidebar-menu-text">LLM Настройки</span>
         </a>
 
         <a href="admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">

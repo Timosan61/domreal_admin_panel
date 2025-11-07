@@ -1,5 +1,15 @@
 <?php
-// Простая диагностика для LidTracker (без авторизации)
+// Простая диагностика для LidTracker (только для администраторов)
+session_start();
+require_once '../auth/session.php';
+checkAuth();
+
+// Проверка доступа только для администраторов
+if ($_SESSION['role'] !== 'admin') {
+    header('Location: ../index_new.php');
+    exit();
+}
+
 header('Content-Type: text/html; charset=utf-8');
 
 echo "<h1>LidTracker - Диагностика</h1>";

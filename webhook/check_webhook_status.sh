@@ -119,7 +119,7 @@ echo ""
 echo "🌐 Проверка доступности вебхуков:"
 echo "----------------------------------"
 
-BASE_URL="http://195.239.161.77/admin_panel/webhook"
+BASE_URL="https://domrilhost.ru/admin_panel/webhook"
 
 for endpoint in creatium gck marquiz; do
     echo -n "Проверка $endpoint.php... "
@@ -155,7 +155,7 @@ echo "🔧 Для ручного тестирования используйте
 echo "   bash test_webhooks.sh"
 echo ""
 echo "📊 Для просмотра в админ-панели:"
-echo "   http://195.239.161.77/admin_panel/lidtracker/leads.php"
+echo "   https://domrilhost.ru/admin_panel/lidtracker/leads.php"
 echo ""
 
 echo "✅ Проверка завершена!"

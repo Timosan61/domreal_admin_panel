@@ -177,36 +177,29 @@ function renderCallDetails(call) {
 function renderChecklist(savedChecklist) {
     const container = document.getElementById('checklist-container');
 
+    // Если чеклист пуст или отсутствует, показываем заглушку
+    if (!savedChecklist || savedChecklist.length === 0) {
+        container.innerHTML = '<p class="empty-state">Чеклист недоступен для этого звонка</p>';
+        updateChecklistScore(0, 0);
+        return;
+    }
+
     let html = '';
-    let totalQuestions = checklistQuestions.length;
+    let totalQuestions = savedChecklist.length;  // ✅ Используем данные из API
     let answeredYes = 0;
 
-    checklistQuestions.forEach((question, index) => {
-        // Проверяем сохранённое значение
-        const savedItem = savedChecklist.find(item => item.id === question.id);
-        const savedValue = savedItem ? (savedItem.checked ? 'yes' : 'no') : '';
-
-        if (savedValue === 'yes') answeredYes++;
+    savedChecklist.forEach((item, index) => {  // ✅ Используем savedChecklist напрямую
+        // Подсчитываем отмеченные пункты
+        if (item.checked) answeredYes++;
 
         html += `
             <div class="checklist-item">
                 <div class="checklist-question">
-                    ${question.icon ? `<span class="question-icon">${question.icon}</span>` : ''}
-                    ${question.text}
+                    <strong>${item.label || item.text}</strong>
+                    ${item.description ? `<div class="checklist-description" style="font-size: 0.9em; color: #666; margin-top: 5px;">${item.description}</div>` : ''}
                 </div>
-                <div class="checklist-options">
-                    <label class="radio-option">
-                        <input type="radio" name="question_${index}" value="no" ${savedValue === 'no' ? 'checked' : ''}>
-                        <span>НЕТ</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="question_${index}" value="yes" ${savedValue === 'yes' ? 'checked' : ''}>
-                        <span>ДА</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="question_${index}" value="na" ${savedValue === 'na' ? 'checked' : ''}>
-                        <span>Не имеет значения</span>
-                    </label>
+                <div class="checklist-status">
+                    ${item.checked ? '<span class="badge badge-success">✓ ДА</span>' : '<span class="badge badge-secondary">✗ НЕТ</span>'}
                 </div>
             </div>
         `;
@@ -216,11 +209,6 @@ function renderChecklist(savedChecklist) {
 
     // Обновляем счётчик
     updateChecklistScore(answeredYes, totalQuestions);
-
-    // Добавляем обработчики изменения
-    container.querySelectorAll('input[type="radio"]').forEach(input => {
-        input.addEventListener('change', updateChecklistScoreFromInputs);
-    });
 }
 
 /**

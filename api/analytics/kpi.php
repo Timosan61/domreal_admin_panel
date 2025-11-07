@@ -25,7 +25,6 @@ $date_from = isset($_GET['date_from']) ? $_GET['date_from'] : date('Y-m-d', strt
 $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : date('Y-m-d');
 $departments = isset($_GET['departments']) ? $_GET['departments'] : '';
 $managers = isset($_GET['managers']) ? $_GET['managers'] : '';
-$hide_short_calls = isset($_GET['hide_short_calls']) ? $_GET['hide_short_calls'] : '1';
 
 // Подключение к БД
 $database = new Database();
@@ -79,29 +78,39 @@ if (!empty($managers)) {
     $where_conditions[] = "ar.employee_full_name IN (" . implode(',', $manager_placeholders) . ")";
 }
 
-// Фильтр "Скрыть до 10 сек"
-if ($hide_short_calls === '1') {
-    $where_conditions[] = "cr.duration_sec > 10";
-}
-
+// Запрос KPI метрик - учитываем ВСЕ звонки (без фильтра по длительности)
 $where_clause = implode(' AND ', $where_conditions);
 
-// Запрос KPI метрик
 $query = "
     SELECT
         COUNT(DISTINCT cr.callid) as total_calls,
-        COUNT(DISTINCT CASE WHEN ar.callid IS NOT NULL THEN cr.callid END) as analyzed_calls,
+
+        -- Первые звонки (is_first_call = 1 из calls_raw)
+        COUNT(DISTINCT CASE WHEN cr.is_first_call = 1 THEN cr.callid END) as first_calls,
+
+        -- Повторные звонки (is_first_call = 0 из calls_raw)
+        COUNT(DISTINCT CASE WHEN cr.is_first_call = 0 THEN cr.callid END) as repeat_calls,
+
+        -- Несостоявшиеся звонки (duration_sec <= 30)
+        COUNT(DISTINCT CASE WHEN cr.duration_sec <= 30 THEN cr.callid END) as failed_calls,
+
+        -- Показ назначен (все варианты назначенного/подтвержденного показа)
         COUNT(DISTINCT CASE
-            WHEN LOWER(ar.call_result) LIKE '%показ%'
+            WHEN ar.call_result IN ('Назначен показ', 'Подтвержден показ', 'Показ назначен')
+              OR ar.call_result LIKE 'Показ назначен%'
+              OR ar.call_result LIKE '%Результат: Показ назначен%'
             THEN cr.callid
         END) as showing_scheduled,
+
+        -- Показ состоялся (только проведенные показы)
         COUNT(DISTINCT CASE
-            WHEN LOWER(ar.call_result) = 'показ'
-              OR LOWER(ar.call_result) LIKE '%показ состоялся%'
+            WHEN ar.call_result = 'Показ проведен'
+              OR ar.call_result = 'Показ состоялся'
+              OR ar.call_result LIKE 'Показ состоялся%'
+              OR ar.call_result LIKE '%Результат: Показ состоялся%'
             THEN cr.callid
         END) as showing_completed,
-        COUNT(DISTINCT CASE WHEN ar.call_type = 'first_call' THEN cr.callid END) as first_calls,
-        AVG(CASE WHEN ar.script_compliance_score IS NOT NULL THEN ar.script_compliance_score END) as avg_script_score,
+
         COUNT(DISTINCT ar.client_phone) as unique_clients
     FROM calls_raw cr
     LEFT JOIN analysis_results ar ON cr.callid = ar.callid
@@ -117,12 +126,12 @@ try {
         'success' => true,
         'data' => [
             'total_calls' => (int)$row['total_calls'],
-            'analyzed_calls' => (int)$row['analyzed_calls'],
+            'first_calls' => (int)$row['first_calls'],
+            'repeat_calls' => (int)$row['repeat_calls'],
+            'failed_calls' => (int)$row['failed_calls'],
             'showing_scheduled' => (int)$row['showing_scheduled'],
             'showing_completed' => (int)$row['showing_completed'],
-            'first_calls' => (int)$row['first_calls'],
-            'unique_clients' => (int)$row['unique_clients'],
-            'avg_script_score' => $row['avg_script_score'] ? round($row['avg_script_score'], 2) : 0
+            'unique_clients' => (int)$row['unique_clients']
         ],
         'filters' => [
             'date_from' => $date_from,

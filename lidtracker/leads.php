@@ -3,6 +3,12 @@ session_start();
 require_once '../auth/session.php';
 checkAuth();
 
+// Проверка доступа только для администраторов
+if ($_SESSION['role'] !== 'admin') {
+    header('Location: ../index_new.php');
+    exit();
+}
+
 $user_full_name = $_SESSION['full_name'] ?? 'Пользователь';
 $user_role = $_SESSION['role'] ?? 'user';
 

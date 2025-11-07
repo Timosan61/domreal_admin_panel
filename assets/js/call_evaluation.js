@@ -101,7 +101,7 @@ function renderCallInfo() {
             </div>
             <div class="info-item">
                 <div class="info-label">Тип звонка</div>
-                <div class="info-value">${formatCallType(callData.call_type)}</div>
+                <div class="info-value">${formatCallType(callData.call_type, callData.is_first_call)}</div>
             </div>
         </div>
     `;
@@ -115,41 +115,65 @@ function renderCallInfo() {
 function setupAudioSource() {
     const audioSource = document.getElementById('audio-source');
     const audioPlayer = document.getElementById('audio-player');
+    const playerContainer = document.getElementById('audio-player-container');
 
-    if (callData.audio_path && callData.audio_status === 'DONE') {
-        // Здесь нужно добавить endpoint для стриминга аудио
-        audioSource.src = `api/audio_stream.php?callid=${encodeURIComponent(callData.callid)}`;
-        audioPlayer.load();
-    } else {
-        let errorMessage = 'Аудиозапись недоступна';
+    // ✅ ВСЕГДА пытаемся загрузить аудио из API (backend поддерживает скачивание из Beeline)
+    audioSource.src = `api/audio_stream.php?callid=${encodeURIComponent(callData.callid)}`;
+    audioPlayer.load();
 
-        if (callData.audio_status === 'ERROR') {
-            errorMessage = `<div style="color: #721c24;">
-                <strong>❌ Аудиозапись недоступна (статус: ERROR)</strong><br>`;
+    // Показываем предупреждение для не-DONE статусов, НО плеер оставляем
+    let statusWarning = '';
 
-            if (callData.audio_error && callData.audio_error !== 'null') {
-                errorMessage += `<div style="margin-top: 8px;">📋 Причина: <em>${escapeHtml(callData.audio_error)}</em></div>`;
-            } else {
-                errorMessage += `<div style="margin-top: 8px;">⚠️ Произошла ошибка при обработке аудио</div>`;
-            }
+    if (callData.audio_status === 'ERROR') {
+        statusWarning = `<div style="margin-bottom: 12px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">
+            <strong>⚠️ Транскрибация не удалась</strong>`;
 
-            errorMessage += `<div style="margin-top: 12px; font-size: 13px; color: #856404;">
-                💡 <strong>Решение:</strong> Обратитесь к администратору для повторной обработки звонка
-            </div></div>`;
-        } else if (callData.audio_status === 'QUEUED') {
-            errorMessage = '⏳ Аудиозапись в очереди на обработку';
-        } else if (callData.audio_status === 'DOWNLOADING') {
-            errorMessage = '⬇️ Аудиозапись загружается...';
-        } else if (callData.audio_status === 'TRANSCRIBING') {
-            errorMessage = '🎙️ Идёт транскрибация...';
-        } else if (!callData.audio_status) {
-            errorMessage = '❓ Задача на обработку аудио не создана';
+        if (callData.audio_error && callData.audio_error !== 'null') {
+            statusWarning += `<div style="margin-top: 6px; font-size: 13px;">Причина: <em>${escapeHtml(callData.audio_error)}</em></div>`;
         }
 
-        document.getElementById('audio-player-container').innerHTML = `
-            <div style="padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">${errorMessage}</div>
-        `;
+        statusWarning += `<div style="margin-top: 8px; font-size: 13px;">
+            💡 Аудиозапись доступна для прослушивания (загружается из Beeline API)<br>
+            📋 Для повторной обработки обратитесь к администратору
+        </div></div>`;
+    } else if (callData.audio_status === 'QUEUED') {
+        statusWarning = `<div style="margin-bottom: 12px; padding: 12px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 8px; color: #0c5460;">
+            ⏳ Транскрибация в очереди. Аудио доступно для прослушивания.
+        </div>`;
+    } else if (callData.audio_status === 'DOWNLOADING') {
+        statusWarning = `<div style="margin-bottom: 12px; padding: 12px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 8px; color: #0c5460;">
+            ⬇️ Аудио загружается. Попробуйте позже.
+        </div>`;
+    } else if (callData.audio_status === 'TRANSCRIBING') {
+        statusWarning = `<div style="margin-bottom: 12px; padding: 12px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 8px; color: #0c5460;">
+            🎙️ Идёт транскрибация. Аудио доступно для прослушивания.
+        </div>`;
+    } else if (!callData.audio_status) {
+        statusWarning = `<div style="margin-bottom: 12px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">
+            ❓ Задача на обработку не создана. Аудио может быть доступно через Beeline API.
+        </div>`;
     }
+
+    // Вставляем предупреждение ПЕРЕД плеером (если есть)
+    if (statusWarning) {
+        playerContainer.insertAdjacentHTML('afterbegin', statusWarning);
+    }
+
+    // Обработка ошибок загрузки аудио
+    audioPlayer.addEventListener('error', function() {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'padding: 20px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 8px; color: #721c24; margin-top: 12px;';
+        errorDiv.innerHTML = `
+            <strong>❌ Не удалось загрузить аудиофайл</strong><br>
+            <div style="margin-top: 8px; font-size: 13px;">
+                Возможные причины:<br>
+                • Файл отсутствует в хранилище<br>
+                • Beeline API недоступен<br>
+                • Запись не найдена в системе телефонии
+            </div>
+        `;
+        playerContainer.appendChild(errorDiv);
+    });
 }
 
 /**
@@ -320,63 +344,86 @@ function renderAnalysis() {
         `;
     }
 
-    // Результат звонка с учетом call_type
+    // Результат звонка - стандартизированные категории (2025-10-29)
     if (callData.call_result) {
         // Очищаем префикс "Результат:" если есть
         let cleanResult = callData.call_result.replace(/^Результат:\s*/i, '').trim();
 
         // Убираем лишние слова для компактности
-        cleanResult = cleanResult.replace(/\s+звонок$/i, ''); // "Личный/нерабочий звонок" → "Личный/нерабочий"
-        cleanResult = cleanResult.replace(/\s+выполнена$/i, ''); // "Квалификация выполнена" → "Квалификация"
+        cleanResult = cleanResult.replace(/\s+звонок$/i, '');
+        cleanResult = cleanResult.replace(/\s+выполнена$/i, '');
 
         // Логика совпадает с общей таблицей (calls_list.js)
         let badgeClass = 'badge-info'; // По умолчанию синий
         let icon = '';
         const resultLower = cleanResult.toLowerCase();
 
-        // Для первого звонка - специфичные категории
-        if (callData.call_type === 'first_call') {
-            if (resultLower.includes('квалифик')) {
-                badgeClass = 'badge-success';
-                icon = '📋 ';
-            } else if (resultLower.includes('материал') || resultLower.includes('отправ')) {
-                badgeClass = 'badge-success';
-                icon = '📤 ';
-            } else if (resultLower.includes('показ')) {
-                badgeClass = 'badge-success';
-                icon = '🏠 ';
-            } else if (resultLower.includes('назначен перезвон')) {
-                badgeClass = 'badge-info';
-                icon = '📞 ';
-            } else if (resultLower.includes('не целевой') || resultLower.includes('нецелевой')) {
-                badgeClass = 'badge-warning';
-                icon = '⛔ ';
-            } else if (resultLower.includes('отказ')) {
-                badgeClass = 'badge-danger';
-                icon = '❌ ';
-            } else if (resultLower.includes('не дозвон')) {
-                badgeClass = 'badge-secondary';
-                icon = '📵 ';
-            }
+        // ✅ Стандартизированные результаты (работают для обоих типов звонков)
+
+        // 🟢 Позитивные результаты (зеленые)
+        if (resultLower.includes('назначен показ')) {
+            badgeClass = 'badge-success';
+            icon = '📅 ';
+        } else if (resultLower.includes('подтвержден показ') || resultLower.includes('подтверждён показ')) {
+            badgeClass = 'badge-success';
+            icon = '✅ ';
+        } else if (resultLower.includes('показ проведен') || resultLower.includes('показ провед')) {
+            badgeClass = 'badge-success';
+            icon = '🏠 ';
+        } else if (resultLower.includes('отправлены новые варианты') || (resultLower.includes('отправлен') && resultLower.includes('вариант'))) {
+            badgeClass = 'badge-success';
+            icon = '📤 ';
+        } else if (resultLower.includes('клиент подтвердил интерес')) {
+            badgeClass = 'badge-success';
+            icon = '👍 ';
+        } else if (resultLower.includes('бронь') || resultLower.includes('задаток')) {
+            badgeClass = 'badge-success';
+            icon = '💰 ';
+        } else if (resultLower.includes('сделка закрыта') || resultLower.includes('сделка заверш')) {
+            badgeClass = 'badge-success';
+            icon = '🎉 ';
+        } else if (resultLower.includes('назначена консультация')) {
+            badgeClass = 'badge-success';
+            icon = '🗓️ ';
         }
-        // Для других звонков - стандартные категории
-        else {
-            if (resultLower.includes('показ')) {
-                badgeClass = 'badge-success';
-                icon = '🏠 ';
-            } else if (resultLower.includes('перезвон')) {
-                badgeClass = 'badge-warning';
-                icon = '⏰ ';
-            } else if (resultLower.includes('думает')) {
-                badgeClass = 'badge-info';
-                icon = '💭 ';
-            } else if (resultLower.includes('отказ')) {
-                badgeClass = 'badge-danger';
-                icon = '❌ ';
-            } else if (resultLower.includes('не дозвон')) {
-                badgeClass = 'badge-secondary';
-                icon = '📵 ';
-            }
+
+        // 🟡 Нейтральные/Ожидание (желтые/синие)
+        else if (resultLower.includes('отложенное решение') || resultLower.includes('отложен')) {
+            badgeClass = 'badge-info';
+            icon = '⏳ ';
+        } else if (resultLower.includes('ожидается ответ клиента') || (resultLower.includes('ожидается') && resultLower.includes('ответ'))) {
+            badgeClass = 'badge-info';
+            icon = '⏰ ';
+        }
+
+        // 🔴 Негативные (красные/серые)
+        else if (resultLower.includes('недозвон') || resultLower.includes('не дозвон') || resultLower.includes('не отвечает')) {
+            badgeClass = 'badge-secondary';
+            icon = '📵 ';
+        } else if (resultLower.includes('отказ') || resultLower.includes('неактуально')) {
+            badgeClass = 'badge-danger';
+            icon = '❌ ';
+        } else if (resultLower.includes('не целевой') || resultLower.includes('нецелевой')) {
+            badgeClass = 'badge-warning';
+            icon = '⛔ ';
+        }
+
+        // 🔵 Fallback для старых результатов
+        else if (resultLower.includes('квалифик')) {
+            badgeClass = 'badge-success';
+            icon = '📋 ';
+        } else if (resultLower.includes('показ') || resultLower.includes('презентац')) {
+            badgeClass = 'badge-success';
+            icon = '🏠 ';
+        } else if (resultLower.includes('материал')) {
+            badgeClass = 'badge-success';
+            icon = '📤 ';
+        } else if (resultLower.includes('перезвон')) {
+            badgeClass = 'badge-warning';
+            icon = '📞 ';
+        } else if (resultLower.includes('думает')) {
+            badgeClass = 'badge-info';
+            icon = '💭 ';
         }
 
         // Общие категории (для любого типа звонка)
@@ -499,7 +546,18 @@ function formatDirection(direction) {
 /**
  * Форматирование типа звонка
  */
-function formatCallType(type) {
+function formatCallType(type, isFirstCall) {
+    // ✨ НОВАЯ ЛОГИКА (2025-10-26): Тип звонка определяется по полю is_first_call
+    // Если поле is_first_call доступно, используем его
+    if (isFirstCall !== undefined && isFirstCall !== null) {
+        if (isFirstCall === 1 || isFirstCall === true) {
+            return '1️⃣ Первый звонок';
+        } else {
+            return '🔁 Повторный звонок';
+        }
+    }
+
+    // Fallback на старую логику (если is_first_call недоступен)
     if (!type) return '-';
     const types = {
         'first_call': 'Первый звонок',

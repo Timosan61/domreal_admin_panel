@@ -103,7 +103,7 @@
                         <th>Тег</th>
                         <th data-sort="employee_name">Менеджер</th>
                         <th>Результат</th>
-                        <th data-sort="script_compliance_score">Оценка</th>
+                        <th data-sort="script_compliance_score_v4">Оценка</th>
                         <th>Резюме</th>
                         <th>Агрегированный анализ</th>
                         <th>Платежеспособность</th>

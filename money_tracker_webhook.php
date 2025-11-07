@@ -87,7 +87,7 @@ $recent_webhooks = $recent_webhooks_stmt->fetchAll();
 error_log("[Money Tracker Webhook] Loaded " . count($recent_webhooks) . " webhook events");
 
 // Production webhook URL
-$webhook_url = "http://195.239.161.77:18080/api/webhook_gck_money_tracker.php";
+$webhook_url = "https://domrilhost.ru:18080/api/webhook_gck_money_tracker.php";
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -505,6 +505,75 @@ $webhook_url = "http://195.239.161.77:18080/api/webhook_gck_money_tracker.php";
 
                 <!-- Test Result Display -->
                 <div id="test-result" style="display: none; margin-top: 1rem;"></div>
+            </div>
+
+            <!-- Webhook Providers Management -->
+            <div class="config-section">
+                <h2>🔌 Управление поставщиками Webhook</h2>
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    Настройте поставщиков данных (GCK, Marquiz, Tilda и др.) с индивидуальной таблицей Google Sheets для каждого
+                </p>
+
+                <!-- Add/Edit Provider Form -->
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <h3 style="margin-top: 0;" id="provider-form-title">Добавить нового поставщика</h3>
+                    <input type="hidden" id="edit-provider-id" value="">
+
+                    <div class="form-group">
+                        <label>Код поставщика:</label>
+                        <input type="text" id="provider-code" placeholder="gck, marquiz, tilda" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <div class="form-help">
+                            Уникальный код (латиницей, без пробелов). Используется в URL webhook.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Название поставщика:</label>
+                        <input type="text" id="provider-name" placeholder="GetCourse (ГЦК)" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <div class="form-help">
+                            Человекочитаемое название для отображения в админке.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Google Sheets ID:</label>
+                        <input type="text" id="provider-sheets-id" placeholder="1abc...xyz (из URL таблицы)" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                        <div class="form-help">
+                            Скопируйте из URL: https://docs.google.com/spreadsheets/d/<strong>ВОТ_ЭТА_ЧАСТЬ</strong>/edit<br>
+                            ⚠️ Не забудьте добавить <code>domreal@n8n-2025-448515.iam.gserviceaccount.com</code> как редактора таблицы!
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Заметки (опционально):</label>
+                        <textarea id="provider-notes" placeholder="Комментарии о поставщике..." style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; min-height: 80px;"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="test-button" onclick="saveProvider()" style="background: #28a745;" id="save-provider-btn">Добавить поставщика</button>
+                        <button class="test-button" onclick="cancelEditProvider()" style="background: #6c757d; display: none;" id="cancel-edit-btn">Отмена</button>
+                    </div>
+                    <div id="save-provider-result" style="margin-top: 1rem;"></div>
+                </div>
+
+                <!-- Providers List -->
+                <h3>Список поставщиков</h3>
+                <div id="providers-list" style="margin-top: 1rem;">
+                    <p style="color: #666;">Загрузка...</p>
+                </div>
+
+                <!-- Instructions for Google Sheets Setup -->
+                <div class="instructions-box" style="margin-top: 2rem;">
+                    <h4>📋 Инструкция: Как настроить Google Sheets для нового поставщика</h4>
+                    <ol>
+                        <li>Создайте новую таблицу в Google Sheets</li>
+                        <li>Скопируйте ID таблицы из URL: <code>https://docs.google.com/spreadsheets/d/<strong>ВОТ_ЭТА_ЧАСТЬ</strong>/edit</code></li>
+                        <li>Нажмите "Настройки доступа" → "Добавить пользователей"</li>
+                        <li>Добавьте <code>domreal@n8n-2025-448515.iam.gserviceaccount.com</code> с правами <strong>Редактор</strong></li>
+                        <li>Вставьте ID таблицы в форму выше</li>
+                        <li>Webhook URL будет: <code>https://domrilhost.ru:18080/userbox/webhook_receiver.php?provider=ВАШ_КОД</code></li>
+                    </ol>
+                </div>
             </div>
 
             <!-- Google Sheets Clients Management -->
@@ -1028,7 +1097,259 @@ $webhook_url = "http://195.239.161.77:18080/api/webhook_gck_money_tracker.php";
         // Auto-load forward settings on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadForwardSettings();
+            loadProviders(); // Load providers on page load
         });
+
+        // ========================================
+        // Webhook Providers Management Functions
+        // ========================================
+
+        function loadProviders() {
+            fetch('api/webhook_providers.php?action=list')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderProviders(data.providers);
+                    } else {
+                        document.getElementById('providers-list').innerHTML =
+                            `<p style="color: #dc3545;">Ошибка загрузки: ${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('providers-list').innerHTML =
+                        `<p style="color: #dc3545;">Ошибка подключения: ${error.message}</p>`;
+                });
+        }
+
+        function renderProviders(providers) {
+            if (providers.length === 0) {
+                document.getElementById('providers-list').innerHTML =
+                    '<p style="color: #666;">Поставщики не найдены. Добавьте первого поставщика выше.</p>';
+                return;
+            }
+
+            let html = '<div style="overflow-x: auto;"><table class="webhook-log-table"><thead><tr>';
+            html += '<th>Код</th><th>Название</th><th>Google Sheets ID</th><th>Webhook URL</th><th>Статус</th><th>Создан</th><th>Действия</th>';
+            html += '</tr></thead><tbody>';
+
+            providers.forEach(provider => {
+                const statusBadge = provider.is_active
+                    ? '<span class="status-badge success">✅ Активен</span>'
+                    : '<span class="status-badge">⏸️ Неактивен</span>';
+
+                const shortSheetsId = provider.google_sheets_id
+                    ? (provider.google_sheets_id.substring(0, 20) + '...')
+                    : '—';
+
+                const webhookUrl = `https://domrilhost.ru:18080/userbox/webhook_receiver.php?provider=${provider.provider_code}`;
+                const created = new Date(provider.created_at).toLocaleString('ru-RU');
+
+                html += `<tr>
+                    <td><code>${escapeHtml(provider.provider_code)}</code></td>
+                    <td>${escapeHtml(provider.provider_name)}</td>
+                    <td title="${escapeHtml(provider.google_sheets_id || '')}">${escapeHtml(shortSheetsId)}</td>
+                    <td>
+                        <button onclick="copyProviderWebhookUrl('${provider.provider_code}')" class="copy-button" style="padding: 0.3rem 0.6rem; font-size: 0.85rem;">
+                            Копировать URL
+                        </button>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td style="white-space: nowrap;">${created}</td>
+                    <td>
+                        <button onclick="editProvider(${provider.id})" class="copy-button" style="padding: 0.3rem 0.6rem; font-size: 0.85rem; margin-right: 0.5rem; background: #ffc107; color: #000;">
+                            Изменить
+                        </button>
+                        <button onclick="toggleProvider(${provider.id})" class="copy-button" style="padding: 0.3rem 0.6rem; font-size: 0.85rem; margin-right: 0.5rem;">
+                            ${provider.is_active ? 'Выключить' : 'Включить'}
+                        </button>
+                        ${provider.provider_code !== 'gck' ? `
+                        <button onclick="deleteProvider(${provider.id}, '${escapeHtml(provider.provider_name)}')" class="copy-button" style="padding: 0.3rem 0.6rem; font-size: 0.85rem; background: #dc3545;">
+                            Удалить
+                        </button>
+                        ` : ''}
+                    </td>
+                </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            document.getElementById('providers-list').innerHTML = html;
+        }
+
+        function saveProvider() {
+            const id = document.getElementById('edit-provider-id').value;
+            const code = document.getElementById('provider-code').value.trim();
+            const name = document.getElementById('provider-name').value.trim();
+            const sheetsId = document.getElementById('provider-sheets-id').value.trim();
+            const notes = document.getElementById('provider-notes').value.trim();
+            const resultDiv = document.getElementById('save-provider-result');
+
+            if (!code || !name) {
+                resultDiv.innerHTML = '<p style="color: #dc3545;">Заполните код и название поставщика</p>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p style="color: #666;">Сохранение...</p>';
+
+            const action = id ? 'update' : 'add';
+            const payload = { provider_code: code, provider_name: name, google_sheets_id: sheetsId, notes: notes };
+            if (id) payload.id = parseInt(id);
+
+            fetch(`api/webhook_providers.php?action=${action}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = `<p style="color: #28a745;">${id ? 'Поставщик обновлён!' : 'Поставщик добавлен!'}</p>`;
+                    clearProviderForm();
+                    loadProviders();
+                    setTimeout(() => resultDiv.innerHTML = '', 3000);
+                } else {
+                    resultDiv.innerHTML = `<p style="color: #dc3545;">Ошибка: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<p style="color: #dc3545;">Ошибка подключения: ${error.message}</p>`;
+            });
+        }
+
+        function editProvider(id) {
+            // Load provider data for editing
+            fetch(`api/webhook_providers.php?action=get&id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const p = data.provider;
+                        document.getElementById('edit-provider-id').value = p.id;
+                        document.getElementById('provider-code').value = p.provider_code;
+                        document.getElementById('provider-name').value = p.provider_name;
+                        document.getElementById('provider-sheets-id').value = p.google_sheets_id || '';
+                        document.getElementById('provider-notes').value = p.notes || '';
+
+                        document.getElementById('provider-form-title').textContent = 'Редактировать поставщика';
+                        document.getElementById('save-provider-btn').textContent = 'Сохранить изменения';
+                        document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+
+                        // Scroll to form
+                        document.getElementById('provider-form-title').scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        alert('Ошибка загрузки: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Ошибка подключения: ' + error.message);
+                });
+        }
+
+        function cancelEditProvider() {
+            clearProviderForm();
+        }
+
+        function clearProviderForm() {
+            document.getElementById('edit-provider-id').value = '';
+            document.getElementById('provider-code').value = '';
+            document.getElementById('provider-name').value = '';
+            document.getElementById('provider-sheets-id').value = '';
+            document.getElementById('provider-notes').value = '';
+
+            document.getElementById('provider-form-title').textContent = 'Добавить нового поставщика';
+            document.getElementById('save-provider-btn').textContent = 'Добавить поставщика';
+            document.getElementById('cancel-edit-btn').style.display = 'none';
+        }
+
+        function toggleProvider(id) {
+            fetch('api/webhook_providers.php?action=toggle', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadProviders();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Ошибка подключения: ' + error.message);
+            });
+        }
+
+        function deleteProvider(id, name) {
+            if (!confirm(`Удалить поставщика "${name}"?\n\nЭто действие нельзя отменить.`)) {
+                return;
+            }
+
+            fetch('api/webhook_providers.php?action=delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadProviders();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Ошибка подключения: ' + error.message);
+            });
+        }
+
+        function copyProviderWebhookUrl(providerCode) {
+            const url = `https://domrilhost.ru:18080/userbox/webhook_receiver.php?provider=${providerCode}`;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast(`Webhook URL для "${providerCode}" скопирован!`, 'success');
+            }).catch(err => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = url;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast(`Webhook URL для "${providerCode}" скопирован!`, 'success');
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const bgColor = type === 'success' ? '#28a745' : '#dc3545';
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 4px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                z-index: 99999;
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
 </body>
 </html>

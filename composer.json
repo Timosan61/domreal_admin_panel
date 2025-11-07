@@ -1,0 +1,19 @@
+{
+    "name": "domreal/admin-panel",
+    "description": "Domreal Admin Panel - Money Tracker with PhpSpreadsheet Export",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "phpoffice/phpspreadsheet": "^1.29"
+    },
+    "autoload": {
+        "psr-4": {
+            "": ""
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}

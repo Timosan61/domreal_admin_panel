@@ -1,7 +1,7 @@
 <?php
 /**
  * Страница статуса вебхуков LidTracker
- * URL: http://195.239.161.77/admin_panel/webhook/status.php
+ * URL: https://domrilhost.ru/admin_panel/webhook/status.php
  */
 
 require_once '../config/database.php';
@@ -321,7 +321,7 @@ function getValidationBadge($status) {
                 <li>Обновите эту страницу (она обновляется автоматически каждые 30 секунд)</li>
                 <li>Проверьте раздел "Последние лиды" ниже</li>
             </ol>
-            <p style="margin-top: 10px;"><strong>URL вебхука:</strong> http://195.239.161.77/admin_panel/webhook/creatium.php</p>
+            <p style="margin-top: 10px;"><strong>URL вебхука:</strong> https://domrilhost.ru/admin_panel/webhook/creatium.php</p>
         </div>
         <?php endif; ?>
 

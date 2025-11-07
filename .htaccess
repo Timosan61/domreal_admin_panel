@@ -9,6 +9,14 @@ RewriteRule ^index_new\.php$ / [R=301,L]
 RewriteCond %{REQUEST_URI} ^/$
 RewriteRule ^$ /index_new.php [L]
 
+# Exclude API directory from rewriting (let PHP files execute directly)
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteRule ^ - [L]
+
+# Exclude webhook directory from rewriting (allow external services to POST data)
+RewriteCond %{REQUEST_URI} ^/webhook/
+RewriteRule ^ - [L]
+
 # Если файл или директория не существует, показываем index_new.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

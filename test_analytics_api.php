@@ -40,7 +40,7 @@ header("Content-Type: text/html; charset=UTF-8");
         echo "<h3>$name</h3>";
         echo "<p>URL: <code>$url</code></p>";
 
-        $full_url = "http://195.239.161.77" . $url;
+        $full_url = "https://domrilhost.ru" . $url;
 
         // Use curl to test
         $ch = curl_init($full_url);

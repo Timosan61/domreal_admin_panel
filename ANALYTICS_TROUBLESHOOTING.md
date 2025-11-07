@@ -72,7 +72,7 @@ typeof echarts
 
 Откройте в браузере:
 ```
-http://195.239.161.77/api/analytics/departments.php?date_from=2025-10-01&date_to=2025-10-08
+https://domrilhost.ru/api/analytics/departments.php?date_from=2025-10-01&date_to=2025-10-08
 ```
 
 Должен вернуть JSON с данными:
