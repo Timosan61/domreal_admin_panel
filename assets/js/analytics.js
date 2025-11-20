@@ -436,6 +436,11 @@
         if (window.communicationCharts && window.communicationCharts.resize) {
             window.communicationCharts.resize();
         }
+
+        // Resize funnel by manager chart
+        if (window.funnelByManagerDashboard && window.funnelByManagerDashboard.resize) {
+            window.funnelByManagerDashboard.resize();
+        }
     }
 
     /**
@@ -609,8 +614,16 @@
             // Load communication metrics charts
             if (window.communicationCharts) {
                 console.log('Loading communication metrics charts');
-                window.communicationCharts.loadInterruptions(currentFilters);
-                window.communicationCharts.loadTalkListen(currentFilters);
+                await Promise.all([
+                    window.communicationCharts.loadInterruptions(currentFilters),
+                    window.communicationCharts.loadTalkListen(currentFilters)
+                ]);
+            }
+
+            // Load funnel by manager dashboard
+            if (window.funnelByManagerDashboard) {
+                console.log('Loading funnel by manager dashboard');
+                window.funnelByManagerDashboard.load(currentFilters);
             }
 
         } catch (error) {
@@ -618,6 +631,14 @@
             alert('Ошибка загрузки данных аналитики');
         } finally {
             hideLoading();
+
+            // Прокрутка вверх после загрузки всех данных
+            setTimeout(() => {
+                const analyticsBody = document.querySelector('.analytics-body');
+                if (analyticsBody) {
+                    analyticsBody.scrollTop = 0;
+                }
+            }, 200);
         }
     }
 

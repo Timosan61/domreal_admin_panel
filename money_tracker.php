@@ -582,8 +582,14 @@ $user_role = $_SESSION['role'];
             }
         }
     </style>
+    <script src="assets/js/theme-switcher.js"></script>
 </head>
 <body>
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher-container">
+        <button id="theme-switcher-btn" aria-label="Переключить тему" title="Темная тема"></button>
+    </div>
+
     <div class="money-tracker-page">
         <!-- Sidebar -->
         <?php include 'includes/sidebar.php'; ?>

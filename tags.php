@@ -10,8 +10,14 @@ checkAuth(); // Проверка авторизации
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Теги - Система оценки звонков</title>
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
+    <script src="assets/js/theme-switcher.js"></script>
 </head>
 <body>
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher-container">
+        <button id="theme-switcher-btn" aria-label="Переключить тему" title="Темная тема"></button>
+    </div>
+
     <!-- Левая боковая панель -->
     <?php include 'includes/sidebar.php'; ?>
 

@@ -909,8 +909,8 @@ function formatCallResult(result, isSuccessful, callType) {
             badgeClass = 'badge-danger';
             icon = '❌ ';
         } else if (resultLower.includes('не целевой') || resultLower.includes('нецелевой')) {
-            badgeClass = 'badge-warning';
-            icon = '⛔ ';
+            badgeClass = 'badge-danger';
+            icon = '🚫 ';
         }
 
         // 🔵 Fallback для старых результатов

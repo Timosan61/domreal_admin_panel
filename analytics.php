@@ -725,9 +725,224 @@ $user_role = $_SESSION['role'] ?? 'user';
             color: #555;
         }
 
+        /* ========================================
+           Темная тема для Analytics
+           ======================================== */
+        [data-theme="dark"] .analytics-page {
+            background: var(--bg-color);
+        }
+
+        [data-theme="dark"] .analytics-content {
+            background: var(--bg-color) !important;
+        }
+
+        [data-theme="dark"] .sidebar {
+            background: var(--surface-color) !important;
+            box-shadow: 0.125rem 0 0.5rem rgba(0,0,0,0.5);
+        }
+
+        [data-theme="dark"] .sidebar-toggle {
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .analytics-header {
+            background: var(--surface-color) !important;
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .filters-grid {
+            background: transparent !important;
+        }
+
+        [data-theme="dark"] .filter-group label {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .filter-group input,
+        [data-theme="dark"] .filter-group select,
+        [data-theme="dark"] .filters-grid input,
+        [data-theme="dark"] .filters-grid select {
+            background-color: #2c2c2e !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .filter-group button {
+            background-color: #0066CC !important;
+            color: white !important;
+            border-color: #0066CC !important;
+        }
+
+        [data-theme="dark"] .filter-group button:hover {
+            background-color: #0077DD !important;
+        }
+
+        [data-theme="dark"] button[type="button"] {
+            background-color: #3a3a3c !important;
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .kpi-card {
+            background: var(--surface-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0,0,0,0.5) !important;
+        }
+
+        [data-theme="dark"] .kpi-card-title {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .kpi-card-value {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .kpi-card-subtitle {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .kpi-card h3 {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .kpi-value {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .charts-grid {
+            background: transparent !important;
+        }
+
+        [data-theme="dark"] .chart-card {
+            background: var(--surface-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .chart-container {
+            background: var(--surface-color) !important;
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0,0,0,0.5) !important;
+        }
+
+        [data-theme="dark"] .chart-title {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria {
+            background-color: #2c2c2e !important;
+            border-left-color: var(--primary-color) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria strong {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria ul {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria li {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .chart-card h3 {
+            color: var(--text-color) !important;
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .mobile-menu-btn {
+            background: var(--primary-color) !important;
+        }
+
+        [data-theme="dark"] .tooltip {
+            background: rgba(0, 0, 0, 0.95) !important;
+            color: white !important;
+            border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .tooltip li {
+            color: #ccc !important;
+        }
+
+        /* ECharts в темной теме */
+        [data-theme="dark"] .chart-container {
+            background: var(--surface-color) !important;
+        }
+
+        [data-theme="dark"] .chart-canvas,
+        [data-theme="dark"] .chart-container canvas,
+        [data-theme="dark"] div[id*="chart"] {
+            background: transparent !important;
+        }
+
+        /* Убираем слишком яркие цвета графиков */
+        [data-theme="dark"] canvas {
+            opacity: 0.95;
+        }
+
+        /* Кнопка переключения темы для Analytics */
+        .theme-switcher-container {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10001 !important;
+        }
+
+        #theme-switcher-btn {
+            width: 44px !important;
+            height: 44px !important;
+            border: none !important;
+            background: var(--surface-color) !important;
+            color: var(--text-color) !important;
+            border-radius: 50% !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+            box-shadow: var(--shadow-md) !important;
+            border: 2px solid var(--border-color) !important;
+        }
+
+        #theme-switcher-btn:hover {
+            background: var(--primary-color) !important;
+            color: white !important;
+            border-color: var(--primary-color) !important;
+            transform: scale(1.1) rotate(15deg) !important;
+            box-shadow: var(--shadow-lg) !important;
+        }
+
+        #theme-switcher-btn:active {
+            transform: scale(0.95) !important;
+        }
+
+        #theme-switcher-btn svg {
+            width: 20px !important;
+            height: 20px !important;
+            transition: transform 0.3s ease !important;
+            display: block !important;
+        }
+
+        [data-theme="dark"] #theme-switcher-btn {
+            box-shadow: 0 2px 12px rgba(10, 132, 255, 0.3) !important;
+        }
+
+        [data-theme="dark"] #theme-switcher-btn:hover {
+            box-shadow: 0 4px 20px rgba(10, 132, 255, 0.5) !important;
+        }
+
     </style>
+    <script src="assets/js/theme-switcher.js"></script>
 </head>
 <body>
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher-container">
+        <button id="theme-switcher-btn" aria-label="Переключить тему" title="Темная тема">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </div>
+
     <div class="analytics-page">
         <!-- Sidebar -->
         <?php include 'includes/sidebar.php'; ?>
@@ -1062,6 +1277,40 @@ $user_role = $_SESSION['role'] ?? 'user';
                         </div>
                         <div id="talk-listen-chart" class="chart-canvas large"></div>
                     </div>
+
+                    <!-- Funnel By Manager Dashboard -->
+                    <div class="chart-container full-width" style="margin-top: 20px;">
+                        <div class="chart-title centered">
+                            🎯 Воронка покупателя по менеджерам
+                        </div>
+
+                        <!-- Mode switcher -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-primary active" data-funnel-mode="managers">
+                                    По менеджерам
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-funnel-mode="departments">
+                                    По отделам
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-funnel-mode="detailed">
+                                    Детализация
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dashboard content: Table (100% width) + Chart below -->
+
+                        <!-- Table (full width with horizontal scroll) -->
+                        <div id="funnel-table-container" style="width: 100%; overflow-x: auto; margin-bottom: 30px;">
+                            <div class="alert alert-info">Загрузка данных...</div>
+                        </div>
+
+                        <!-- Chart (below table) -->
+                        <div style="width: 100%; margin-top: 20px;">
+                            <div id="funnel-by-manager-chart" class="chart-canvas large" style="width: 100%; height: 600px;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1079,6 +1328,129 @@ $user_role = $_SESSION['role'] ?? 'user';
     <script src="assets/js/analytics.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/conversion_charts_split.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/communication_charts.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/funnel_by_manager_chart.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/analytics-theme-handler.js?v=<?php echo time(); ?>"></script>
+
+    <!-- Scroll to Top on Page Load -->
+    <script>
+        // ОТКЛЮЧАЕМ автоматическое восстановление позиции скролла браузером
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        // Принудительная прокрутка вверх ВСЕХ прокручиваемых контейнеров
+        function scrollToTop() {
+            // Прокручиваем ВСЕ элементы с overflow
+            const scrollableElements = [
+                '.analytics-body',
+                '.analytics-content',
+                '.analytics-page',
+                'body',
+                'html'
+            ];
+
+            scrollableElements.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    if (el) {
+                        console.log(`Прокрутка ${selector}, текущая позиция:`, el.scrollTop);
+                        el.scrollTop = 0;
+                        if (el.scrollTo) {
+                            el.scrollTo({ top: 0, behavior: 'auto' });
+                        }
+                    }
+                });
+            });
+
+            // Прокручиваем window
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+
+            console.log('Все элементы прокручены вверх');
+        }
+
+        // Прокрутка СРАЗУ при выполнении скрипта (самое раннее)
+        scrollToTop();
+
+        // Прокрутка вверх при DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded - прокрутка вверх');
+            scrollToTop();
+        });
+
+        // Прокрутка вверх при загрузке страницы
+        window.addEventListener('load', function() {
+            console.log('window.load - прокрутка вверх');
+            scrollToTop();
+        });
+
+        // Агрессивные дополнительные прокрутки с задержками
+        setTimeout(scrollToTop, 100);
+        setTimeout(scrollToTop, 300);
+        setTimeout(scrollToTop, 500);
+        setTimeout(scrollToTop, 1000);
+        setTimeout(scrollToTop, 1500);
+        setTimeout(scrollToTop, 2000);
+
+        // Финальная диагностика через 2.5 сек
+        setTimeout(() => {
+            console.log('=== ФИНАЛЬНАЯ ДИАГНОСТИКА ===');
+            const analyticsBody = document.querySelector('.analytics-body');
+            const analyticsContent = document.querySelector('.analytics-content');
+            const analyticsPage = document.querySelector('.analytics-page');
+
+            console.log('.analytics-body scrollTop:', analyticsBody?.scrollTop);
+            console.log('.analytics-body scrollHeight:', analyticsBody?.scrollHeight);
+            console.log('.analytics-body clientHeight:', analyticsBody?.clientHeight);
+            console.log('.analytics-content scrollTop:', analyticsContent?.scrollTop);
+            console.log('.analytics-page scrollTop:', analyticsPage?.scrollTop);
+            console.log('body scrollTop:', document.body.scrollTop);
+            console.log('html scrollTop:', document.documentElement.scrollTop);
+            console.log('window pageYOffset:', window.pageYOffset);
+            console.log('window scrollY:', window.scrollY);
+
+            // Проверяем getBoundingClientRect первого элемента
+            const firstCard = document.querySelector('.kpi-card');
+            if (firstCard) {
+                const rect = firstCard.getBoundingClientRect();
+                console.log('Первая KPI карточка position:', rect.top, rect.left);
+                console.log('Первая KPI карточка видна?', rect.top >= 0 && rect.top < window.innerHeight);
+            }
+
+            // Если что-то прокручено - прокручиваем обратно
+            if (analyticsBody?.scrollTop > 0 || window.scrollY > 0) {
+                console.warn('⚠️ Обнаружена прокрутка! Принудительно возвращаем вверх');
+                scrollToTop();
+            } else {
+                console.log('✅ Всё в порядке - страница наверху!');
+            }
+        }, 2500);
+
+        // MutationObserver для отслеживания изменений высоты графиков
+        document.addEventListener('DOMContentLoaded', function() {
+            const analyticsBody = document.querySelector('.analytics-body');
+            if (analyticsBody) {
+                const observer = new MutationObserver(function(mutations) {
+                    // При любом изменении в DOM - прокручиваем вверх
+                    scrollToTop();
+                });
+
+                observer.observe(analyticsBody, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style']
+                });
+
+                // Отключаем observer через 3 секунды
+                setTimeout(() => {
+                    observer.disconnect();
+                    console.log('MutationObserver отключен');
+                }, 3000);
+            }
+        });
+    </script>
 
     <!-- Tooltip Management Script -->
     <script>

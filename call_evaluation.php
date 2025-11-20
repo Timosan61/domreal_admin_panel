@@ -9,9 +9,16 @@ checkAuth(); // Проверка авторизации
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оценка звонка - Система оценки звонков</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="/assets/css/style.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="/assets/css/emotion_display.css?v=<?php echo time(); ?>">
+    <script src="/assets/js/theme-switcher.js"></script>
 </head>
 <body>
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher-container">
+        <button id="theme-switcher-btn" aria-label="Переключить тему" title="Темная тема"></button>
+    </div>
+
     <!-- Левая боковая панель -->
     <aside class="sidebar">
         <nav class="sidebar-menu">
@@ -82,43 +89,78 @@ checkAuth(); // Проверка авторизации
 
         <!-- Аудиоплеер -->
         <div class="audio-panel">
-            <h2>🎧 Аудиозапись звонка</h2>
-            <div id="audio-player-container">
-                <audio id="audio-player" controls controlsList="nodownload">
-                    <source id="audio-source" src="" type="audio/mpeg">
-                    Ваш браузер не поддерживает аудио элемент.
-                </audio>
-            </div>
-        </div>
+            <div class="evaluation-audio-player" id="evaluation-audio-player">
+                <div class="player-container">
+                    <div class="player-info">
+                        <span class="player-label">Звонок:</span>
+                        <span id="eval-player-callid" class="player-value">-</span>
+                        <span class="player-separator">|</span>
+                        <span id="eval-player-employee" class="player-value">-</span>
+                        <span class="player-arrow">→</span>
+                        <span id="eval-player-client" class="player-value">-</span>
+                    </div>
 
-        <!-- CRM Information Block -->
-        <div class="card mb-3" style="border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
-            <div class="card-header" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
-                <i class="fas fa-funnel-dollar"></i> <strong>CRM JoyWork</strong>
-            </div>
-            <div class="card-body" id="crm-data-block" style="padding: 20px;">
-                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
-                    <span class="sr-only">Загрузка...</span>
+                    <div class="player-controls">
+                        <button class="audio-btn" id="eval-play-btn" title="Play/Pause">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </button>
+
+                        <div class="waveform-wrapper">
+                            <div id="eval-waveform"></div>
+                            <div class="player-time">
+                                <span id="eval-current-time">0:00</span>
+                                <span id="eval-total-time">0:00</span>
+                            </div>
+                        </div>
+
+                        <div class="volume-control">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            </svg>
+                            <input type="range" id="eval-volume-slider" min="0" max="100" value="80" title="Громкость">
+                        </div>
+
+                        <div class="speed-control">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <select id="eval-speed" title="Скорость воспроизведения">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2x</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Транскрипция с диаризацией -->
-        <div class="transcript-panel">
-            <h2>📝 Транскрипция разговора</h2>
-            <div class="transcript-container" id="transcript">
-                <div class="loading">Загрузка транскрипции...</div>
+        <!-- Двухколоночная компоновка: Транскрипция слева, Чеклист справа -->
+        <div class="evaluation-layout">
+            <!-- Транскрипция с диаризацией -->
+            <div class="transcript-panel">
+                <h2>📝 Транскрипция разговора</h2>
+                <div class="transcript-container" id="transcript">
+                    <div class="loading">Загрузка транскрипции...</div>
+                </div>
             </div>
-        </div>
 
-        <!-- Чеклист для оценки -->
-        <div class="checklist-panel">
-            <h2>✅ Чеклист для оценки</h2>
-            <div id="checklist-container">
-                <div class="loading">Загрузка чеклиста...</div>
-            </div>
-            <div class="compliance-score" id="compliance-score">
-                <!-- Общая оценка будет здесь -->
+            <!-- Чеклист для оценки -->
+            <div class="checklist-panel">
+                <h2>✅ Чеклист для оценки</h2>
+                <div id="checklist-container">
+                    <div class="loading">Загрузка чеклиста...</div>
+                </div>
+                <div class="compliance-score" id="compliance-score">
+                    <!-- Общая оценка будет здесь -->
+                </div>
             </div>
         </div>
 
@@ -129,8 +171,15 @@ checkAuth(); // Проверка авторизации
                 <div class="loading">Загрузка результатов анализа...</div>
             </div>
         </div>
+
+        <!-- Гибридный анализ эмоций -->
+        <div class="analysis-panel" id="emotion-analysis-container">
+            <!-- Emotion display component будет загружен здесь -->
+        </div>
     </div>
 
-    <script src="assets/js/call_evaluation.js?v=<?php echo time(); ?>"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
+    <script src="/assets/js/call_evaluation.js?v=<?php echo time(); ?>"></script>
+    <script src="/assets/js/emotion_display.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

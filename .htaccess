@@ -17,7 +17,10 @@ RewriteRule ^ - [L]
 RewriteCond %{REQUEST_URI} ^/webhook/
 RewriteRule ^ - [L]
 
-# Если файл или директория не существует, показываем index_new.php
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Если файл или директория существует, отдаём его напрямую
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Всё остальное направляем на index_new.php
 RewriteRule ^(.*)$ /index_new.php [L,QSA]

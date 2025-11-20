@@ -4,7 +4,12 @@
 
 // Глобальные переменные
 let callData = null;
-let audioPlayer = null;
+let evalWaveSurfer = null;
+
+// Переменные для синхронизации транскрипции с аудио
+let lastHighlightedSegmentIndex = -1;  // Индекс последнего подсвеченного сегмента
+let autoScrollEnabled = true;           // Флаг умной автопрокрутки
+let throttleTimeout = null;             // Таймер для throttling обновлений
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
@@ -25,12 +30,9 @@ async function initializePage() {
     }
 
     await loadCallDetails(callid);
-    setupAudioPlayer();
-
-    // Загружаем CRM данные
-    if (callData && callData.client_phone) {
-        renderCrmData();
-    }
+    setupAudioPlayer();  // Сначала создаем WaveSurfer
+    setupAudioSource();  // Потом загружаем аудио в него
+    setupSmartAutoScroll();  // Настройка умной автопрокрутки
 }
 
 /**
@@ -48,12 +50,12 @@ async function loadCallDetails(callid) {
             console.log('Call Data:', callData); // DEBUG
             console.log('Audio Status:', callData.audio_status); // DEBUG
             console.log('Audio Error:', callData.audio_error); // DEBUG
-            renderCallInfo();
+            renderCallInfo(); // Теперь включает CRM данные
             renderTranscript();
             renderChecklist();
             renderAnalysis();
-            renderCrmData();  // Добавлено: отрисовка CRM данных
-            setupAudioSource();
+            renderEmotionAnalysis(); // Гибридный анализ эмоций
+            // setupAudioSource() вызывается позже в initializePage()
         } else {
             showError(result.error || 'Ошибка загрузки данных');
         }
@@ -64,12 +66,12 @@ async function loadCallDetails(callid) {
 }
 
 /**
- * Отрисовка основной информации о звонке
+ * Отрисовка основной информации о звонке (включая CRM данные)
  */
 function renderCallInfo() {
     const container = document.getElementById('call-info');
 
-    const html = `
+    let html = `
         <div class="call-info-grid">
             <div class="info-item">
                 <div class="info-label">ID звонка</div>
@@ -103,23 +105,95 @@ function renderCallInfo() {
                 <div class="info-label">Тип звонка</div>
                 <div class="info-value">${formatCallType(callData.call_type, callData.is_first_call)}</div>
             </div>
-        </div>
     `;
+
+    // Добавляем CRM данные в ту же сетку, если они есть
+    if (callData.crm_funnel_name && callData.crm_step_name) {
+        // Цветовая кодировка по воронкам
+        const funnelColors = {
+            'Покупатели': 'success',
+            'Продавец': 'info',
+            'Риелторы': 'warning'
+        };
+        const badgeColor = funnelColors[callData.crm_funnel_name] || 'secondary';
+
+        html += `
+            <div class="info-item">
+                <div class="info-label">🎯 Воронка CRM</div>
+                <div class="info-value">
+                    <span class="badge badge-${badgeColor}">${escapeHtml(callData.crm_funnel_name)}</span>
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">📍 Этап</div>
+                <div class="info-value">${escapeHtml(callData.crm_step_name)}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">🔖 ID Заявки</div>
+                <div class="info-value">
+                    ${callData.crm_requisition_id ?
+                        `<a href="https://api.joywork.ru/requisitions/${escapeHtml(callData.crm_requisition_id)}" target="_blank" style="color: #007bff; text-decoration: none;">
+                            ${escapeHtml(callData.crm_requisition_id)}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 4px;">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                        </a>` :
+                        '<span style="color: #9ca3af;">N/A</span>'
+                    }
+                </div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">🔄 Синхронизация</div>
+                <div class="info-value">
+                    <small style="color: #6b7280;">${callData.crm_last_sync ? formatDateTime(callData.crm_last_sync) : 'Не синхронизировано'}</small>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+
+    // Добавляем агрегированное резюме клиента (если есть) под основной информацией
+    if (callData.aggregate_summary && callData.aggregate_summary.trim() !== '') {
+        html += `
+            <div class="client-aggregate-summary">
+                <h6 class="client-aggregate-title">
+                    📊 Агрегированное резюме клиента
+                    ${callData.total_calls_count > 1 ? `<span class="badge badge-info" style="font-size: 0.75em; margin-left: 8px;">${callData.total_calls_count} звонков</span>` : ''}
+                </h6>
+                <div class="client-aggregate-content">
+                    ${escapeHtml(callData.aggregate_summary)}
+                </div>
+                ${callData.last_call_date ? `<small class="client-aggregate-date">Последний звонок: ${formatDateTime(callData.last_call_date)}</small>` : ''}
+            </div>
+        `;
+    }
 
     container.innerHTML = html;
 }
 
 /**
- * Настройка источника аудио
+ * Настройка источника аудио для WaveSurfer
  */
 function setupAudioSource() {
-    const audioSource = document.getElementById('audio-source');
-    const audioPlayer = document.getElementById('audio-player');
-    const playerContainer = document.getElementById('audio-player-container');
+    if (!evalWaveSurfer) {
+        console.error('❌ evalWaveSurfer не инициализирован');
+        return;
+    }
 
-    // ✅ ВСЕГДА пытаемся загрузить аудио из API (backend поддерживает скачивание из Beeline)
-    audioSource.src = `api/audio_stream.php?callid=${encodeURIComponent(callData.callid)}`;
-    audioPlayer.load();
+    const playerContainer = document.querySelector('.audio-panel');
+    const audioUrl = `api/audio_stream.php?callid=${encodeURIComponent(callData.callid)}`;
+
+    // Обновление player-info с данными звонка
+    document.getElementById('eval-player-callid').textContent = callData.callid;
+    document.getElementById('eval-player-employee').textContent = callData.employee_name || '-';
+    document.getElementById('eval-player-client').textContent = callData.client_phone || '-';
+
+    // ✅ Загружаем аудио в WaveSurfer
+    console.log('🎵 Загрузка аудио:', audioUrl);
+    evalWaveSurfer.load(audioUrl);
 
     // Показываем предупреждение для не-DONE статусов, НО плеер оставляем
     let statusWarning = '';
@@ -160,7 +234,8 @@ function setupAudioSource() {
     }
 
     // Обработка ошибок загрузки аудио
-    audioPlayer.addEventListener('error', function() {
+    evalWaveSurfer.on('error', function(error) {
+        console.error('❌ WaveSurfer error:', error);
         const errorDiv = document.createElement('div');
         errorDiv.style.cssText = 'padding: 20px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 8px; color: #721c24; margin-top: 12px;';
         errorDiv.innerHTML = `
@@ -177,56 +252,131 @@ function setupAudioSource() {
 }
 
 /**
- * Настройка аудиоплеера
+ * Настройка аудиоплеера с WaveSurfer.js
+ * Обеспечивает синхронизацию с транскрипцией через highlightCurrentSegment()
  */
 function setupAudioPlayer() {
-    audioPlayer = document.getElementById('audio-player');
-    const playPauseBtn = document.getElementById('play-pause');
-    const seekBar = document.getElementById('seek-bar');
-    const volumeBar = document.getElementById('volume-bar');
-    const currentTimeSpan = document.getElementById('current-time');
-    const totalTimeSpan = document.getElementById('total-time');
+    console.log('🎵 setupAudioPlayer() вызвана');
 
-    if (!audioPlayer || !playPauseBtn || !seekBar || !volumeBar) return;
+    // Проверка наличия WaveSurfer
+    if (typeof WaveSurfer === 'undefined') {
+        console.error('❌ WaveSurfer.js не загружен');
+        return;
+    }
 
-    // Play/Pause
-    playPauseBtn.addEventListener('click', function() {
-        if (audioPlayer.paused) {
-            audioPlayer.play();
-            playPauseBtn.textContent = '⏸ Пауза';
-        } else {
-            audioPlayer.pause();
-            playPauseBtn.textContent = '▶ Воспроизвести';
+    // Создание экземпляра WaveSurfer
+    evalWaveSurfer = WaveSurfer.create({
+        container: '#eval-waveform',
+        waveColor: '#ddd',
+        progressColor: '#007AFF',
+        cursorColor: '#007AFF',
+        barWidth: 2,
+        barRadius: 3,
+        responsive: true,
+        height: 60,
+        normalize: true,
+        backend: 'WebAudio'
+    });
+
+    console.log('✅ WaveSurfer создан');
+
+    // Обработчик готовности аудио (загружены метаданные)
+    evalWaveSurfer.on('ready', function() {
+        const duration = evalWaveSurfer.getDuration();
+        document.getElementById('eval-total-time').textContent = formatTime(duration);
+        console.log('✅ Аудио готово, длительность:', formatTime(duration));
+    });
+
+    // Обработчик процесса воспроизведения (аналог timeupdate)
+    let audioprocessCount = 0;
+    evalWaveSurfer.on('audioprocess', function() {
+        audioprocessCount++;
+        const currentTime = evalWaveSurfer.getCurrentTime();
+
+        // Обновление текущего времени
+        document.getElementById('eval-current-time').textContent = formatTime(currentTime);
+
+        // Логирование каждого 10-го события
+        if (audioprocessCount % 10 === 0) {
+            console.log(`⏰ Audioprocess #${audioprocessCount}:`, currentTime.toFixed(2) + 's');
+        }
+
+        // Синхронизация с транскрипцией (с throttling для производительности)
+        if (!throttleTimeout) {
+            throttleTimeout = setTimeout(() => {
+                console.log('🎯 Вызов highlightCurrentSegment:', currentTime.toFixed(2) + 's');
+                highlightCurrentSegment(currentTime);
+                throttleTimeout = null;
+            }, 100); // Обновление каждые 100мс
         }
     });
 
-    // Обновление времени
-    audioPlayer.addEventListener('timeupdate', function() {
-        const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-        seekBar.value = percent || 0;
-        currentTimeSpan.textContent = formatTime(audioPlayer.currentTime);
+    // Обработчик начала воспроизведения
+    evalWaveSurfer.on('play', function() {
+        console.log('▶️ WaveSurfer play event');
+        updateEvalPlayPauseButton(true);
     });
 
-    // Установка общей длительности
-    audioPlayer.addEventListener('loadedmetadata', function() {
-        totalTimeSpan.textContent = formatTime(audioPlayer.duration);
+    // Обработчик паузы
+    evalWaveSurfer.on('pause', function() {
+        console.log('⏸️ WaveSurfer pause event');
+        updateEvalPlayPauseButton(false);
     });
 
-    // Перемотка
-    seekBar.addEventListener('input', function() {
-        const time = (seekBar.value / 100) * audioPlayer.duration;
-        audioPlayer.currentTime = time;
+    // Обработчик завершения воспроизведения
+    evalWaveSurfer.on('finish', function() {
+        console.log('⏹️ WaveSurfer finish event');
+        updateEvalPlayPauseButton(false);
     });
 
-    // Громкость
-    volumeBar.addEventListener('input', function() {
-        audioPlayer.volume = volumeBar.value / 100;
+    // Обработчик кнопки Play/Pause
+    document.getElementById('eval-play-btn').addEventListener('click', function() {
+        if (evalWaveSurfer) {
+            evalWaveSurfer.playPause();
+        }
     });
 
-    // Когда закончилось воспроизведение
-    audioPlayer.addEventListener('ended', function() {
-        playPauseBtn.textContent = '▶ Воспроизвести';
+    // Обработчик регулятора громкости
+    document.getElementById('eval-volume-slider').addEventListener('input', function() {
+        if (evalWaveSurfer) {
+            evalWaveSurfer.setVolume(this.value / 100);
+        }
     });
+
+    // Обработчик скорости воспроизведения
+    document.getElementById('eval-speed').addEventListener('change', function() {
+        if (evalWaveSurfer) {
+            evalWaveSurfer.setPlaybackRate(parseFloat(this.value));
+        }
+    });
+
+    console.log('✅ Все обработчики WaveSurfer установлены');
+}
+
+/**
+ * Обновление иконки кнопки Play/Pause
+ */
+function updateEvalPlayPauseButton(isPlaying) {
+    const playBtn = document.getElementById('eval-play-btn');
+
+    if (isPlaying) {
+        // Иконка Pause (две вертикальные полоски)
+        playBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+        `;
+        playBtn.title = 'Pause';
+    } else {
+        // Иконка Play (треугольник)
+        playBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        `;
+        playBtn.title = 'Play';
+    }
 }
 
 /**
@@ -256,20 +406,65 @@ function renderTranscript() {
 
     const segments = callData.diarization.segments;
 
-    const html = segments.map(segment => {
-        const speakerClass = segment.speaker_role === 'Менеджер' ? 'speaker-manager' : 'speaker-client';
+    const html = segments.map((segment, index) => {
+        // Определяем класс спикера для визуального разделения
+        let speakerClass = '';
+
+        if (segment.speaker_role === 'Менеджер') {
+            // Если роль определена - используем её
+            speakerClass = 'speaker-manager';
+        } else if (segment.speaker_role === 'Клиент') {
+            speakerClass = 'speaker-client';
+        } else if (segment.speaker === 'SPEAKER_00') {
+            // Если роль не определена - просто визуальное разделение по цветам
+            // SPEAKER_00 = синий (не обязательно менеджер!)
+            speakerClass = 'speaker-00';
+        } else if (segment.speaker === 'SPEAKER_01') {
+            // SPEAKER_01 = красный (не обязательно клиент!)
+            speakerClass = 'speaker-01';
+        } else {
+            // По умолчанию нейтральный
+            speakerClass = 'speaker-unknown';
+        }
+
         return `
-            <div class="transcript-segment ${speakerClass}">
+            <div class="transcript-segment ${speakerClass}"
+                 data-segment-index="${index}"
+                 data-start="${segment.start}"
+                 data-end="${segment.end}"
+                 data-speaker="${segment.speaker}">
                 <div class="segment-header">
                     <span class="speaker-label">${escapeHtml(segment.speaker_role || segment.speaker)}</span>
                     <span class="segment-time">${formatTime(segment.start)} - ${formatTime(segment.end)}</span>
                 </div>
                 <div class="segment-text">${escapeHtml(segment.text)}</div>
+                <div class="segment-progress-bar" style="width: 0%;"></div>
             </div>
         `;
     }).join('');
 
     container.innerHTML = html || '<div class="error">Нет сегментов транскрипции</div>';
+
+    // Добавляем обработчики кликов для синхронизации Транскрипция → Аудио
+    const segmentElements = container.querySelectorAll('.transcript-segment');
+    segmentElements.forEach(segmentElement => {
+        segmentElement.addEventListener('click', function() {
+            const startTime = parseFloat(this.dataset.start);
+
+            if (!isNaN(startTime) && evalWaveSurfer) {
+                const duration = evalWaveSurfer.getDuration();
+
+                // Перемотка на начало сегмента (seekTo принимает процент от 0 до 1)
+                const progress = startTime / duration;
+                evalWaveSurfer.seekTo(progress);
+
+                // Автоплей (всегда, даже если была пауза)
+                evalWaveSurfer.play();
+
+                console.log('🎯 Клик по сегменту:', startTime.toFixed(2) + 's', `(${(progress * 100).toFixed(1)}%)`);
+            }
+        });
+    });
 }
 
 /**
@@ -284,15 +479,26 @@ function renderChecklist() {
         return;
     }
 
-    const html = callData.checklist.map(item => `
-        <div class="checklist-item">
-            <input type="checkbox" class="checklist-checkbox" ${item.checked ? 'checked' : ''} disabled>
-            <div class="checklist-content">
-                <div class="checklist-label">${escapeHtml(item.label)}</div>
-                <div class="checklist-description">${escapeHtml(item.description)}</div>
+    const html = callData.checklist.map(item => {
+        // Предварительно подсчитываем количество релевантных сегментов для каждого критерия
+        const relevantCount = findRelevantSegments(item.id).length;
+        const segmentBadge = relevantCount > 0
+            ? `<span class="segment-count-badge" title="${relevantCount} релевантных сегментов">${relevantCount}</span>`
+            : '';
+
+        return `
+            <div class="checklist-item" data-checklist-id="${escapeHtml(item.id)}">
+                <input type="checkbox" class="checklist-checkbox" ${item.checked ? 'checked' : ''} disabled>
+                <div class="checklist-content">
+                    <div class="checklist-label">
+                        ${escapeHtml(item.label)}
+                        ${segmentBadge}
+                    </div>
+                    <div class="checklist-description">${escapeHtml(item.description)}</div>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     container.innerHTML = html;
 
@@ -305,6 +511,9 @@ function renderChecklist() {
             <div class="compliance-label">из 100% возможных</div>
         `;
     }
+
+    // Делаем чеклист интерактивным после рендеринга
+    makeChecklistInteractive();
 }
 
 /**
@@ -404,8 +613,8 @@ function renderAnalysis() {
             badgeClass = 'badge-danger';
             icon = '❌ ';
         } else if (resultLower.includes('не целевой') || resultLower.includes('нецелевой')) {
-            badgeClass = 'badge-warning';
-            icon = '⛔ ';
+            badgeClass = 'badge-danger';
+            icon = '🚫 ';
         }
 
         // 🔵 Fallback для старых результатов
@@ -581,76 +790,403 @@ function escapeHtml(text) {
     return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
+// ========================================
+// Интерактивная связь между чеклистом и транскрипцией
+// ========================================
+
 /**
- * Отрисовка CRM данных из callData
+ * Создает маппинг критериев оценки на ключевые слова
+ * @returns {Object} Объект с ID критериев и массивами ключевых слов
  */
-function renderCrmData() {
-    const crmBlock = document.getElementById('crm-data-block');
+function createChecklistKeywordMapping() {
+    return {
+        // Критерии для первого звонка (v4, 6 пунктов)
+        'v4_interest': [
+            'интерес', 'заинтересован', 'заинтересована', 'интересует',
+            'подыск', 'ищу', 'ищем', 'подбира', 'подобрать', 'найти',
+            'хочу купить', 'хотим купить', 'нужна квартира', 'нужен дом'
+        ],
+        'v4_location': [
+            'сочи', 'находитесь', 'находится', 'приедете', 'приедет',
+            'местный', 'местная', 'локация', 'где вы', 'откуда',
+            'в городе', 'иногороднй', 'иногородняя', 'живете', 'живёте'
+        ],
+        'v4_payment': [
+            'оплата', 'ипотека', 'ипотек', 'наличные', 'наличных',
+            'рассрочка', 'рассроч', 'бюджет', 'сколько', 'цена',
+            'стоимость', 'деньги', 'финансы', 'платить', 'заплатить'
+        ],
+        'v4_goal': [
+            'цель', 'инвестиция', 'инвестиц', 'жить', 'проживан',
+            'сдавать', 'сдавал', 'для себя', 'для семьи', 'переехать',
+            'вложить', 'вложен', 'доход', 'заработ'
+        ],
+        'v4_history': [
+            'смотрели', 'смотрел', 'видели', 'видел', 'показ',
+            'просмотр', 'варианты', 'вариант', 'предлагали',
+            'другие объекты', 'уже показывали', 'уже смотрели'
+        ],
+        'v4_action': [
+            'встреча', 'встречаемся', 'встретимся', 'показ', 'покажу',
+            'отправлю', 'отправл', 'пришлю', 'прислать', 'свяжусь',
+            'перезвоню', 'позвоню', 'свяжемся', 'договорим', 'назначим'
+        ],
 
-    // Проверяем наличие CRM полей в callData
-    if (callData.crm_funnel_name && callData.crm_step_name) {
-        // Цветовая кодировка по воронкам
-        const funnelColors = {
-            'Покупатели': 'success',
-            'Продавец': 'info',
-            'Риелторы': 'warning'
-        };
-        const badgeColor = funnelColors[callData.crm_funnel_name] || 'secondary';
+        // Критерии для повторного звонка (v4, 5 пунктов: 4.1-4.5)
+        'repeat_greeting': [
+            'добрый день', 'здравствуйте', 'меня зовут', 'это',
+            'компания', 'напомню', 'звонил', 'звонила', 'говорили',
+            'общались', 'беседовали', 'обсуждали', 'рассказывал', 'рассказывала'
+        ],
+        'repeat_actions': [
+            'предлагаю', 'предложу', 'могу отправить', 'могу показать',
+            'давайте встретимся', 'давайте посмотрим', 'назначим',
+            'организуем', 'подготовлю', 'подберу', 'отправил', 'отправила',
+            'звонить', 'позвон', 'созвон', 'встреча', 'показ'
+        ],
+        'repeat_next_step': [
+            'следующий', 'дальше', 'договорились', 'договоримся',
+            'жду', 'ждём', 'созвонимся', 'созвон', 'встреча',
+            'связь', 'свяжемся', 'уточним', 'обсудим', 'удобно',
+            'время', 'когда', 'во сколько', 'в 17', 'в 18'
+        ],
+        'repeat_objections': [
+            'понимаю', 'понятно', 'согласен', 'но', 'однако',
+            'дорого', 'дороговато', 'не подходит', 'не устраивает',
+            'другое', 'другой', 'проблема', 'сложность', 'вопрос',
+            'сомнение', 'не уверен', 'подумаю'
+        ],
+        'repeat_informal': [
+            'как дела', 'как у вас', 'отлично', 'хорошо', 'супер',
+            'здорово', 'прекрасно', 'замечательно', 'согласен',
+            'понял', 'ясно', 'конечно', 'разумеется', 'ага', 'угу',
+            'верно', 'точно', 'да-да', 'ок', 'окей'
+        ]
+    };
+}
 
-        crmBlock.innerHTML = `
-            <table class="table table-sm" style="margin-bottom: 0;">
-                <tr>
-                    <th width="30%" style="border-top: none;">Воронка:</th>
-                    <td style="border-top: none;">
-                        <span class="badge badge-${badgeColor}" style="font-size: 14px; padding: 6px 12px;">${escapeHtml(callData.crm_funnel_name)}</span>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Этап:</th>
-                    <td>${escapeHtml(callData.crm_step_name)}</td>
-                </tr>
-                <tr>
-                    <th>ID Заявки:</th>
-                    <td>
-                        ${callData.crm_requisition_id ?
-                            `<a href="https://api.joywork.ru/requisitions/${escapeHtml(callData.crm_requisition_id)}" target="_blank" style="color: #007bff;">
-                                ${escapeHtml(callData.crm_requisition_id)}
-                                <i class="fas fa-external-link-alt" style="font-size: 12px; margin-left: 4px;"></i>
-                            </a>` :
-                            '<span class="text-muted">N/A</span>'
-                        }
-                    </td>
-                </tr>
-                <tr>
-                    <th>Обновлено:</th>
-                    <td>
-                        <small class="text-muted">${callData.crm_last_sync ? formatDateTime(callData.crm_last_sync) : 'Не синхронизировано'}</small>
-                    </td>
-                </tr>
-            </table>
-        `;
+/**
+ * Ищет релевантные сегменты транскрипции для критерия оценки
+ * @param {string} checklistItemId - ID критерия из чеклиста
+ * @returns {Array<number>} Массив индексов релевантных сегментов
+ */
+function findRelevantSegments(checklistItemId) {
+    if (!callData || !callData.diarization || !callData.diarization.segments) {
+        console.warn('Нет данных транскрипции');
+        return [];
+    }
 
-        // Агрегированное резюме клиента (если есть)
-        if (callData.aggregate_summary && callData.aggregate_summary.trim() !== '') {
-            crmBlock.innerHTML += `
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
-                    <h6 style="color: #138496; margin-bottom: 10px;">
-                        📊 Агрегированное резюме клиента
-                        ${callData.total_calls_count > 1 ? `<span class="badge badge-info" style="font-size: 0.75em; margin-left: 8px;">${callData.total_calls_count} звонков</span>` : ''}
-                    </h6>
-                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 14px; line-height: 1.6;">
-                        ${escapeHtml(callData.aggregate_summary)}
-                    </div>
-                    ${callData.last_call_date ? `<small class="text-muted" style="display: block; margin-top: 8px;">Последний звонок: ${formatDateTime(callData.last_call_date)}</small>` : ''}
-                </div>
-            `;
+    const keywordMapping = createChecklistKeywordMapping();
+    const keywords = keywordMapping[checklistItemId];
+
+    if (!keywords || keywords.length === 0) {
+        console.warn(`⚠️ Не найдены ключевые слова для критерия: "${checklistItemId}"`);
+        console.log('Доступные критерии в маппинге:', Object.keys(keywordMapping));
+        return [];
+    }
+
+    const segments = callData.diarization.segments;
+    const relevantIndices = [];
+
+    console.log(`🔍 Поиск для критерия "${checklistItemId}"`);
+    console.log(`📝 Ключевые слова (${keywords.length}):`, keywords);
+
+    segments.forEach((segment, index) => {
+        const text = segment.text.toLowerCase();
+
+        // Проверяем, содержит ли сегмент хотя бы одно ключевое слово
+        const matchedKeywords = keywords.filter(keyword => text.includes(keyword.toLowerCase()));
+
+        if (matchedKeywords.length > 0) {
+            relevantIndices.push(index);
+            console.log(`✅ Сегмент #${index} содержит ключевые слова:`, matchedKeywords);
         }
-    } else {
-        crmBlock.innerHTML = `
-            <div class="alert alert-warning" role="alert" style="margin-bottom: 0;">
-                <i class="fas fa-exclamation-triangle"></i>
-                CRM данные не найдены для этого звонка
-            </div>
-        `;
+    });
+
+    console.log(`📊 Итого найдено ${relevantIndices.length} релевантных сегментов для "${checklistItemId}"`);
+    return relevantIndices;
+}
+
+/**
+ * Подсвечивает и прокручивает к сегменту транскрипции
+ * @param {number} segmentIndex - Индекс сегмента для подсветки
+ */
+function highlightAndScrollToSegment(segmentIndex) {
+    // Убираем предыдущую подсветку
+    const prevHighlighted = document.querySelectorAll('.transcript-segment.segment-highlighted');
+    prevHighlighted.forEach(el => el.classList.remove('segment-highlighted'));
+
+    // Находим целевой сегмент
+    const targetSegment = document.querySelector(`.transcript-segment[data-segment-index="${segmentIndex}"]`);
+
+    if (!targetSegment) {
+        console.warn(`Сегмент с индексом ${segmentIndex} не найден`);
+        return;
+    }
+
+    // Добавляем подсветку
+    targetSegment.classList.add('segment-highlighted');
+
+    // Прокручиваем к сегменту с плавной анимацией
+    targetSegment.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+    });
+
+    // Убираем подсветку через 3 секунды
+    setTimeout(() => {
+        targetSegment.classList.remove('segment-highlighted');
+    }, 3000);
+}
+
+/**
+ * Делает чеклист интерактивным - добавляет обработчики кликов
+ */
+function makeChecklistInteractive() {
+    const checklistItems = document.querySelectorAll('.checklist-item');
+
+    // Отладка: выводим все ID критериев в консоль
+    console.log('=== ОТЛАДКА: ID критериев в чеклисте ===');
+    checklistItems.forEach(item => {
+        const checklistId = item.getAttribute('data-checklist-id');
+        console.log(`- ${checklistId}`);
+    });
+    console.log('========================================');
+
+    checklistItems.forEach(item => {
+        const checklistId = item.getAttribute('data-checklist-id');
+
+        if (!checklistId) {
+            return;
+        }
+
+        // Добавляем обработчик клика
+        item.addEventListener('click', function(event) {
+            // Убираем класс 'active' с всех элементов
+            checklistItems.forEach(el => el.classList.remove('active'));
+
+            // Добавляем класс 'active' к текущему элементу
+            this.classList.add('active');
+
+            // Находим релевантные сегменты
+            const relevantSegments = findRelevantSegments(checklistId);
+
+            if (relevantSegments.length === 0) {
+                console.warn(`Не найдено релевантных сегментов для критерия: ${checklistId}`);
+                // Можно показать уведомление пользователю
+                showNotification('Не найдено релевантных фрагментов транскрипции для этого критерия', 'info');
+                return;
+            }
+
+            // Прокручиваем и подсвечиваем первый релевантный сегмент
+            highlightAndScrollToSegment(relevantSegments[0]);
+
+            console.log(`Критерий "${checklistId}": найдено ${relevantSegments.length} сегментов, показан первый (#${relevantSegments[0]})`);
+        });
+
+        // Добавляем визуальный эффект при наведении
+        item.addEventListener('mouseenter', function() {
+            const relevantSegments = findRelevantSegments(checklistId);
+            if (relevantSegments.length > 0) {
+                // Показываем счетчик найденных сегментов
+                this.style.cursor = 'pointer';
+            } else {
+                this.style.cursor = 'not-allowed';
+            }
+        });
+    });
+
+    console.log(`Сделано интерактивными ${checklistItems.length} критериев чеклиста`);
+}
+
+/**
+ * Подсвечивает текущий сегмент транскрипции на основе времени воспроизведения аудио
+ * @param {number} currentTime - Текущее время воспроизведения в секундах
+ */
+function highlightCurrentSegment(currentTime) {
+    const segments = document.querySelectorAll('.transcript-segment');
+    if (segments.length === 0) return;
+
+    let activeSegmentIndex = -1;
+    let activeSegment = null;
+
+    // Находим активный сегмент
+    segments.forEach((segment, index) => {
+        const start = parseFloat(segment.dataset.start);
+        const end = parseFloat(segment.dataset.end);
+
+        if (currentTime >= start && currentTime < end) {
+            activeSegmentIndex = index;
+            activeSegment = segment;
+        }
+    });
+
+    // Если активный сегмент изменился
+    if (activeSegmentIndex !== lastHighlightedSegmentIndex) {
+        // Убираем подсветку у предыдущего
+        if (lastHighlightedSegmentIndex >= 0 && lastHighlightedSegmentIndex < segments.length) {
+            segments[lastHighlightedSegmentIndex].classList.remove('segment-active');
+
+            // Сбрасываем прогресс-бар предыдущего сегмента
+            const prevProgressBar = segments[lastHighlightedSegmentIndex].querySelector('.segment-progress-bar');
+            if (prevProgressBar) {
+                prevProgressBar.style.width = '0%';
+            }
+        }
+
+        // Подсвечиваем текущий
+        if (activeSegment) {
+            activeSegment.classList.add('segment-active');
+
+            // Прокрутка к активному сегменту (если включена)
+            if (autoScrollEnabled) {
+                activeSegment.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+
+            lastHighlightedSegmentIndex = activeSegmentIndex;
+        } else {
+            lastHighlightedSegmentIndex = -1;
+        }
+    }
+
+    // Обновляем прогресс-бар активного сегмента
+    if (activeSegment) {
+        const start = parseFloat(activeSegment.dataset.start);
+        const end = parseFloat(activeSegment.dataset.end);
+        updateSegmentProgress(activeSegment, currentTime, start, end);
     }
 }
+
+/**
+ * Обновляет прогресс-бар воспроизведения сегмента
+ * @param {HTMLElement} segmentElement - DOM элемент сегмента
+ * @param {number} currentTime - Текущее время воспроизведения
+ * @param {number} startTime - Время начала сегмента
+ * @param {number} endTime - Время окончания сегмента
+ */
+function updateSegmentProgress(segmentElement, currentTime, startTime, endTime) {
+    const progressBar = segmentElement.querySelector('.segment-progress-bar');
+    if (!progressBar) return;
+
+    const duration = endTime - startTime;
+    if (duration <= 0) return;
+
+    const progress = ((currentTime - startTime) / duration) * 100;
+    const clampedProgress = Math.max(0, Math.min(100, progress));
+
+    progressBar.style.width = `${clampedProgress}%`;
+}
+
+/**
+ * Настраивает умную автопрокрутку транскрипции
+ * Автопрокрутка отключается при ручном скролле и включается через 3 секунды после остановки
+ */
+function setupSmartAutoScroll() {
+    const transcriptContainer = document.getElementById('transcript');
+    if (!transcriptContainer) return;
+
+    let scrollTimeout = null;
+
+    transcriptContainer.addEventListener('scroll', function() {
+        // Пользователь начал скроллить → отключить автопрокрутку
+        autoScrollEnabled = false;
+
+        // Очищаем предыдущий таймер
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
+
+        // Включаем автопрокрутку через 3 секунды после остановки скролла
+        scrollTimeout = setTimeout(() => {
+            autoScrollEnabled = true;
+        }, 3000);
+    });
+
+    console.log('Умная автопрокрутка настроена');
+}
+
+/**
+ * Показывает временное уведомление пользователю
+ * @param {string} message - Текст уведомления
+ * @param {string} type - Тип уведомления (info, warning, success, error)
+ */
+function showNotification(message, type = 'info') {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${type === 'info' ? '#3b82f6' : type === 'warning' ? '#f59e0b' : type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        font-size: 14px;
+        max-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    notification.textContent = message;
+
+    // Добавляем в документ
+    document.body.appendChild(notification);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+/**
+ * Рендеринг гибридного анализа эмоций
+ */
+function renderEmotionAnalysis() {
+    // Получаем callid из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const callid = urlParams.get('callid');
+
+    if (!callid) {
+        console.error('No callid for emotion analysis');
+        return;
+    }
+
+    // Инициализируем emotion display компонент
+    const emotionDisplay = new EmotionDisplay('#emotion-analysis-container');
+    emotionDisplay.loadAndDisplay(callid);
+}
+
+// Добавляем CSS анимации для уведомлений
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);

@@ -258,8 +258,14 @@ checkAuth(true); // Требуется роль администратора
             border: 1px solid #f5c6cb;
         }
     </style>
+    <script src="assets/js/theme-switcher.js"></script>
 </head>
 <body>
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher-container">
+        <button id="theme-switcher-btn" aria-label="Переключить тему" title="Темная тема"></button>
+    </div>
+
     <!-- Левая боковая панель -->
     <?php include 'includes/sidebar.php'; ?>
 
