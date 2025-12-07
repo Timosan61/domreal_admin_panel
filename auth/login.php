@@ -81,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Генерируем новый CSRF токен после авторизации
                         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
-                        // Обновляем last_login
-                        $update_query = "UPDATE users SET last_login = NOW() WHERE id = :id";
+                        // Обновляем last_login_at
+                        $update_query = "UPDATE users SET last_login_at = NOW() WHERE id = :id";
                         $update_stmt = $db->prepare($update_query);
                         $update_stmt->bindParam(':id', $user['id']);
                         $update_stmt->execute();
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                           VALUES (:session_id, :user_id, :expires_at, :ip_address, :user_agent)
                                           ON DUPLICATE KEY UPDATE
                                           expires_at = :expires_at,
-                                          last_activity = NOW()";
+                                          last_activity_at = NOW()";
                         $session_stmt = $db->prepare($session_query);
                         $session_stmt->bindParam(':session_id', $session_id);
                         $session_stmt->bindParam(':user_id', $user['id']);

@@ -22,9 +22,9 @@ if docker ps | grep -q calls_frontend; then
     echo "✅ Сервер успешно запущен!"
     echo ""
     echo "📋 Информация о доступе:"
-    echo "   - Локальный URL: http://localhost:8080"
-    echo "   - Список звонков: http://localhost:8080/index.php"
-    echo "   - API: http://localhost:8080/api/"
+    echo "   - Локальный URL: http://localhost:5000"
+    echo "   - Список звонков: http://localhost:5000/index.php"
+    echo "   - API: http://localhost:5000/api/"
     echo ""
     echo "🔧 Управление:"
     echo "   - Остановить: docker-compose down"
@@ -35,7 +35,7 @@ if docker ps | grep -q calls_frontend; then
     # Показываем IP адрес удаленного сервера
     IP=$(hostname -I | awk '{print $1}')
     if [ ! -z "$IP" ]; then
-        echo "🌐 Удаленный доступ: http://$IP:8080"
+        echo "🌐 Удаленный доступ: http://$IP:5000"
         echo ""
     fi
 else

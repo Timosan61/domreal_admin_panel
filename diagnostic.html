@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика подключения - Domreal Whisper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 { color: #667eea; margin-top: 0; }
+        .status { font-size: 18px; margin: 10px 0; }
+        .ok { color: #28a745; font-weight: bold; }
+        .info { color: #17a2b8; }
+        .link {
+            display: block;
+            margin: 15px 0;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .link:hover {
+            background: #5568d3;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>✅ Сервер работает!</h1>
+
+        <p class="status ok">✅ PHP сервер запущен и работает</p>
+        <p class="status ok">✅ База данных подключена</p>
+        <p class="status ok">✅ Порт 5000 открыт</p>
+
+        <p class="info"><strong>Ваш IP:</strong> <span id="client-ip">Определяется...</span></p>
+        <p class="info"><strong>Сервер:</strong> 192.168.1.68:5000</p>
+        <p class="info"><strong>Время:</strong> <span id="current-time"></span></p>
+    </div>
+
+    <div class="card">
+        <h2>Попробуйте эти ссылки:</h2>
+
+        <a href="/auth/login.php" class="link">
+            Страница входа (относительный путь)
+        </a>
+
+        <a href="http://192.168.1.68:5000/auth/login.php" class="link">
+            Страница входа (полный URL с IP)
+        </a>
+
+        <a href="http://localhost:5000/auth/login.php" class="link">
+            Страница входа (localhost)
+        </a>
+
+        <a href="/test_connection.php" class="link">
+            Тест подключения к БД
+        </a>
+    </div>
+
+    <div class="card">
+        <h2>Учетные данные для входа:</h2>
+        <p><strong>Логин:</strong> <code>demo</code></p>
+        <p><strong>Пароль:</strong> <code>admin123</code></p>
+    </div>
+
+    <div class="card">
+        <h2>Если видите ошибку 503:</h2>
+        <ol>
+            <li>Очистите кеш браузера: <code>Ctrl + Shift + Delete</code></li>
+            <li>Попробуйте режим инкогнито: <code>Ctrl + Shift + N</code></li>
+            <li>Обновите страницу: <code>Ctrl + F5</code></li>
+            <li>Проверьте, что вы в сети 192.168.1.x</li>
+        </ol>
+    </div>
+
+    <script>
+        // Показать время
+        document.getElementById('current-time').textContent = new Date().toLocaleString('ru-RU');
+
+        // Определить IP клиента через fetch
+        fetch('/test_connection.php')
+            .then(() => {
+                document.getElementById('client-ip').textContent = 'Подключение успешно! ✅';
+            })
+            .catch(err => {
+                document.getElementById('client-ip').textContent = 'Ошибка подключения ❌';
+            });
+    </script>
+</body>
+</html>

@@ -9,8 +9,8 @@ class Database {
     private $host = "localhost";
     private $port = "3306";
     private $db_name = "calls_db";
-    private $username = "datalens_user";
-    private $password = "datalens_readonly_2024";
+    private $username = "domreal_user";
+    private $password = "WPx2MyN1hT6rxoJbp9rF";
 
     // Удаленное подключение (fallback) - для Docker используем IP хоста
     private $remote_host = "172.17.0.1";

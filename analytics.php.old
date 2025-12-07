@@ -1,0 +1,1538 @@
+<?php
+session_start();
+require_once 'auth/session.php';
+checkAuth();
+
+$user_full_name = $_SESSION['full_name'] ?? 'Пользователь';
+$user_role = $_SESSION['role'] ?? 'user';
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0">
+    <title>Аналитика - Domreal Admin</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* Better responsive support for browser zoom */
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+        }
+        .analytics-page {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            margin-left: 15.625rem; /* 250px в rem для масштабирования */
+        }
+
+        .analytics-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f8f9fa;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Sidebar fixed position */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 15.625rem; /* 250px */
+            z-index: 1000;
+            background: white;
+            box-shadow: 0.125rem 0 0.5rem rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
+        }
+
+        /* Collapsed sidebar */
+        .sidebar.collapsed {
+            width: 4.375rem; /* 70px */
+        }
+
+        body.sidebar-collapsed .analytics-page {
+            margin-left: 4.375rem; /* 70px */
+        }
+
+        body.sidebar-collapsed .analytics-content {
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Hide sidebar header logo */
+        .sidebar-header {
+            display: none;
+        }
+
+        .sidebar-logo {
+            display: none;
+        }
+
+        /* Ensure toggle button is visible */
+        .sidebar-toggle {
+            padding: 0.9375rem; /* 15px */
+            border-bottom: 0.0625rem solid #e0e0e0;
+        }
+
+        /* Mobile menu button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 0.9375rem; /* 15px */
+            left: 0.9375rem; /* 15px */
+            z-index: 999;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 0.5rem; /* 8px */
+            padding: 0.625rem 0.75rem; /* 10px 12px */
+            cursor: pointer;
+            box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.15);
+        }
+
+        /* Sidebar overlay for mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 48rem) { /* 768px */
+            .analytics-page {
+                margin-left: 0;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+
+        .analytics-header {
+            background: white;
+            padding: 0.9375rem 1.5625rem; /* 15px 25px */
+            border-bottom: 0.0625rem solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .analytics-header h1 {
+            margin: 0 0 0.9375rem 0; /* 15px */
+            font-size: 1.375rem; /* 22px */
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* 8px */
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 9.375rem 9.375rem 12.5rem 12.5rem 1fr; /* 150px 150px 200px 200px flex */
+            gap: 0.625rem; /* 10px */
+            align-items: end;
+        }
+
+        .filter-group-combined {
+            grid-column: 5 / -1; /* Занимает всю оставшуюся ширину */
+        }
+
+        .combined-filters-row {
+            display: flex;
+            gap: 0.75rem; /* 12px */
+            align-items: center;
+        }
+
+        .crm-compact {
+            width: 12.5rem; /* 200px - уменьшенная ширина для CRM */
+        }
+
+        .toggle-filter-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* 8px */
+            white-space: nowrap;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 2.5rem; /* 40px */
+            height: 1.25rem; /* 20px */
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 1.25rem; /* 20px */
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 0.875rem; /* 14px */
+            width: 0.875rem; /* 14px */
+            left: 0.1875rem; /* 3px */
+            bottom: 0.1875rem; /* 3px */
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(1.25rem); /* 20px */
+        }
+
+        .toggle-label {
+            font-size: 0.8125rem; /* 13px */
+            color: #666;
+        }
+
+        @media (max-width: 75rem) { /* 1200px */
+            .filters-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .filter-group-combined {
+                grid-column: 1 / -1;
+            }
+
+            .combined-filters-row {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 48rem) { /* 768px */
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-group-combined {
+                grid-column: 1;
+            }
+
+            .combined-filters-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .crm-compact {
+                width: 100%;
+            }
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem; /* 12px */
+            color: #666;
+            margin-bottom: 0.25rem; /* 4px */
+            font-weight: 500;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 0.375rem 0.625rem; /* 6px 10px */
+            border: 0.0625rem solid #ddd;
+            border-radius: 0.25rem; /* 4px */
+            font-size: 0.8125rem; /* 13px */
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.625rem; /* 10px */
+        }
+
+        .btn {
+            padding: 0.375rem 1rem; /* 6px 16px */
+            border: none;
+            border-radius: 0.25rem; /* 4px */
+            font-size: 0.8125rem; /* 13px */
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1976D2;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .analytics-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.9375rem 1.25rem; /* 15px 20px */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.9375rem; /* 15px */
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dashboard-grid .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 64rem) { /* 1024px */
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* KPI Cards */
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr)); /* 180px */
+            gap: 0.75rem; /* 12px */
+            margin-bottom: 0.9375rem; /* 15px */
+            width: 100%;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 0.9375rem; /* 15px */
+            border-radius: 0.375rem; /* 6px */
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0,0,0,0.1);
+        }
+
+        .kpi-card-title {
+            font-size: 0.75rem; /* 12px */
+            color: #666;
+            margin-bottom: 0.5rem; /* 8px */
+            text-align: center;
+        }
+
+        .kpi-card-value {
+            font-size: 1.75rem; /* 28px */
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem; /* 4px */
+            text-align: center;
+        }
+
+        .kpi-card-subtitle {
+            font-size: 0.6875rem; /* 11px */
+            color: #999;
+            text-align: center;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            padding: 0.9375rem; /* 15px */
+            border-radius: 0.375rem; /* 6px */
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0,0,0,0.1);
+            margin-bottom: 0.9375rem; /* 15px */
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .chart-title {
+            font-size: 1rem; /* 16px */
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem; /* 8px - уменьшенный отступ */
+            text-align: center; /* Центрируем все заголовки по умолчанию */
+        }
+
+        .chart-title.centered {
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+
+        .chart-criteria {
+            background-color: #f8f9fa;
+            border-left: 4px solid #2196F3;
+            padding: 0.5rem 0.75rem; /* 8px 12px - уменьшен */
+            margin: -0.625rem 0 0.75rem 0; /* -10px 0 12px 0 - уменьшен нижний */
+            font-size: 0.75rem; /* 12px - уменьшен */
+            line-height: 1.5; /* уменьшен */
+        }
+
+        .chart-criteria strong {
+            color: #333;
+            display: block;
+            margin-bottom: 0.375rem; /* 6px - уменьшен */
+            text-align: center;
+            font-size: 0.8125rem; /* 13px */
+        }
+
+        .chart-criteria-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.375rem 0.75rem; /* 6px 12px - уменьшен */
+        }
+
+        .chart-criteria-grid.single-row {
+            grid-template-columns: 1fr;
+        }
+
+        @media (max-width: 48rem) { /* 768px */
+            .chart-criteria-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-criteria ul {
+            margin: 0;
+            padding-left: 1rem; /* 16px - уменьшен */
+            list-style-type: disc;
+        }
+
+        .chart-criteria li {
+            margin: 0.125rem 0; /* 2px 0 - уменьшен */
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .chart-criteria em {
+            color: #666;
+            font-style: italic;
+            display: block;
+            margin-top: 0.625rem; /* 10px */
+            padding-top: 0.625rem; /* 10px */
+            border-top: 1px solid #dee2e6;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 25rem; /* 400px */
+            min-height: 18.75rem; /* 300px */
+        }
+
+        .chart-canvas.small {
+            height: 18.75rem; /* 300px */
+            min-height: 15rem; /* 240px */
+        }
+
+        .chart-canvas.large {
+            height: 31.25rem; /* 500px */
+            min-height: 25rem; /* 400px */
+        }
+
+        /* Ограничение контейнеров графиков конверсии и оценок */
+        #first-call-conversion-chart,
+        #repeat-call-conversion-chart,
+        #first-call-scores-chart,
+        #repeat-call-scores-chart {
+            overflow: hidden; /* Скрываем всё что выходит за пределы */
+        }
+
+
+        /* Loading Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 3.125rem; /* 50px */
+            height: 3.125rem; /* 50px */
+            border: 0.25rem solid #f3f3f3;
+            border-top: 0.25rem solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Multi-select */
+        .multi-select-wrapper {
+            position: relative;
+        }
+
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 100%;
+            width: max-content;
+            max-width: 31.25rem; /* 500px */
+            background: white;
+            border: 0.0625rem solid #ddd;
+            border-radius: 0.25rem; /* 4px */
+            max-height: 25rem; /* 400px */
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            margin-top: 0.125rem; /* 2px */
+            box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
+        }
+
+        .multi-select-dropdown.active {
+            display: flex;
+        }
+
+        .multi-select-header {
+            padding: 0.625rem; /* 10px */
+            border-bottom: 0.0625rem solid #e5e5e5;
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem; /* 6px */
+            flex-shrink: 0;
+        }
+
+        .multi-select-search {
+            flex: 1;
+            padding: 0.375rem 0.625rem; /* 6px 10px */
+            border: 0.0625rem solid #D0D0D0;
+            border-radius: 0.1875rem; /* 3px */
+            font-size: 0.8125rem; /* 13px */
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .multi-select-search:focus {
+            border-color: #2196F3;
+        }
+
+        .multi-select-header-buttons {
+            display: flex;
+            gap: 0.375rem; /* 6px */
+        }
+
+        .multi-select-btn {
+            padding: 0.3125rem 0.625rem; /* 5px 10px */
+            background: #f5f5f5;
+            border: none;
+            border-radius: 0.1875rem; /* 3px */
+            font-size: 0.75rem; /* 12px */
+            color: #2196F3;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .multi-select-btn:hover {
+            background: #E3F2FD;
+        }
+
+        .multi-select-btn:last-child {
+            color: #666;
+        }
+
+        .multi-select-btn:last-child:hover {
+            background: #FFEBEE;
+            color: #f44336;
+        }
+
+        .multi-select-options {
+            overflow-y: auto;
+            max-height: 21.875rem; /* 350px */
+            flex: 1;
+        }
+
+        .multi-select-option {
+            padding: 0.5rem 0.75rem; /* 8px 12px */
+            cursor: pointer;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .multi-select-option:hover {
+            background: #f5f5f5;
+        }
+
+        .multi-select-option input {
+            margin-right: 0.5rem; /* 8px */
+            margin-top: 0.25rem; /* 4px - выравнивание с текстом */
+            flex-shrink: 0;
+        }
+
+        .multi-select-option label {
+            flex: 1;
+            white-space: normal;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .multi-select-display {
+            cursor: pointer;
+            padding: 0.375rem 0.625rem; /* 6px 10px */
+            border: 0.0625rem solid #ddd;
+            border-radius: 0.25rem; /* 4px */
+            background: white;
+            min-height: 2rem; /* 32px */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8125rem; /* 13px */
+        }
+
+        .multi-select-display::after {
+            content: '▼';
+            font-size: 0.5625rem; /* 9px */
+            color: #666;
+        }
+
+        /* Tooltip Styles */
+        .chart-title.has-tooltip {
+            cursor: help;
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted #999;
+        }
+
+        .chart-title.has-tooltip:hover {
+            color: #2196F3;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 0.5rem;
+            background: #ffffff;
+            border: 2px solid #2196F3;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-width: 25rem;
+            max-width: 50rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        /* Позиционирование tooltip на маленьких экранах */
+        @media (max-width: 48rem) {
+            .tooltip {
+                left: 10%;
+                transform: translateX(0);
+                min-width: 80%;
+            }
+        }
+
+        .tooltip.active {
+            display: block;
+        }
+
+        .tooltip strong {
+            color: #333;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .tooltip p {
+            margin: 0.5rem 0;
+            color: #555;
+        }
+
+        .tooltip-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        @media (max-width: 48rem) {
+            .tooltip-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tooltip ul {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.25rem;
+            list-style-type: disc;
+        }
+
+        .tooltip li {
+            margin: 0.25rem 0;
+            color: #555;
+        }
+
+        /* ========================================
+           Темная тема для Analytics
+           ======================================== */
+        [data-theme="dark"] .analytics-page {
+            background: var(--bg-color);
+        }
+
+        [data-theme="dark"] .analytics-content {
+            background: var(--bg-color) !important;
+        }
+
+        [data-theme="dark"] .sidebar {
+            background: var(--surface-color) !important;
+            box-shadow: 0.125rem 0 0.5rem rgba(0,0,0,0.5);
+        }
+
+        [data-theme="dark"] .sidebar-toggle {
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .analytics-header {
+            background: var(--surface-color) !important;
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .filters-grid {
+            background: transparent !important;
+        }
+
+        [data-theme="dark"] .filter-group label {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .filter-group input,
+        [data-theme="dark"] .filter-group select,
+        [data-theme="dark"] .filters-grid input,
+        [data-theme="dark"] .filters-grid select {
+            background-color: #2c2c2e !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .filter-group button {
+            background-color: #0066CC !important;
+            color: white !important;
+            border-color: #0066CC !important;
+        }
+
+        [data-theme="dark"] .filter-group button:hover {
+            background-color: #0077DD !important;
+        }
+
+        [data-theme="dark"] button[type="button"] {
+            background-color: #3a3a3c !important;
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .kpi-card {
+            background: var(--surface-color) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color) !important;
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0,0,0,0.5) !important;
+        }
+
+        [data-theme="dark"] .kpi-card-title {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .kpi-card-value {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .kpi-card-subtitle {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .kpi-card h3 {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .kpi-value {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .charts-grid {
+            background: transparent !important;
+        }
+
+        [data-theme="dark"] .chart-card {
+            background: var(--surface-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .chart-container {
+            background: var(--surface-color) !important;
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0,0,0,0.5) !important;
+        }
+
+        [data-theme="dark"] .chart-title {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria {
+            background-color: #2c2c2e !important;
+            border-left-color: var(--primary-color) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria strong {
+            color: var(--text-color) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria ul {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .chart-criteria li {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="dark"] .chart-card h3 {
+            color: var(--text-color) !important;
+            border-bottom-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .mobile-menu-btn {
+            background: var(--primary-color) !important;
+        }
+
+        [data-theme="dark"] .tooltip {
+            background: rgba(0, 0, 0, 0.95) !important;
+            color: white !important;
+            border-color: var(--border-color) !important;
+        }
+
+        [data-theme="dark"] .tooltip li {
+            color: #ccc !important;
+        }
+
+        /* ECharts в темной теме */
+        [data-theme="dark"] .chart-container {
+            background: var(--surface-color) !important;
+        }
+
+        [data-theme="dark"] .chart-canvas,
+        [data-theme="dark"] .chart-container canvas,
+        [data-theme="dark"] div[id*="chart"] {
+            background: transparent !important;
+        }
+
+        /* Убираем слишком яркие цвета графиков */
+        [data-theme="dark"] canvas {
+            opacity: 0.95;
+        }
+
+        /* Кнопка переключения темы для Analytics */
+        .theme-switcher-container {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10001 !important;
+        }
+
+        #theme-switcher-btn {
+            width: 44px !important;
+            height: 44px !important;
+            border: none !important;
+            background: var(--surface-color) !important;
+            color: var(--text-color) !important;
+            border-radius: 50% !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+            box-shadow: var(--shadow-md) !important;
+            border: 2px solid var(--border-color) !important;
+        }
+
+        #theme-switcher-btn:hover {
+            background: var(--primary-color) !important;
+            color: white !important;
+            border-color: var(--primary-color) !important;
+            transform: scale(1.1) rotate(15deg) !important;
+            box-shadow: var(--shadow-lg) !important;
+        }
+
+        #theme-switcher-btn:active {
+            transform: scale(0.95) !important;
+        }
+
+        #theme-switcher-btn svg {
+            width: 20px !important;
+            height: 20px !important;
+            transition: transform 0.3s ease !important;
+            display: block !important;
+        }
+
+        [data-theme="dark"] #theme-switcher-btn {
+            box-shadow: 0 2px 12px rgba(10, 132, 255, 0.3) !important;
+        }
+
+        [data-theme="dark"] #theme-switcher-btn:hover {
+            box-shadow: 0 4px 20px rgba(10, 132, 255, 0.5) !important;
+        }
+
+    </style>
+    <script src="assets/js/theme-switcher.js"></script>
+</head>
+<body>
+    <!-- Theme Switcher Button -->
+    <div class="theme-switcher-container">
+        <button id="theme-switcher-btn" aria-label="Переключить тему" title="Темная тема">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <div class="analytics-page">
+        <!-- Sidebar -->
+        <?php include 'includes/sidebar.php'; ?>
+
+        <!-- Main Content -->
+        <div class="analytics-content">
+            <!-- Header with Filters -->
+            <div class="analytics-header">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="date_from">Дата с:</label>
+                        <input type="date" id="date_from" value="<?php echo date('Y-m-d', strtotime('-7 days')); ?>">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="date_to">Дата по:</label>
+                        <input type="date" id="date_to" value="<?php echo date('Y-m-d'); ?>">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Отделы:</label>
+                        <div class="multi-select-wrapper">
+                            <div class="multi-select-display" id="departments-display">
+                                <span>Все отделы</span>
+                            </div>
+                            <div class="multi-select-dropdown" id="departments-dropdown">
+                                <div class="multi-select-header">
+                                    <input type="text" class="multi-select-search" id="departments-search" placeholder="Поиск">
+                                    <div class="multi-select-header-buttons">
+                                        <button type="button" class="multi-select-btn" id="departments-select-all">Выбрать все</button>
+                                        <button type="button" class="multi-select-btn" id="departments-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multi-select-options" id="departments-options">
+                                    <!-- Будет заполнено через JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Менеджеры:</label>
+                        <div class="multi-select-wrapper">
+                            <div class="multi-select-display" id="managers-display">
+                                <span>Все менеджеры</span>
+                            </div>
+                            <div class="multi-select-dropdown" id="managers-dropdown">
+                                <div class="multi-select-header">
+                                    <input type="text" class="multi-select-search" id="managers-search" placeholder="Поиск">
+                                    <div class="multi-select-header-buttons">
+                                        <button type="button" class="multi-select-btn" id="managers-select-all">Выбрать все</button>
+                                        <button type="button" class="multi-select-btn" id="managers-clear">Сбросить</button>
+                                    </div>
+                                </div>
+                                <div class="multi-select-options" id="managers-options">
+                                    <!-- Будет заполнено через JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group filter-group-combined">
+                        <label>CRM Этап:</label>
+                        <div class="combined-filters-row">
+                            <div class="multi-select-wrapper crm-compact">
+                                <div class="multi-select-display" id="crm-stages-display">
+                                    <span>Все этапы</span>
+                                </div>
+                                <div class="multi-select-dropdown" id="crm-stages-dropdown">
+                                    <div class="multi-select-header">
+                                        <input type="text" class="multi-select-search" id="crm-stages-search" placeholder="Поиск">
+                                        <div class="multi-select-header-buttons">
+                                            <button type="button" class="multi-select-btn" id="crm-stages-select-all">Выбрать все</button>
+                                            <button type="button" class="multi-select-btn" id="crm-stages-clear">Сбросить</button>
+                                        </div>
+                                    </div>
+                                    <div class="multi-select-options" id="crm-stages-options">
+                                        <!-- Будет заполнено через JS -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="filter-actions">
+                                <button class="btn btn-primary" id="apply-filters">Применить</button>
+                                <button class="btn btn-secondary" id="reset-filters">Сбросить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Body -->
+            <div class="analytics-body">
+                <!-- KPI Cards -->
+                <div class="kpi-cards">
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Всего звонков</div>
+                        <div class="kpi-card-value" id="kpi-total-calls">-</div>
+                        <div class="kpi-card-subtitle">за выбранный период</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Первые звонки</div>
+                        <div class="kpi-card-value" id="kpi-first-calls">-</div>
+                        <div class="kpi-card-subtitle">новых клиентов</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Повторные звонки</div>
+                        <div class="kpi-card-value" id="kpi-repeat-calls">-</div>
+                        <div class="kpi-card-subtitle">существующих клиентов</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Несостоявшиеся звонки</div>
+                        <div class="kpi-card-value" id="kpi-failed-calls">-</div>
+                        <div class="kpi-card-subtitle">≤30 секунд</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Показ назначен</div>
+                        <div class="kpi-card-value" id="kpi-successful-calls">-</div>
+                        <div class="kpi-card-subtitle">назначено показов</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Показ состоялся</div>
+                        <div class="kpi-card-value" id="kpi-conversion-rate">-</div>
+                        <div class="kpi-card-subtitle">завершенных показов</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-card-title">Средний % чеклиста</div>
+                        <div class="kpi-card-value" id="kpi-avg-compliance">-</div>
+                        <div class="kpi-card-subtitle">соответствие шаблонам</div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div class="dashboard-grid">
+                    <!-- First Call Conversion Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="first-conversion-title">
+                            📞 Конверсия первых звонков
+                            <div class="tooltip" id="first-conversion-tooltip">
+                                <strong>Как считается конверсия первых звонков:</strong>
+                                <p>Конверсия = (Успешные первые звонки / Всего первых звонков) × 100%</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Положительные результаты:</strong>
+                                    <ul>
+                                        <li>Назначен/подтвержден показ</li>
+                                        <li>Показ проведен</li>
+                                        <li>Отправлены новые варианты</li>
+                                        <li>Клиент подтвердил интерес</li>
+                                        <li>Назначена консультация</li>
+                                        <li>Бронь / Сделка закрыта</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="first-call-conversion-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Repeat Call Conversion Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="repeat-conversion-title">
+                            🔁 Конверсия повторных звонков
+                            <div class="tooltip" id="repeat-conversion-tooltip">
+                                <strong>Как считается конверсия повторных звонков:</strong>
+                                <p>Конверсия = (Успешные повторные звонки / Всего повторных звонков) × 100%</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Положительные результаты:</strong>
+                                    <ul>
+                                        <li>Назначен/подтвержден показ</li>
+                                        <li>Показ проведен</li>
+                                        <li>Отправлены новые варианты</li>
+                                        <li>Клиент подтвердил интерес</li>
+                                        <li>Назначена консультация</li>
+                                        <li>Бронь / Сделка закрыта</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="repeat-call-conversion-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- First Call Scores Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="first-call-scores-title">
+                            📞 Оценки первого звонка
+                            <div class="tooltip" id="first-call-scores-tooltip">
+                                <strong>Критерии оценки:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>Представился и назвал компанию</li>
+                                        <li>Узнал потребности клиента</li>
+                                        <li>Предложил конкретные варианты</li>
+                                    </ul>
+                                    <ul>
+                                        <li>Обработал возражения</li>
+                                        <li>Зафиксировал следующий шаг</li>
+                                        <li>Использовал неформальный диалог</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="first-call-scores-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Repeat Call Scores Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="repeat-call-scores-title">
+                            🔁 Оценки повторного звонка
+                            <div class="tooltip" id="repeat-call-scores-tooltip">
+                                <strong>Критерии оценки:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>Представился и напомнил контекст</li>
+                                        <li>Предложил конкретные действия</li>
+                                        <li>Зафиксировал следующий шаг</li>
+                                    </ul>
+                                    <ul>
+                                        <li>Обработал возражения</li>
+                                        <li>Использовал неформальный диалог</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="repeat-call-scores-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- First Call Results Distribution Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="first-call-results-title">
+                            📊 Результаты первого звонка
+                            <div class="tooltip" id="first-call-results-tooltip">
+                                <strong>Категории результатов:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>✅ Назначен показ</li>
+                                        <li>✅ Подтвержден показ</li>
+                                        <li>✅ Показ проведен</li>
+                                        <li>✅ Отправлены варианты</li>
+                                    </ul>
+                                    <ul>
+                                        <li>⏳ Отложенное решение</li>
+                                        <li>⏸️ Ожидается ответ</li>
+                                        <li>📵 Недозвон</li>
+                                        <li>❌ Отказ / не целевой</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="first-call-results-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Repeat Call Results Distribution Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="repeat-call-results-title">
+                            📊 Результаты повторного звонка
+                            <div class="tooltip" id="repeat-call-results-tooltip">
+                                <strong>Категории результатов:</strong>
+                                <div class="tooltip-grid">
+                                    <ul>
+                                        <li>✅ Подтвержден показ</li>
+                                        <li>✅ Показ проведен</li>
+                                        <li>💰 Бронь / задаток</li>
+                                        <li>🏆 Сделка закрыта</li>
+                                    </ul>
+                                    <ul>
+                                        <li>⏳ Отложенное решение</li>
+                                        <li>⏸️ Ожидается ответ</li>
+                                        <li>📵 Недозвон</li>
+                                        <li>❌ Отказ / неактуально</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="repeat-call-results-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Funnel Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered">Воронка конверсии</div>
+                        <div id="funnel-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Dynamics Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered">Динамика звонков по дням</div>
+                        <div id="dynamics-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Communication Metrics Section -->
+
+                    <!-- Interruptions Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="interruptions-title">
+                            📞 Анализ перебиваний менеджеров
+                            <div class="tooltip" id="interruptions-tooltip">
+                                <strong>Метрика перебиваний:</strong>
+                                <p>Процент случаев, когда менеджер начинает говорить до окончания реплики клиента (пауза &lt;0.5 сек)</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Хорошие показатели:</strong>
+                                    <ul>
+                                        <li>&lt;20% - Отличное активное слушание</li>
+                                        <li>20-30% - Хороший баланс</li>
+                                    </ul>
+                                    <strong style="color: #dc3545;">⚠️ Требуют внимания:</strong>
+                                    <ul>
+                                        <li>30-50% - Частые перебивания</li>
+                                        <li>&gt;50% - Критично высокий уровень</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="interruptions-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Talk-to-Listen Ratio Chart -->
+                    <div class="chart-container">
+                        <div class="chart-title centered has-tooltip" id="talk-listen-title">
+                            🗣️ Соотношение Talk-to-Listen
+                            <div class="tooltip" id="talk-listen-tooltip">
+                                <strong>Метрика Talk-to-Listen:</strong>
+                                <p>Соотношение времени речи менеджера к времени речи клиента</p>
+                                <div>
+                                    <strong style="color: #28a745;">✅ Оптимальные значения:</strong>
+                                    <ul>
+                                        <li>0.5-1.5 - Сбалансированный диалог</li>
+                                        <li>&lt;0.5 - Менеджер больше слушает (консультация)</li>
+                                    </ul>
+                                    <strong style="color: #ffc107;">⚡ Доминация менеджера:</strong>
+                                    <ul>
+                                        <li>1.5-2.0 - Менеджер доминирует</li>
+                                    </ul>
+                                    <strong style="color: #dc3545;">⚠️ Проблема:</strong>
+                                    <ul>
+                                        <li>&gt;2.0 - Монолог вместо диалога</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="talk-listen-chart" class="chart-canvas large"></div>
+                    </div>
+
+                    <!-- Funnel By Manager Dashboard -->
+                    <div class="chart-container full-width" style="margin-top: 20px;">
+                        <div class="chart-title centered">
+                            🎯 Воронка покупателя по менеджерам
+                        </div>
+
+                        <!-- Mode switcher -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-primary active" data-funnel-mode="managers">
+                                    По менеджерам
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-funnel-mode="departments">
+                                    По отделам
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-funnel-mode="detailed">
+                                    Детализация
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dashboard content: Table (100% width) + Chart below -->
+
+                        <!-- Table (full width with horizontal scroll) -->
+                        <div id="funnel-table-container" style="width: 100%; overflow-x: auto; margin-bottom: 30px;">
+                            <div class="alert alert-info">Загрузка данных...</div>
+                        </div>
+
+                        <!-- Chart (below table) -->
+                        <div style="width: 100%; margin-top: 20px;">
+                            <div id="funnel-by-manager-chart" class="chart-canvas large" style="width: 100%; height: 600px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    <script src="assets/js/fetch_retry.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/analytics.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/conversion_charts_split.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/communication_charts.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/funnel_by_manager_chart.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/analytics-theme-handler.js?v=<?php echo time(); ?>"></script>
+
+    <!-- Scroll to Top on Page Load -->
+    <script>
+        // ОТКЛЮЧАЕМ автоматическое восстановление позиции скролла браузером
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        // Принудительная прокрутка вверх ВСЕХ прокручиваемых контейнеров
+        function scrollToTop() {
+            // Прокручиваем ВСЕ элементы с overflow
+            const scrollableElements = [
+                '.analytics-body',
+                '.analytics-content',
+                '.analytics-page',
+                'body',
+                'html'
+            ];
+
+            scrollableElements.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    if (el) {
+                        console.log(`Прокрутка ${selector}, текущая позиция:`, el.scrollTop);
+                        el.scrollTop = 0;
+                        if (el.scrollTo) {
+                            el.scrollTo({ top: 0, behavior: 'auto' });
+                        }
+                    }
+                });
+            });
+
+            // Прокручиваем window
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+
+            console.log('Все элементы прокручены вверх');
+        }
+
+        // Прокрутка СРАЗУ при выполнении скрипта (самое раннее)
+        scrollToTop();
+
+        // Прокрутка вверх при DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded - прокрутка вверх');
+            scrollToTop();
+        });
+
+        // Прокрутка вверх при загрузке страницы
+        window.addEventListener('load', function() {
+            console.log('window.load - прокрутка вверх');
+            scrollToTop();
+        });
+
+        // Агрессивные дополнительные прокрутки с задержками
+        setTimeout(scrollToTop, 100);
+        setTimeout(scrollToTop, 300);
+        setTimeout(scrollToTop, 500);
+        setTimeout(scrollToTop, 1000);
+        setTimeout(scrollToTop, 1500);
+        setTimeout(scrollToTop, 2000);
+
+        // Финальная диагностика через 2.5 сек
+        setTimeout(() => {
+            console.log('=== ФИНАЛЬНАЯ ДИАГНОСТИКА ===');
+            const analyticsBody = document.querySelector('.analytics-body');
+            const analyticsContent = document.querySelector('.analytics-content');
+            const analyticsPage = document.querySelector('.analytics-page');
+
+            console.log('.analytics-body scrollTop:', analyticsBody?.scrollTop);
+            console.log('.analytics-body scrollHeight:', analyticsBody?.scrollHeight);
+            console.log('.analytics-body clientHeight:', analyticsBody?.clientHeight);
+            console.log('.analytics-content scrollTop:', analyticsContent?.scrollTop);
+            console.log('.analytics-page scrollTop:', analyticsPage?.scrollTop);
+            console.log('body scrollTop:', document.body.scrollTop);
+            console.log('html scrollTop:', document.documentElement.scrollTop);
+            console.log('window pageYOffset:', window.pageYOffset);
+            console.log('window scrollY:', window.scrollY);
+
+            // Проверяем getBoundingClientRect первого элемента
+            const firstCard = document.querySelector('.kpi-card');
+            if (firstCard) {
+                const rect = firstCard.getBoundingClientRect();
+                console.log('Первая KPI карточка position:', rect.top, rect.left);
+                console.log('Первая KPI карточка видна?', rect.top >= 0 && rect.top < window.innerHeight);
+            }
+
+            // Если что-то прокручено - прокручиваем обратно
+            if (analyticsBody?.scrollTop > 0 || window.scrollY > 0) {
+                console.warn('⚠️ Обнаружена прокрутка! Принудительно возвращаем вверх');
+                scrollToTop();
+            } else {
+                console.log('✅ Всё в порядке - страница наверху!');
+            }
+        }, 2500);
+
+        // MutationObserver для отслеживания изменений высоты графиков
+        document.addEventListener('DOMContentLoaded', function() {
+            const analyticsBody = document.querySelector('.analytics-body');
+            if (analyticsBody) {
+                const observer = new MutationObserver(function(mutations) {
+                    // При любом изменении в DOM - прокручиваем вверх
+                    scrollToTop();
+                });
+
+                observer.observe(analyticsBody, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style']
+                });
+
+                // Отключаем observer через 3 секунды
+                setTimeout(() => {
+                    observer.disconnect();
+                    console.log('MutationObserver отключен');
+                }, 3000);
+            }
+        });
+    </script>
+
+    <!-- Tooltip Management Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Получаем все элементы с tooltip'ами
+            const tooltipTriggers = [
+                {
+                    title: document.getElementById('first-conversion-title'),
+                    tooltip: document.getElementById('first-conversion-tooltip')
+                },
+                {
+                    title: document.getElementById('repeat-conversion-title'),
+                    tooltip: document.getElementById('repeat-conversion-tooltip')
+                },
+                {
+                    title: document.getElementById('first-call-scores-title'),
+                    tooltip: document.getElementById('first-call-scores-tooltip')
+                },
+                {
+                    title: document.getElementById('repeat-call-scores-title'),
+                    tooltip: document.getElementById('repeat-call-scores-tooltip')
+                },
+                {
+                    title: document.getElementById('first-call-results-title'),
+                    tooltip: document.getElementById('first-call-results-tooltip')
+                },
+                {
+                    title: document.getElementById('repeat-call-results-title'),
+                    tooltip: document.getElementById('repeat-call-results-tooltip')
+                },
+                {
+                    title: document.getElementById('interruptions-title'),
+                    tooltip: document.getElementById('interruptions-tooltip')
+                },
+                {
+                    title: document.getElementById('talk-listen-title'),
+                    tooltip: document.getElementById('talk-listen-tooltip')
+                }
+            ];
+
+            // Добавляем обработчики событий для каждого tooltip
+            tooltipTriggers.forEach(function(item) {
+                if (item.title && item.tooltip) {
+                    // Показать tooltip при наведении на заголовок
+                    item.title.addEventListener('mouseenter', function() {
+                        item.tooltip.classList.add('active');
+                    });
+
+                    // Скрыть tooltip при уходе мыши с заголовка
+                    item.title.addEventListener('mouseleave', function() {
+                        item.tooltip.classList.remove('active');
+                    });
+
+                    // Оставить tooltip видимым при наведении на сам tooltip
+                    item.tooltip.addEventListener('mouseenter', function() {
+                        item.tooltip.classList.add('active');
+                    });
+
+                    // Скрыть tooltip при уходе мыши с самого tooltip
+                    item.tooltip.addEventListener('mouseleave', function() {
+                        item.tooltip.classList.remove('active');
+                    });
+                }
+            });
+
+            // Скрыть все tooltip'ы при клике вне их области
+            document.addEventListener('click', function(event) {
+                const isTooltipClick = event.target.closest('.has-tooltip') || event.target.closest('.tooltip');
+                if (!isTooltipClick) {
+                    tooltipTriggers.forEach(function(item) {
+                        if (item.tooltip) {
+                            item.tooltip.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -4,6 +4,9 @@
  */
 ?>
 <aside class="sidebar">
+    <!-- Organization Info -->
+    <?php include __DIR__ . '/organization_info.php'; ?>
+
     <!-- Header -->
     <div class="sidebar-toggle">
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Свернуть/развернуть меню">

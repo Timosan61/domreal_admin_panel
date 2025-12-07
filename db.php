@@ -7,8 +7,8 @@
 function get_db_connection() {
     $host = 'localhost';
     $db = 'calls_db';
-    $user = 'calls_user';
-    $pass = 'calls_password_2023';
+    $user = 'domreal_user';
+    $pass = 'WPx2MyN1hT6rxoJbp9rF';
 
     try {
         $conn = new mysqli($host, $user, $pass, $db);

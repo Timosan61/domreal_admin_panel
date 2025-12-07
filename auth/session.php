@@ -83,8 +83,8 @@ function checkAuth($require_admin = false, $is_api = false) {
         }
     }
 
-    // Обновляем last_activity
-    $update_query = "UPDATE sessions SET last_activity = NOW() WHERE session_id = :session_id";
+    // Обновляем last_activity_at
+    $update_query = "UPDATE sessions SET last_activity_at = NOW() WHERE session_id = :session_id";
     $update_stmt = $db->prepare($update_query);
     $update_stmt->bindParam(':session_id', $session_id);
     $update_stmt->execute();
