@@ -40,7 +40,18 @@ class AnalyticsDashboard {
     async loadDashboardList() {
         try {
             const response = await fetch('/api/dashboards.php?action=list');
-            const result = await response.json();
+
+            // Проверка статуса ответа
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('API error response:', text);
+                throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+            }
+
+            const text = await response.text();
+            console.log('API response:', text);
+
+            const result = JSON.parse(text);
 
             if (!result.success) {
                 throw new Error(result.error || 'Failed to load dashboards');
@@ -75,7 +86,15 @@ class AnalyticsDashboard {
 
         try {
             const response = await fetch(`/api/dashboards.php?action=get&id=${dashboardId}`);
-            const result = await response.json();
+
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('API error response:', text);
+                throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+            }
+
+            const text = await response.text();
+            const result = JSON.parse(text);
 
             if (!result.success) {
                 throw new Error(result.error || 'Failed to load dashboard');
@@ -174,7 +193,17 @@ class AnalyticsDashboard {
         });
 
         const response = await fetch(`/api/analytics/${dataSource}.php?${params}`);
-        const result = await response.json();
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`API error for ${dataSource}:`, text);
+            throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+        }
+
+        const text = await response.text();
+        console.log(`API response for ${dataSource}:`, text.substring(0, 200));
+
+        const result = JSON.parse(text);
 
         if (!result.success) {
             throw new Error(result.error || 'Failed to fetch data');
