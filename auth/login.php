@@ -77,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['username'] = $user['username'];
                         $_SESSION['full_name'] = $user['full_name'] ?? $user['username'];
                         $_SESSION['role'] = $user['role'];
+                        $_SESSION['org_id'] = 'org-legacy'; // Default organization for all users
 
                         // Генерируем новый CSRF токен после авторизации
                         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

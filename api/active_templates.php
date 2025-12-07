@@ -9,6 +9,14 @@ header('Access-Control-Allow-Methods: GET');
 require_once __DIR__ . '/../config/database.php';
 
 try {
+    // Подключаемся к БД
+    $database = new Database();
+    $pdo = $database->getConnection();
+
+    if (!$pdo) {
+        throw new Exception('Database connection failed');
+    }
+
     // Получаем активные шаблоны
     $stmt = $pdo->prepare("
         SELECT

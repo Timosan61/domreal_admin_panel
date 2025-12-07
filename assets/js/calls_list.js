@@ -631,7 +631,6 @@ async function renderCalls(calls) {
             </td>
             <td class="employee-cell" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
             <td>${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
-            <td class="text-center">${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
             ${renderComplianceCells(call.callid, call)}
             <td class="summary-cell" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
             <td class="text-center alert-cell">${formatAlertLevel(call.callid)}</td>
@@ -1706,11 +1705,25 @@ function formatTemplateSummary(summaryText, complianceScore, templateId) {
         return '<span class="compliance-na">—</span>';
     }
 
+    // Для "Конфликта интересов" логика ИНВЕРТИРОВАНА:
+    // Больше % = хуже (красный), меньше % = лучше (зеленый)
     let cssClass = 'compliance-low';
-    if (complianceScore >= 80) {
-        cssClass = 'compliance-high';
-    } else if (complianceScore >= 50) {
-        cssClass = 'compliance-medium';
+    if (templateId === 'tpl-conflict-of-interest-v1') {
+        // Инвертированная логика для конфликта интересов
+        if (complianceScore <= 20) {
+            cssClass = 'compliance-high';  // Мало конфликта - зеленый
+        } else if (complianceScore <= 50) {
+            cssClass = 'compliance-medium'; // Средний конфликт - желтый
+        } else {
+            cssClass = 'compliance-low';    // Высокий конфликт - красный
+        }
+    } else {
+        // Обычная логика для остальных шаблонов
+        if (complianceScore >= 80) {
+            cssClass = 'compliance-high';
+        } else if (complianceScore >= 50) {
+            cssClass = 'compliance-medium';
+        }
     }
 
     return `<span class="compliance-value ${cssClass}">${complianceScore}%</span>`;

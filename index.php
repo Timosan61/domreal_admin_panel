@@ -508,7 +508,6 @@ checkAuth(); // Проверка авторизации
                         <th style="width: 50px;">Тег</th>
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
                         <th>Результат</th>
-                        <th data-sort="script_compliance_score_v4">Оценка <span class="sort-icon">↕</span></th>
                         <!-- Динамические заголовки чеклистов (заполняется JS) -->
                         <th id="compliance-headers-placeholder"></th>
                         <th>Резюме</th>
@@ -526,7 +525,7 @@ checkAuth(); // Проверка авторизации
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="18" class="loading">Загрузка данных...</td>
+                        <td colspan="17" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>
