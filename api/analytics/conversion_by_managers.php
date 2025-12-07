@@ -1,0 +1,128 @@
+<?php
+/**
+ * API: Конверсия по менеджерам
+ *
+ * Возвращает таблицу с метриками конверсии для каждого менеджера
+ */
+
+header('Content-Type: application/json; charset=utf-8');
+require_once __DIR__ . '/../../config/database.php';
+
+// CORS headers
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+try {
+    $database = new Database();
+    $pdo = $database->getConnection();
+
+    // Получение фильтров
+    $date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime('-30 days'));
+    $date_to = $_GET['date_to'] ?? date('Y-m-d');
+    $departments = $_GET['departments'] ?? null;
+    $managers = $_GET['managers'] ?? null;
+
+    // Построение WHERE условий
+    $where_conditions = ["ar.call_date BETWEEN :date_from AND :date_to"];
+    $params = [
+        ':date_from' => $date_from . ' 00:00:00',
+        ':date_to' => $date_to . ' 23:59:59'
+    ];
+
+    if ($departments) {
+        $dept_list = explode(',', $departments);
+        $dept_placeholders = [];
+        foreach ($dept_list as $i => $dept) {
+            $key = ":dept_$i";
+            $dept_placeholders[] = $key;
+            $params[$key] = trim($dept);
+        }
+        $where_conditions[] = "ar.employee_department IN (" . implode(',', $dept_placeholders) . ")";
+    }
+
+    if ($managers) {
+        $mgr_list = explode(',', $managers);
+        $mgr_placeholders = [];
+        foreach ($mgr_list as $i => $mgr) {
+            $key = ":mgr_$i";
+            $mgr_placeholders[] = $key;
+            $params[$key] = trim($mgr);
+        }
+        $where_conditions[] = "ar.employee_full_name IN (" . implode(',', $mgr_placeholders) . ")";
+    }
+
+    $where_clause = implode(' AND ', $where_conditions);
+
+    // Запрос для конверсии по менеджерам
+    $query = "
+        SELECT
+            ar.employee_full_name AS manager_name,
+            ar.employee_department AS department,
+            COUNT(*) AS total_calls,
+            SUM(CASE WHEN ar.real_conversation = 1 AND ar.is_work_related = 1 THEN 1 ELSE 0 END) AS work_calls,
+            SUM(CASE WHEN ar.is_successful = 1 THEN 1 ELSE 0 END) AS successful_calls,
+            SUM(CASE WHEN ar.deal_status IS NOT NULL THEN 1 ELSE 0 END) AS deals,
+            SUM(CASE WHEN ar.deal_status = 'Горячий' THEN 1 ELSE 0 END) AS hot_deals,
+            ROUND(AVG(ar.compliance_score), 1) AS avg_compliance,
+            ROUND(AVG(ar.call_duration_sec / 60.0), 1) AS avg_duration_min
+        FROM analysis_results ar
+        WHERE $where_clause
+            AND ar.real_conversation = 1
+            AND ar.is_work_related = 1
+        GROUP BY ar.employee_full_name, ar.employee_department
+        HAVING COUNT(*) > 0
+        ORDER BY successful_calls DESC, manager_name
+    ";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Вычисляем проценты для каждого менеджера
+    $managers_data = [];
+    foreach ($results as $row) {
+        $total = (int)$row['total_calls'];
+        $work = (int)$row['work_calls'];
+        $successful = (int)$row['successful_calls'];
+        $deals_count = (int)$row['deals'];
+        $hot = (int)$row['hot_deals'];
+
+        $managers_data[] = [
+            'manager_name' => $row['manager_name'],
+            'department' => $row['department'],
+            'total_calls' => $total,
+            'work_calls' => $work,
+            'successful_calls' => $successful,
+            'deals' => $deals_count,
+            'hot_deals' => $hot,
+            'avg_compliance' => (float)$row['avg_compliance'],
+            'avg_duration_min' => (float)$row['avg_duration_min'],
+            'success_rate' => $work > 0 ? round(($successful / $work) * 100, 2) : 0,
+            'deal_rate' => $work > 0 ? round(($deals_count / $work) * 100, 2) : 0,
+            'hot_deal_rate' => $deals_count > 0 ? round(($hot / $deals_count) * 100, 2) : 0
+        ];
+    }
+
+    echo json_encode([
+        'success' => true,
+        'data' => $managers_data,
+        'meta' => [
+            'date_from' => $date_from,
+            'date_to' => $date_to,
+            'total_managers' => count($managers_data)
+        ]
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Database error: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+}
