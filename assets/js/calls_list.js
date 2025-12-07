@@ -623,23 +623,23 @@ async function renderCalls(calls) {
 
     tbody.innerHTML = calls.map(call => `
         <tr>
-            <td class="text-center">
+            <td class="text-center" data-column-id="checkbox">
                 <input type="checkbox" class="call-checkbox" data-callid="${call.callid}">
             </td>
-            <td class="tag-cell ${!call.tag_type ? 'no-tag' : ''}" title="${formatTagTitle(call.tag_type, call.tag_note)}">
+            <td class="tag-cell ${!call.tag_type ? 'no-tag' : ''}" data-column-id="tag" title="${formatTagTitle(call.tag_type, call.tag_note)}">
                 ${formatTag(call.tag_type)}
             </td>
-            <td class="employee-cell" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
-            <td>${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
+            <td class="employee-cell" data-column-id="manager" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
+            <td data-column-id="result">${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
             ${renderComplianceCells(call.callid, call)}
-            <td class="summary-cell" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
-            <td class="text-center alert-cell">${formatAlertLevel(call.callid)}</td>
-            <td class="solvency-cell">${formatSolvency(call.solvency_level)}</td>
-            <td>${formatDateTime(call.started_at_utc)}</td>
-            <td class="text-center">${formatDuration(call.duration_sec)}</td>
-            <td>${escapeHtml(call.client_phone || '-')}</td>
-            <td class="crm-cell">${formatCrmStage(call.crm_funnel_name, call.crm_step_name)}</td>
-            <td class="actions-cell">
+            <td class="summary-cell" data-column-id="summary" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
+            <td class="text-center alert-cell" data-column-id="risk">${formatAlertLevel(call.callid)}</td>
+            <td class="solvency-cell" data-column-id="solvency">${formatSolvency(call.solvency_level)}</td>
+            <td data-column-id="datetime">${formatDateTime(call.started_at_utc)}</td>
+            <td class="text-center" data-column-id="duration">${formatDuration(call.duration_sec)}</td>
+            <td data-column-id="phone">${escapeHtml(call.client_phone || '-')}</td>
+            <td class="crm-cell" data-column-id="crm">${formatCrmStage(call.crm_funnel_name, call.crm_step_name)}</td>
+            <td class="actions-cell" data-column-id="actions">
                 <button class="btn-play-audio ${currentPlayingCallId === call.callid ? 'playing' : ''}"
                         data-callid="${call.callid}"
                         data-employee="${escapeHtml(call.employee_name || '')}"
@@ -655,9 +655,9 @@ async function renderCalls(calls) {
                     Открыть
                 </a>
             </td>
-            <td>${formatCallType(call.call_type, call.is_first_call, call.duration_sec)}</td>
-            <td class="department-cell" data-full-text="${escapeHtml(call.department || '-')}">${formatDepartment(call.department)}</td>
-            <td>${formatDirection(call.direction)}</td>
+            <td data-column-id="call_type">${formatCallType(call.call_type, call.is_first_call, call.duration_sec)}</td>
+            <td class="department-cell" data-column-id="department" data-full-text="${escapeHtml(call.department || '-')}">${formatDepartment(call.department)}</td>
+            <td data-column-id="direction">${formatDirection(call.direction)}</td>
         </tr>
     `).join('');
 

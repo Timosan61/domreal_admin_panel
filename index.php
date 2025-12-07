@@ -11,18 +11,6 @@ checkAuth(); // Проверка авторизации
     <title>Звонки - Система оценки звонков</title>
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
     <style>
-        /* Временное скрытие столбца и фильтра "Платежеспособность" */
-        th:nth-child(9),
-        td.solvency-cell,
-        #solvency-multiselect {
-            display: none !important;
-        }
-
-        /* Скрываем label фильтра платежеспособности */
-        .filter-group:has(#solvency-multiselect) {
-            display: none !important;
-        }
-
         /* Динамические колонки чеклистов */
         .compliance-column {
             text-align: center;
@@ -54,6 +42,173 @@ checkAuth(); // Проверка авторизации
         .compliance-na {
             color: #9ca3af;
         }
+
+        /* Кнопка настройки колонок */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-settings {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .btn-settings:hover {
+            background: #e0e0e0;
+            border-color: #ccc;
+        }
+
+        /* Модальное окно настройки колонок */
+        .columns-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .columns-modal.active {
+            display: flex;
+        }
+
+        .columns-modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .columns-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .columns-modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .columns-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .columns-modal-close:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .columns-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .columns-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .column-item:hover {
+            background: #f9f9f9;
+            border-color: #2196F3;
+        }
+
+        .column-item input[type="checkbox"] {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .column-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .column-item.disabled:hover {
+            background: white;
+            border-color: #e0e0e0;
+        }
+
+        .columns-modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btn-reset {
+            padding: 10px 20px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-reset:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-apply {
+            padding: 10px 24px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-apply:hover {
+            background: #1976D2;
+        }
     </style>
     <script src="assets/js/theme-switcher.js"></script>
 </head>
@@ -70,6 +225,13 @@ checkAuth(); // Проверка авторизации
         <!-- Заголовок страницы -->
         <header class="page-header">
             <h1>Звонки</h1>
+            <button class="btn-settings" id="columns-settings-btn" title="Настроить отображение колонок">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6m5.2-15.8l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m15.8 5.2l-4.2-4.2m0-6l-4.2-4.2"></path>
+                </svg>
+                Настроить колонки
+            </button>
         </header>
 
         <!-- Breadcrumb для возврата к аналитике -->
@@ -502,25 +664,25 @@ checkAuth(); // Проверка авторизации
             <table class="calls-table" id="calls-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px;">
+                        <th style="width: 40px;" data-column-id="checkbox">
                             <input type="checkbox" id="select-all-calls" title="Выбрать все">
                         </th>
-                        <th style="width: 50px;">Тег</th>
-                        <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
-                        <th>Результат</th>
+                        <th style="width: 50px;" data-column-id="tag">Тег</th>
+                        <th data-sort="employee_name" data-column-id="manager">Менеджер <span class="sort-icon">↕</span></th>
+                        <th data-column-id="result">Результат</th>
                         <!-- Динамические заголовки чеклистов (заполняется JS) -->
-                        <th id="compliance-headers-placeholder"></th>
-                        <th>Резюме</th>
-                        <th title="Тревожные флаги конфликта интересов">🚨 Риск</th>
-                        <th>Платежеспособность</th>
-                        <th data-sort="started_at_utc">Дата и время <span class="sort-icon">↓</span></th>
-                        <th data-sort="duration_sec">Длина <span class="sort-icon">↕</span></th>
-                        <th>Номер</th>
-                        <th>CRM</th>
-                        <th>Действия</th>
-                        <th>Тип звонка</th>
-                        <th data-sort="department">Отдел <span class="sort-icon">↕</span></th>
-                        <th data-sort="direction">Направление <span class="sort-icon">↕</span></th>
+                        <th id="compliance-headers-placeholder" data-column-id="compliance"></th>
+                        <th data-column-id="summary">Резюме</th>
+                        <th title="Тревожные флаги конфликта интересов" data-column-id="risk">🚨 Риск</th>
+                        <th data-column-id="solvency">Платежеспособность</th>
+                        <th data-sort="started_at_utc" data-column-id="datetime">Дата и время <span class="sort-icon">↓</span></th>
+                        <th data-sort="duration_sec" data-column-id="duration">Длина <span class="sort-icon">↕</span></th>
+                        <th data-column-id="phone">Номер</th>
+                        <th data-column-id="crm">CRM</th>
+                        <th data-column-id="actions">Действия</th>
+                        <th data-column-id="call_type">Тип звонка</th>
+                        <th data-sort="department" data-column-id="department">Отдел <span class="sort-icon">↕</span></th>
+                        <th data-sort="direction" data-column-id="direction">Направление <span class="sort-icon">↕</span></th>
                     </tr>
                 </thead>
                 <tbody id="calls-tbody">
@@ -669,10 +831,30 @@ checkAuth(); // Проверка авторизации
         </div>
     </div>
 
+    <!-- Модальное окно настройки колонок -->
+    <div class="columns-modal" id="columns-modal">
+        <div class="columns-modal-content">
+            <div class="columns-modal-header">
+                <h2>Настройка отображения колонок</h2>
+                <button class="columns-modal-close" id="columns-modal-close">&times;</button>
+            </div>
+            <div class="columns-modal-body">
+                <div class="columns-list" id="columns-list">
+                    <!-- Будет заполнено через JavaScript -->
+                </div>
+            </div>
+            <div class="columns-modal-footer">
+                <button class="btn-reset" id="columns-reset-btn">Сбросить по умолчанию</button>
+                <button class="btn-apply" id="columns-apply-btn">Применить</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/wavesurfer.js@7"></script>
     <script src="assets/js/sidebar.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/multiselect.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/bulk_actions.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/calls_list.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/column_manager.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>
