@@ -112,7 +112,10 @@ class AnalyticsDashboard {
         const container = document.getElementById('dashboard-container');
         container.innerHTML = '';
 
+        console.log('renderDashboard called', this.currentDashboard);
+
         if (!this.currentDashboard || !this.currentDashboard.widgets) {
+            console.warn('No dashboard or widgets');
             container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px;">Нет виджетов</div>';
             return;
         }
@@ -120,13 +123,21 @@ class AnalyticsDashboard {
         // Сортируем виджеты по порядку
         const widgets = this.currentDashboard.widgets.sort((a, b) => a.widget_order - b.widget_order);
 
+        console.log(`Rendering ${widgets.length} widgets`);
+
         // Создаем виджеты
         for (const widget of widgets) {
-            if (!widget.is_visible) continue;
+            if (!widget.is_visible) {
+                console.log(`Skipping invisible widget: ${widget.title}`);
+                continue;
+            }
 
+            console.log(`Creating widget: ${widget.title} (${widget.widget_type})`);
             const widgetElement = await this.createWidget(widget);
             container.appendChild(widgetElement);
         }
+
+        console.log('Dashboard rendering complete');
     }
 
     async createWidget(widgetConfig) {
@@ -149,7 +160,9 @@ class AnalyticsDashboard {
 
         // Загружаем данные
         try {
+            console.log(`Fetching data for ${widgetConfig.title} from ${widgetConfig.data_source}`);
             const data = await this.fetchWidgetData(widgetConfig.data_source);
+            console.log(`Data received for ${widgetConfig.title}:`, data);
             loading.remove();
 
             // Рендерим в зависимости от типа
@@ -215,12 +228,15 @@ class AnalyticsDashboard {
     renderKPI(widget, data, config) {
         widget.classList.add('widget-kpi');
 
+        console.log('renderKPI called with:', { data, config });
+
         // Извлекаем значение метрики
         let value = null;
 
         if (config.metric === 'total_calls') {
             // Для воронки берем первый элемент
             value = Array.isArray(data) ? data[0]?.count : data.total_calls;
+            console.log('total_calls extracted:', value);
         } else if (config.metric === 'success_rate') {
             // Конверсия в успешные (4й этап воронки)
             value = Array.isArray(data) && data[3] ? data[3].conversion_from_previous : 0;
@@ -258,6 +274,8 @@ class AnalyticsDashboard {
                 displayValue = parseInt(value).toLocaleString();
             }
         }
+
+        console.log('KPI final displayValue:', displayValue);
 
         const valueDiv = document.createElement('div');
         valueDiv.className = 'kpi-value';
