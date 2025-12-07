@@ -12,6 +12,11 @@ let multiselectInstances = null; // Хранилище для multiselect инс
 let globalWaveSurfer = null;
 let currentPlayingCallId = null;
 
+// Динамические шаблоны чеклистов
+let activeTemplates = []; // Список активных шаблонов
+let complianceDataCache = {}; // Кэш compliance данных по звонкам
+let alertFlagsCache = {}; // Кэш тревожных флагов конфликта интересов
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
@@ -210,6 +215,9 @@ function showAnalyticsBreadcrumb() {
 async function initializePage() {
     // Инициализируем multiselect компоненты
     multiselectInstances = initMultiselects();
+
+    // 🎯 Загружаем активные шаблоны чеклистов
+    await loadActiveTemplates();
 
     await loadFilterOptions();
     await loadStateFromURL(); // Восстанавливаем состояние из URL (теперь async)
@@ -543,7 +551,7 @@ function getFiltersFromForm() {
  */
 async function loadCalls() {
     const tbody = document.getElementById('calls-tbody');
-    tbody.innerHTML = '<tr><td colspan="16" class="loading">Загрузка данных...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="18" class="loading">Загрузка данных...</td></tr>';
 
     try {
         // Формируем URL с параметрами
@@ -575,19 +583,19 @@ async function loadCalls() {
         const result = await response.json();
 
         if (result.success) {
-            renderCalls(result.data);
+            await renderCalls(result.data); // Теперь асинхронно
             renderPagination(result.pagination);
             updateStats(result.pagination);
         } else {
-            tbody.innerHTML = '<tr><td colspan="16" class="error">Ошибка загрузки данных</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="18" class="error">Ошибка загрузки данных</td></tr>';
         }
     } catch (error) {
         console.error('Ошибка загрузки звонков:', error);
 
         if (error.name === 'AbortError') {
-            tbody.innerHTML = '<tr><td colspan="16" class="error">⏱️ Превышено время ожидания (30 сек). Попробуйте упростить фильтры или обратитесь к администратору.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="18" class="error">⏱️ Превышено время ожидания (30 сек). Попробуйте упростить фильтры или обратитесь к администратору.</td></tr>';
         } else {
-            tbody.innerHTML = '<tr><td colspan="16" class="error">Ошибка подключения к серверу</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="18" class="error">Ошибка подключения к серверу</td></tr>';
         }
     }
 }
@@ -595,13 +603,20 @@ async function loadCalls() {
 /**
  * Отрисовка списка звонков
  */
-function renderCalls(calls) {
+async function renderCalls(calls) {
     const tbody = document.getElementById('calls-tbody');
 
     if (calls.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="16" class="text-center">Звонки не найдены</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="18" class="text-center">Звонки не найдены</td></tr>';
         return;
     }
+
+    // 🎯 Загружаем compliance данные и alert flags для всех звонков
+    const callIds = calls.map(call => call.callid);
+    await Promise.all([
+        loadComplianceData(callIds),
+        loadAlertFlags(callIds)
+    ]);
 
     // Получаем текущий URL со state для передачи в страницу деталей
     const currentStateURL = window.location.search;
@@ -617,8 +632,9 @@ function renderCalls(calls) {
             <td class="employee-cell" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
             <td>${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
             <td class="text-center">${formatScriptCompliance(call.script_compliance_score, call.call_type)}</td>
+            ${renderComplianceCells(call.callid, call)}
             <td class="summary-cell" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
-            <td class="aggregate-cell" data-full-text="${escapeHtml(call.aggregate_summary || '')}" data-call-count="${call.total_calls_count || 0}">${formatAggregate(call.aggregate_summary, call.total_calls_count)}</td>
+            <td class="text-center alert-cell">${formatAlertLevel(call.callid)}</td>
             <td class="solvency-cell">${formatSolvency(call.solvency_level)}</td>
             <td>${formatDateTime(call.started_at_utc)}</td>
             <td class="text-center">${formatDuration(call.duration_sec)}</td>
@@ -651,6 +667,7 @@ function renderCalls(calls) {
     initTruncatedCellTooltips('.summary-cell');
     initTruncatedCellTooltips('.aggregate-cell');
     initTruncatedCellTooltips('.department-cell');
+    initTruncatedCellTooltips('.compliance-column.summary-cell'); // Tooltip для ячеек шаблонов
 
     // Инициализация обработчиков для кнопок Play
     initPlayButtons();
@@ -815,6 +832,28 @@ function formatScriptCompliance(score, callType) {
     }
 
     return `<span class="rating-badge ${className}">${percentage}%</span>`;
+}
+
+/**
+ * Форматирование процента соответствия чеклисту (compliance_percentage от 0 до 100)
+ * Отображает % положительных ответов из динамических шаблонов анализа
+ */
+function formatCompliancePercentage(percentage) {
+    // Если данных нет - показываем н/д
+    if (percentage === null || percentage === undefined) {
+        return '<span class="text-muted">н/д</span>';
+    }
+
+    const percent = parseInt(percentage);
+    let className = 'rating-low';
+
+    if (percent >= 80) {
+        className = 'rating-high';
+    } else if (percent >= 60) {
+        className = 'rating-medium';
+    }
+
+    return `<span class="rating-badge ${className}">${percent}%</span>`;
 }
 
 /**
@@ -1436,4 +1475,396 @@ function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return minutes + ':' + (secs < 10 ? '0' : '') + secs;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 🎯 ДИНАМИЧЕСКИЕ ШАБЛОНЫ ЧЕКЛИСТОВ
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Загрузка активных шаблонов чеклистов
+ */
+async function loadActiveTemplates() {
+    try {
+        console.log('🔄 Загрузка активных шаблонов...');
+        const response = await fetch('api/active_templates.php');
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('📥 Получен ответ от API:', result);
+
+        if (result.templates && Array.isArray(result.templates)) {
+            activeTemplates = result.templates;
+            console.log(`✅ Загружено ${activeTemplates.length} активных шаблонов:`, activeTemplates);
+
+            // Добавляем колонки в таблицу
+            insertComplianceColumns();
+        } else {
+            console.warn('⚠️ Не удалось загрузить активные шаблоны - неверный формат ответа');
+            activeTemplates = [];
+        }
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке активных шаблонов:', error);
+
+        // FALLBACK: Используем хардкодные шаблоны для тестирования
+        activeTemplates = [
+            {template_id: 'tpl-e6ee988fce03', name: 'недвижимость (v4)', template_type: 'first_call'},
+            {template_id: 'tpl-deal-dynamics-v1', name: 'Динамика сделки (унифицированный)', template_type: 'custom'}
+        ];
+        console.log('⚠️ Используем fallback шаблоны:', activeTemplates);
+        insertComplianceColumns();
+    }
+}
+
+/**
+ * Динамическая вставка колонок для чеклистов в заголовок таблицы
+ */
+function insertComplianceColumns() {
+    const placeholder = document.getElementById('compliance-headers-placeholder');
+    if (!placeholder) {
+        console.error('❌ Не найден placeholder compliance-headers-placeholder');
+        return;
+    }
+
+    // Удаляем старые колонки (если есть)
+    const oldColumns = document.querySelectorAll('.compliance-column-header');
+    oldColumns.forEach(col => col.remove());
+
+    // Если нет активных шаблонов, скрываем placeholder
+    if (activeTemplates.length === 0) {
+        placeholder.style.display = 'none';
+        return;
+    }
+
+    // Находим заголовок "Резюме" для вставки перед ним
+    const headerRow = document.querySelector('thead tr');
+    const allHeaders = Array.from(headerRow.querySelectorAll('th'));
+    const insertBeforeElement = allHeaders.find(th => th.textContent.trim().includes('Резюме'));
+
+    console.log(`🔍 Найден заголовок "Резюме":`, insertBeforeElement);
+
+    // Удаляем placeholder
+    placeholder.remove();
+
+    // Создаём и вставляем заголовки для каждого шаблона
+    activeTemplates.forEach(template => {
+        const th = document.createElement('th');
+        th.className = 'compliance-column compliance-column-header';
+        th.setAttribute('data-template-id', template.template_id);
+        th.title = template.name; // Полное название в tooltip
+
+        // Сокращаем название для отображения
+        const shortName = shortenTemplateName(template.name);
+        th.innerHTML = `${shortName} <span class="sort-icon">↕</span>`;
+
+        // Вставляем колонку перед "Резюме"
+        if (insertBeforeElement) {
+            headerRow.insertBefore(th, insertBeforeElement);
+            console.log(`✅ Вставлена колонка "${shortName}" перед "Резюме"`);
+        } else {
+            headerRow.appendChild(th);
+            console.warn(`⚠️ Заголовок "Резюме" не найден, колонка "${shortName}" добавлена в конец`);
+        }
+    });
+
+    console.log(`✅ Добавлено ${activeTemplates.length} колонок чеклистов`);
+}
+
+/**
+ * Сокращение названия шаблона для отображения в заголовке
+ */
+function shortenTemplateName(name) {
+    // Удаляем версии и скобки
+    let short = name.replace(/\(v\d+\)/gi, '').replace(/\([^)]+\)/g, '').trim();
+
+    // Если название слишком длинное, обрезаем
+    if (short.length > 20) {
+        short = short.substring(0, 18) + '...';
+    }
+
+    return short;
+}
+
+/**
+ * Загрузка compliance данных для списка звонков (bulk)
+ */
+async function loadComplianceData(callIds) {
+    if (!callIds || callIds.length === 0) {
+        return {};
+    }
+
+    try {
+        const response = await fetch('http://localhost:8000/api/compliance/by-calls', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(callIds)
+        });
+
+        const result = await response.json();
+
+        if (result.compliance_by_call) {
+            // Обновляем кэш
+            complianceDataCache = { ...complianceDataCache, ...result.compliance_by_call };
+            console.log(`✅ Загружено compliance для ${Object.keys(result.compliance_by_call).length} звонков`);
+            return result.compliance_by_call;
+        }
+
+        return {};
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке compliance данных:', error);
+        return {};
+    }
+}
+
+/**
+ * Получение compliance % для конкретного звонка и шаблона
+ */
+function getComplianceForCall(callid, templateId) {
+    if (!complianceDataCache[callid]) {
+        return null;
+    }
+
+    return complianceDataCache[callid][templateId] !== undefined
+        ? complianceDataCache[callid][templateId]
+        : null;
+}
+
+/**
+ * Форматирование compliance % для отображения в ячейке
+ */
+function formatComplianceCell(compliance) {
+    if (compliance === null || compliance === undefined) {
+        return '<span class="compliance-na">—</span>';
+    }
+
+    let cssClass = 'compliance-low';
+    if (compliance >= 80) {
+        cssClass = 'compliance-high';
+    } else if (compliance >= 50) {
+        cssClass = 'compliance-medium';
+    }
+
+    return `<span class="compliance-value ${cssClass}">${compliance}%</span>`;
+}
+
+/**
+ * Форматирование результата шаблона:
+ * - Динамика сделки: стрелочка + текстовый анализ
+ * - Остальные шаблоны: только процент выполнения (ДА/НЕТ вопросы)
+ */
+function formatTemplateSummary(summaryText, complianceScore, templateId) {
+    // Шаблон "Динамика сделки" - показываем стрелочку + текст
+    if (templateId === 'tpl-deal-dynamics-v1') {
+        if (!summaryText || summaryText.trim() === '') {
+            return '<span class="compliance-na">—</span>';
+        }
+
+        // Обрезаем текст до 100 символов
+        const truncated = summaryText.length > 100
+            ? summaryText.substring(0, 100) + '...'
+            : summaryText;
+
+        // Определяем динамику по ключевым словам в тексте (не по проценту!)
+        const text = summaryText.toLowerCase();
+        const isPositive =
+            text.includes('прогресс') ||
+            text.includes('договорились') ||
+            text.includes('интерес') ||
+            text.includes('согласился') ||
+            text.includes('запланирован') ||
+            text.includes('ждёт') ||
+            text.includes('готов');
+
+        const isNegative =
+            text.includes('не состоялся') ||
+            text.includes('не ответил') ||
+            text.includes('сбросил') ||
+            text.includes('отказ') ||
+            text.includes('не интересует') ||
+            text.includes('передумал');
+
+        let arrowHtml = '';
+        if (isPositive && !isNegative) {
+            arrowHtml = `<span class="dynamics-arrow dynamics-positive" title="Положительная динамика">↗</span> `;
+        } else if (isNegative) {
+            arrowHtml = `<span class="dynamics-arrow dynamics-negative" title="Отрицательная динамика">↘</span> `;
+        } else {
+            // Нейтральная динамика - без стрелки
+            arrowHtml = `<span class="dynamics-arrow" title="Нейтральная динамика" style="color: #94a3b8;">→</span> `;
+        }
+
+        return `${arrowHtml}${escapeHtml(truncated)}`;
+    }
+
+    // Все остальные шаблоны - показываем ТОЛЬКО процент
+    if (complianceScore === null || complianceScore === undefined) {
+        return '<span class="compliance-na">—</span>';
+    }
+
+    let cssClass = 'compliance-low';
+    if (complianceScore >= 80) {
+        cssClass = 'compliance-high';
+    } else if (complianceScore >= 50) {
+        cssClass = 'compliance-medium';
+    }
+
+    return `<span class="compliance-value ${cssClass}">${complianceScore}%</span>`;
+}
+
+/**
+ * Рендеринг всех ячеек compliance для одного звонка
+ */
+function renderComplianceCells(callid, call) {
+    if (activeTemplates.length === 0) {
+        console.warn(`⚠️ renderComplianceCells: нет активных шаблонов для звонка ${callid}`);
+        return ''; // Нет активных шаблонов
+    }
+
+    // Логируем данные звонка для отладки (только для первых 3 звонков)
+    if (window.debugCallCount === undefined) window.debugCallCount = 0;
+    if (window.debugCallCount < 3) {
+        console.log(`🔍 renderComplianceCells для звонка ${callid}:`, {
+            template_id: call?.template_id,
+            compliance_score: call?.compliance_score,
+            activeTemplatesCount: activeTemplates.length
+        });
+        window.debugCallCount++;
+    }
+
+    // Рендерим ячейку для каждого активного шаблона
+    return activeTemplates.map(template => {
+        // Если у звонка template_id совпадает с текущим шаблоном, показываем его данные
+        if (call && call.template_id === template.template_id) {
+            // Показываем краткое резюме анализа (как в Агрегированном анализе)
+            const summaryText = call.summary_text || '';
+            const complianceScore = call.compliance_score !== null ? call.compliance_score : null;
+
+            return `<td class="summary-cell compliance-column" data-template-id="${template.template_id}" data-full-text="${escapeHtml(summaryText)}">
+                ${formatTemplateSummary(summaryText, complianceScore, template.template_id)}
+            </td>`;
+        } else {
+            // Для этого звонка использовался другой шаблон - показываем пусто
+            return `<td class="text-center compliance-column" data-template-id="${template.template_id}">
+                <span class="compliance-na">—</span>
+            </td>`;
+        }
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ТРЕВОЖНЫЕ ФЛАГИ КОНФЛИКТА ИНТЕРЕСОВ
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Загрузка тревожных флагов для звонков
+ */
+async function loadAlertFlags(callIds) {
+    if (!callIds || callIds.length === 0) {
+        return {};
+    }
+
+    try {
+        const callidsParam = callIds.join(',');
+        const response = await fetch(`api/alert_flags.php?callids=${encodeURIComponent(callidsParam)}`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            // Обновляем кэш
+            alertFlagsCache = { ...alertFlagsCache, ...result.data };
+            console.log(`✅ Загружено alert flags для ${Object.keys(result.data).length} звонков`);
+            return result.data;
+        }
+
+        return {};
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке alert flags:', error);
+        return {};
+    }
+}
+
+/**
+ * Получение alert flags для конкретного звонка
+ */
+function getAlertFlagsForCall(callid) {
+    return alertFlagsCache[callid] || null;
+}
+
+/**
+ * Форматирование alert level для отображения в ячейке
+ */
+function formatAlertLevel(callid) {
+    const flags = getAlertFlagsForCall(callid);
+
+    if (!flags || flags.total_flags === 0) {
+        return '<span class="alert-none" style="color: #9ca3af;">—</span>';
+    }
+
+    const alertLevel = flags.alert_level;
+    const totalFlags = flags.total_flags;
+
+    // Emoji и цвет в зависимости от уровня
+    const levelConfig = {
+        'CRITICAL': {
+            emoji: '🔴',
+            color: '#dc2626',
+            bgColor: '#fee2e2',
+            text: 'КРИТИЧЕСКИЙ'
+        },
+        'HIGH': {
+            emoji: '🟠',
+            color: '#ea580c',
+            bgColor: '#ffedd5',
+            text: 'ВЫСОКИЙ'
+        },
+        'MEDIUM': {
+            emoji: '🟡',
+            color: '#ca8a04',
+            bgColor: '#fef3c7',
+            text: 'СРЕДНИЙ'
+        },
+        'LOW': {
+            emoji: '🟢',
+            color: '#16a34a',
+            bgColor: '#dcfce7',
+            text: 'НИЗКИЙ'
+        }
+    };
+
+    const config = levelConfig[alertLevel] || levelConfig['LOW'];
+
+    // Формируем title с деталями
+    let title = `Уровень тревоги: ${config.text}\\n`;
+    title += `Всего флагов: ${totalFlags}\\n`;
+    if (flags.critical_flags > 0) title += `🔴 Критических: ${flags.critical_flags}\\n`;
+    if (flags.high_flags > 0) title += `🟠 Высоких: ${flags.high_flags}\\n`;
+    if (flags.medium_flags > 0) title += `🟡 Средних: ${flags.medium_flags}\\n`;
+    if (flags.low_flags > 0) title += `🟢 Низких: ${flags.low_flags}\\n`;
+    if (flags.scenarios) {
+        title += `\\nСценарии:\\n${flags.scenarios}`;
+    }
+
+    return `
+        <span class="alert-badge alert-${alertLevel.toLowerCase()}"
+              style="
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 4px;
+                  padding: 4px 10px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  color: ${config.color};
+                  background-color: ${config.bgColor};
+                  border: 1px solid ${config.color}33;
+                  cursor: help;
+              "
+              title="${title}">
+            ${config.emoji} ${totalFlags}
+        </span>
+    `;
 }

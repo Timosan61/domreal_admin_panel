@@ -19,8 +19,8 @@ $input = json_decode(file_get_contents('php://input'), true);
 $batch_size = isset($input['batch_size']) ? min(100, max(10, intval($input['batch_size']))) : 50;
 
 // Путь к проекту и Python
-$project_path = '/home/artem/Domreal_Whisper';
-$python_path = '/home/artem/.cache/pypoetry/virtualenvs/domreal-whisper-rKzriwEo-py3.11/bin/python';
+$project_path = '/home/z/ailoca/Domreal_Whisper';
+$python_path = '/home/z/ailoca/.cache/pypoetry/virtualenvs/domreal-whisper-rKzriwEo-py3.11/bin/python';
 
 // Проверяем существование
 if (!file_exists($python_path)) {

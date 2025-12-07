@@ -74,6 +74,9 @@ $query = "SELECT
     ar.is_successful,
     ar.call_result,
     COALESCE(ar.script_compliance_score_v4, ar.script_compliance_score) as script_compliance_score,
+    ar.template_id,
+    at.name as template_name,
+    ar.compliance_score,
     ar.crm_funnel_name,
     ar.crm_step_name,
     t.audio_duration_sec,
@@ -86,9 +89,19 @@ $query = "SELECT
     ce.aggregate_summary,
     ce.client_overall_status,
     ce.solvency_level,
-    ce.total_calls_count
+    ce.total_calls_count,
+    (
+        SELECT
+            CASE
+                WHEN COUNT(*) = 0 THEN NULL
+                ELSE ROUND(100.0 * SUM(CASE WHEN aa.answer_value IN ('ДА', 'YES', 'True', '1') THEN 1 ELSE 0 END) / COUNT(*), 0)
+            END
+        FROM analysis_answers aa
+        WHERE aa.analysis_result_id = ar.id
+    ) as compliance_percentage
 FROM calls_raw cr
 LEFT JOIN analysis_results ar ON cr.callid = ar.callid
+LEFT JOIN analysis_templates at ON ar.template_id = at.template_id
 LEFT JOIN transcripts t ON cr.callid = t.callid
 LEFT JOIN audio_jobs aj ON cr.callid = aj.callid
 LEFT JOIN call_tags ct ON cr.callid = ct.callid

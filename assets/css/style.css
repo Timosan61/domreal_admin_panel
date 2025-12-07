@@ -3334,3 +3334,199 @@ input[type="range"]::-moz-range-thumb {
 [data-theme="dark"] .client-aggregate-date {
     color: #94a3b8;
 }
+
+/* ============================================
+   Template Compliance Badge
+   ============================================ */
+
+.compliance-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.compliance-badge.compliance-high {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.compliance-badge.compliance-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.compliance-badge.compliance-low {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+[data-theme="dark"] .compliance-badge.compliance-high {
+    background-color: #14532d;
+    color: #86efac;
+}
+
+[data-theme="dark"] .compliance-badge.compliance-medium {
+    background-color: #713f12;
+    color: #fde047;
+}
+
+[data-theme="dark"] .compliance-badge.compliance-low {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+/* ============================================
+   Dynamics Arrows (Динамика сделки)
+   ============================================ */
+
+.dynamics-arrow {
+    display: inline-block;
+    font-size: 20px;
+    font-weight: bold;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.dynamics-arrow.dynamics-positive {
+    color: #16a34a; /* Зелёная стрелка */
+}
+
+.dynamics-arrow.dynamics-negative {
+    color: #dc2626; /* Красная стрелка */
+}
+
+[data-theme="dark"] .dynamics-arrow.dynamics-positive {
+    color: #4ade80;
+}
+
+[data-theme="dark"] .dynamics-arrow.dynamics-negative {
+    color: #f87171;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRM Fields Page Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+.tabs-container {
+    margin-bottom: 24px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-muted);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    bottom: -2px;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.data-table thead {
+    background: var(--bg-secondary);
+}
+
+.data-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.data-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.data-table td {
+    padding: 16px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.badge-type {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-icon {
+    padding: 6px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.btn-icon.btn-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-icon.btn-danger:hover {
+    background: #dc3545;
+    color: white;
+}

@@ -70,7 +70,7 @@ try {
     $recentStats = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // 4. Check for recent errors in worker log
-    $logFile = '/home/artem/Domreal_Whisper/logs/worker_enrichment.log';
+    $logFile = '/home/z/ailoca/Domreal_Whisper/logs/worker_enrichment.log';
     $recentErrors = [];
     $lastActivity = null;
 

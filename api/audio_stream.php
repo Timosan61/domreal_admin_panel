@@ -68,7 +68,7 @@ if (!$audio) {
 // 2. Проверяем временный кеш (temp_audio_cache/)
 // 3. Скачиваем из Beeline и сохраняем в кеш
 
-$base_path = '/home/artem/Domreal_Whisper/';
+$base_path = '/home/z/ailoca/Domreal_Whisper/';
 $cache_path = $base_path . 'temp_audio_cache/';
 $file_path = null;
 $file_format = $audio['file_format'] ?? 'mp3';

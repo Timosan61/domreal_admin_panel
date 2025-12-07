@@ -41,14 +41,41 @@ $user_role = $_SESSION['role'] ?? 'user';
             flex-shrink: 0;
         }
 
+        .analytics-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
         .analytics-header h1 {
-            margin: 0 0 15px 0;
+            margin: 0;
             font-size: 22px;
             color: #333;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .dashboard-settings-btn {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: #666;
+        }
+
+        .dashboard-settings-btn:hover {
+            background: #e0e0e0;
+            border-color: #ccc;
         }
 
         .dashboard-selector {
@@ -225,7 +252,16 @@ $user_role = $_SESSION['role'] ?? 'user';
         <div class="analytics-content">
             <!-- Header -->
             <div class="analytics-header">
-                <h1>📊 Аналитика</h1>
+                <div class="analytics-header-top">
+                    <h1>📊 Аналитика</h1>
+                    <a href="/dashboard_settings.php" class="dashboard-settings-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6m5.2-15.8l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m15.8 5.2l-4.2-4.2m0-6l-4.2-4.2"></path>
+                        </svg>
+                        Настройка дашбордов
+                    </a>
+                </div>
 
                 <!-- Dashboard Selector -->
                 <div class="dashboard-selector">

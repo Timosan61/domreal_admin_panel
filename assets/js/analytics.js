@@ -652,6 +652,16 @@
         document.getElementById('kpi-failed-calls').textContent = data.failed_calls.toLocaleString();
         document.getElementById('kpi-successful-calls').textContent = data.showing_scheduled.toLocaleString();
         document.getElementById('kpi-conversion-rate').textContent = data.showing_completed.toLocaleString();
+
+        // Средний % чеклиста
+        const avgComplianceEl = document.getElementById('kpi-avg-compliance');
+        if (avgComplianceEl) {
+            if (data.avg_compliance_percentage !== null && data.avg_compliance_percentage !== undefined) {
+                avgComplianceEl.textContent = data.avg_compliance_percentage + '%';
+            } else {
+                avgComplianceEl.textContent = 'н/д';
+            }
+        }
     }
 
     /**

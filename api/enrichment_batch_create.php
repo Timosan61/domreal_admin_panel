@@ -223,12 +223,12 @@ try {
         }
 
         // Альтернативный способ: просто запускаем разовую обработку в фоне
-        $python_path = '/home/artem/.cache/pypoetry/virtualenvs/domreal-whisper-rKzriwEo-py3.11/bin/python';
-        $worker_path = '/home/artem/Domreal_Whisper/workers/worker_enrichment.py';
+        $python_path = '/home/z/ailoca/.cache/pypoetry/virtualenvs/domreal-whisper-rKzriwEo-py3.11/bin/python';
+        $worker_path = '/home/z/ailoca/Domreal_Whisper/workers/worker_enrichment.py';
 
         if (file_exists($python_path) && file_exists($worker_path)) {
             // Запускаем однократную обработку в фоне
-            $cmd = "cd /home/artem/Domreal_Whisper && nohup $python_path -c \"
+            $cmd = "cd /home/z/ailoca/Domreal_Whisper && nohup $python_path -c \"
 import asyncio
 from workers.worker_enrichment import EnrichmentWorker
 

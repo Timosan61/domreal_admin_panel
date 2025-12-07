@@ -111,7 +111,23 @@ $query = "
             THEN cr.callid
         END) as showing_completed,
 
-        COUNT(DISTINCT ar.client_phone) as unique_clients
+        COUNT(DISTINCT ar.client_phone) as unique_clients,
+
+        -- Средний процент соответствия чеклистам
+        (SELECT ROUND(AVG(compliance_pct), 0)
+         FROM (
+             SELECT
+                 CASE
+                     WHEN COUNT(*) = 0 THEN NULL
+                     ELSE 100.0 * SUM(CASE WHEN aa.answer_value IN ('ДА', 'YES', 'True', '1') THEN 1 ELSE 0 END) / COUNT(*)
+                 END as compliance_pct
+             FROM analysis_results ar2
+             LEFT JOIN analysis_answers aa ON aa.analysis_result_id = ar2.id
+             WHERE ar2.callid IN (SELECT cr2.callid FROM calls_raw cr2 WHERE $where_clause)
+             GROUP BY ar2.callid
+             HAVING COUNT(*) > 0
+         ) AS compliance_data
+        ) as avg_compliance_percentage
     FROM calls_raw cr
     LEFT JOIN analysis_results ar ON cr.callid = ar.callid
     WHERE $where_clause
@@ -131,7 +147,8 @@ try {
             'failed_calls' => (int)$row['failed_calls'],
             'showing_scheduled' => (int)$row['showing_scheduled'],
             'showing_completed' => (int)$row['showing_completed'],
-            'unique_clients' => (int)$row['unique_clients']
+            'unique_clients' => (int)$row['unique_clients'],
+            'avg_compliance_percentage' => $row['avg_compliance_percentage'] ? (int)$row['avg_compliance_percentage'] : null
         ],
         'filters' => [
             'date_from' => $date_from,
