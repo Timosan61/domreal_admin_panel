@@ -10,16 +10,15 @@ const TABLE_COLUMNS = [
     { id: 'result', label: 'Результат', index: 3, required: false },
     { id: 'compliance', label: 'Оценки шаблонов', index: 4, required: false, isDynamic: true },
     { id: 'summary', label: 'Резюме', index: 5, required: false },
-    { id: 'risk', label: '🚨 Риск', index: 6, required: false },
-    { id: 'solvency', label: 'Платежеспособность', index: 7, required: false },
-    { id: 'datetime', label: 'Дата и время', index: 8, required: true },
-    { id: 'duration', label: 'Длина', index: 9, required: false },
-    { id: 'phone', label: 'Номер', index: 10, required: false },
-    { id: 'crm', label: 'CRM', index: 11, required: false },
-    { id: 'actions', label: 'Действия', index: 12, required: true },
-    { id: 'call_type', label: 'Тип звонка', index: 13, required: false },
-    { id: 'department', label: 'Отдел', index: 14, required: false },
-    { id: 'direction', label: 'Направление', index: 15, required: false }
+    { id: 'solvency', label: 'Платежеспособность', index: 6, required: false },
+    { id: 'datetime', label: 'Дата и время', index: 7, required: true },
+    { id: 'duration', label: 'Длина', index: 8, required: false },
+    { id: 'phone', label: 'Номер', index: 9, required: false },
+    { id: 'crm', label: 'CRM', index: 10, required: false },
+    { id: 'actions', label: 'Действия', index: 11, required: true },
+    { id: 'call_type', label: 'Тип звонка', index: 12, required: false },
+    { id: 'department', label: 'Отдел', index: 13, required: false },
+    { id: 'direction', label: 'Направление', index: 14, required: false }
 ];
 
 // Дефолтные настройки (все колонки видимы кроме платежеспособности)
@@ -30,14 +29,28 @@ const DEFAULT_COLUMNS = TABLE_COLUMNS.reduce((acc, col) => {
 
 class ColumnManager {
     constructor() {
+        console.log('📦 ColumnManager: загрузка настроек...');
         this.settings = this.loadSettings();
+
         this.modal = document.getElementById('columns-modal');
         this.columnsList = document.getElementById('columns-list');
 
+        if (!this.modal) {
+            console.error('❌ Элемент columns-modal не найден!');
+            return;
+        }
+        if (!this.columnsList) {
+            console.error('❌ Элемент columns-list не найден!');
+            return;
+        }
+
+        console.log('✅ Элементы модального окна найдены');
         this.init();
     }
 
     init() {
+        console.log('🔧 Инициализация обработчиков...');
+
         // Применяем сохраненные настройки при загрузке
         this.applyColumnSettings();
 
@@ -45,7 +58,19 @@ class ColumnManager {
         this.renderColumnsList();
 
         // Обработчики событий
-        document.getElementById('columns-settings-btn').addEventListener('click', () => this.openModal());
+        const settingsBtn = document.getElementById('columns-settings-btn');
+        if (!settingsBtn) {
+            console.error('❌ Кнопка columns-settings-btn не найдена!');
+            return;
+        }
+
+        settingsBtn.addEventListener('click', (e) => {
+            console.log('🖱️ Клик по кнопке настройки колонок');
+            e.preventDefault();
+            e.stopPropagation();
+            this.openModal();
+        });
+
         document.getElementById('columns-modal-close').addEventListener('click', () => this.closeModal());
         document.getElementById('columns-apply-btn').addEventListener('click', () => this.applySettings());
         document.getElementById('columns-reset-btn').addEventListener('click', () => this.resetToDefaults());
@@ -68,7 +93,9 @@ class ColumnManager {
     }
 
     openModal() {
+        console.log('📂 Открытие модального окна настройки колонок');
         this.modal.classList.add('active');
+
         // Обновляем состояние чекбоксов на основе текущих настроек
         TABLE_COLUMNS.forEach(col => {
             const checkbox = document.getElementById(`col-checkbox-${col.id}`);
@@ -76,9 +103,12 @@ class ColumnManager {
                 checkbox.checked = this.settings[col.id] !== false;
             }
         });
+
+        console.log('✅ Модальное окно открыто');
     }
 
     closeModal() {
+        console.log('📁 Закрытие модального окна');
         this.modal.classList.remove('active');
     }
 
@@ -173,6 +203,19 @@ class ColumnManager {
 }
 
 // Инициализация после загрузки DOM
-document.addEventListener('DOMContentLoaded', () => {
-    window.columnManager = new ColumnManager();
-});
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initColumnManager);
+} else {
+    // DOM уже загружен
+    initColumnManager();
+}
+
+function initColumnManager() {
+    console.log('🔧 Инициализация Column Manager...');
+    try {
+        window.columnManager = new ColumnManager();
+        console.log('✅ Column Manager инициализирован успешно');
+    } catch (error) {
+        console.error('❌ Ошибка инициализации Column Manager:', error);
+    }
+}

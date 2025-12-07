@@ -673,7 +673,6 @@ checkAuth(); // Проверка авторизации
                         <!-- Динамические заголовки чеклистов (заполняется JS) -->
                         <th id="compliance-headers-placeholder" data-column-id="compliance"></th>
                         <th data-column-id="summary">Резюме</th>
-                        <th title="Тревожные флаги конфликта интересов" data-column-id="risk">🚨 Риск</th>
                         <th data-column-id="solvency">Платежеспособность</th>
                         <th data-sort="started_at_utc" data-column-id="datetime">Дата и время <span class="sort-icon">↓</span></th>
                         <th data-sort="duration_sec" data-column-id="duration">Длина <span class="sort-icon">↕</span></th>
@@ -687,7 +686,7 @@ checkAuth(); // Проверка авторизации
                 </thead>
                 <tbody id="calls-tbody">
                     <tr>
-                        <td colspan="17" class="loading">Загрузка данных...</td>
+                        <td colspan="16" class="loading">Загрузка данных...</td>
                     </tr>
                 </tbody>
             </table>

@@ -633,7 +633,6 @@ async function renderCalls(calls) {
             <td data-column-id="result">${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
             ${renderComplianceCells(call.callid, call)}
             <td class="summary-cell" data-column-id="summary" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
-            <td class="text-center alert-cell" data-column-id="risk">${formatAlertLevel(call.callid)}</td>
             <td class="solvency-cell" data-column-id="solvency">${formatSolvency(call.solvency_level)}</td>
             <td data-column-id="datetime">${formatDateTime(call.started_at_utc)}</td>
             <td class="text-center" data-column-id="duration">${formatDuration(call.duration_sec)}</td>
