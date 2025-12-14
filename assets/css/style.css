@@ -4638,8 +4638,8 @@ body.sidebar-collapsed .money-tracker-page {
     color: var(--text-muted);
 }
 
-/* Toggle Switch */
-.toggle-switch {
+/* Toggle Switch (div-based, used in rules.php) */
+.toggle-switch:not(:has(.toggle-slider)) {
     width: 44px;
     height: 24px;
     background: #ccc;
@@ -4649,7 +4649,7 @@ body.sidebar-collapsed .money-tracker-page {
     transition: background 0.3s;
 }
 
-.toggle-switch::after {
+.toggle-switch:not(:has(.toggle-slider))::after {
     content: '';
     position: absolute;
     width: 20px;
@@ -4661,11 +4661,11 @@ body.sidebar-collapsed .money-tracker-page {
     transition: left 0.3s;
 }
 
-.toggle-switch.active {
+.toggle-switch.active:not(:has(.toggle-slider)) {
     background: var(--success-color);
 }
 
-.toggle-switch.active::after {
+.toggle-switch.active:not(:has(.toggle-slider))::after {
     left: 22px;
 }
 
@@ -5733,35 +5733,7 @@ body.sidebar-collapsed .money-tracker-page {
     color: white;
 }
 
-.toggle-switch {
-    position: relative;
-    width: 44px;
-    height: 24px;
-    background: #ccc;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.toggle-switch.active {
-    background: var(--primary-color);
-}
-
-.toggle-switch::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: white;
-    top: 2px;
-    left: 2px;
-    transition: left 0.3s;
-}
-
-.toggle-switch.active::after {
-    left: 22px;
-}
+/* Toggle Switch (div-based, used in checklists.php) - already defined above */
 
 .checklist-icon {
     width: 48px;
