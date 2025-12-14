@@ -1802,6 +1802,52 @@ input[type="range"]::-moz-range-thumb {
         width: var(--sidebar-width-collapsed);
     }
 
+    .sidebar-toggle {
+        padding: 15px 10px;
+    }
+
+    .sidebar-menu-item {
+        padding: 12px;
+        justify-content: center;
+    }
+
+    .sidebar-menu-item svg,
+    .sidebar-menu-item i {
+        margin-right: 0;
+    }
+
+    .sidebar-menu-text {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+        position: absolute;
+    }
+
+    .sidebar-user {
+        padding: 20px 10px;
+        justify-content: center;
+    }
+
+    .sidebar-user-info {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
+        position: absolute;
+    }
+
+    /* Organization info в свёрнутом состоянии */
+    .organization-info {
+        padding: 10px;
+    }
+
+    .organization-info .org-name,
+    .organization-info .org-user-id,
+    .organization-info .org-balance,
+    .organization-info .org-tokens,
+    .organization-info .btn-topup {
+        display: none;
+    }
+
     .main-content {
         margin-left: var(--sidebar-width-collapsed);
     }
