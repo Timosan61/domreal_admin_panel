@@ -1699,7 +1699,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .compliance-value {
-    font-size: 48px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--primary-color);
 }

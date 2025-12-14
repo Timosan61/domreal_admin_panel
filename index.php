@@ -99,6 +99,10 @@ checkAuth(); // Проверка авторизации
                         <input type="text" id="client_phone" name="client_phone" placeholder="">
                     </div>
                     <div class="filter-group">
+                        <label for="call_id">ID звонка</label>
+                        <input type="text" id="call_id" name="call_id" placeholder="Введите ID">
+                    </div>
+                    <div class="filter-group">
                         <label for="call_type">Тип звонка</label>
                         <select id="call_type" name="call_type">
                             <option value="">Все</option>

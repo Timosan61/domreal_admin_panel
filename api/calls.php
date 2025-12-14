@@ -29,6 +29,7 @@ $date_to = isset($_GET['date_to']) ? $_GET['date_to'] : '';
 $duration_range = isset($_GET['duration_range']) ? $_GET['duration_range'] : '';
 $hide_short_calls = isset($_GET['hide_short_calls']) ? $_GET['hide_short_calls'] : '1'; // По умолчанию включен
 $client_phone = isset($_GET['client_phone']) ? $_GET['client_phone'] : '';
+$call_id = isset($_GET['call_id']) ? trim($_GET['call_id']) : ''; // Поиск по ID звонка
 $directions = isset($_GET['directions']) ? $_GET['directions'] : ''; // Множественный выбор
 $ratings = isset($_GET['ratings']) ? $_GET['ratings'] : ''; // Множественный выбор (high,medium,low)
 $call_type = isset($_GET['call_type']) ? $_GET['call_type'] : '';
@@ -180,6 +181,12 @@ if ($hide_short_calls === '1') {
 if (!empty($client_phone)) {
     $query .= " AND cr.client_phone LIKE :client_phone";
     $params[':client_phone'] = '%' . $client_phone . '%';
+}
+
+// Фильтр по ID звонка (точное или частичное совпадение)
+if (!empty($call_id)) {
+    $query .= " AND cr.callid LIKE :call_id";
+    $params[':call_id'] = '%' . $call_id . '%';
 }
 
 // Фильтр по направлениям звонка (множественный выбор, формат: "INBOUND,OUTBOUND")

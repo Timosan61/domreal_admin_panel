@@ -59,7 +59,7 @@ async function loadStateFromURL() {
 
     // Восстанавливаем фильтры
     currentFilters = {};
-    const filterKeys = ['call_type', 'date_from', 'date_to', 'search', 'client_phone', 'duration_range', 'hide_short_calls'];
+    const filterKeys = ['call_type', 'date_from', 'date_to', 'search', 'client_phone', 'call_id', 'duration_range', 'hide_short_calls'];
 
     // Восстанавливаем обычные фильтры (текстовые поля, обычные селекты)
     filterKeys.forEach(key => {
