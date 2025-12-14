@@ -16,6 +16,12 @@ class AnalyticsDashboard {
     }
 
     async init() {
+        // Установка начальных фильтров ПЕРЕД загрузкой дашборда
+        this.filters.date_from = document.getElementById('date-from').value;
+        this.filters.date_to = document.getElementById('date-to').value;
+
+        console.log('Initial filters:', this.filters);
+
         // Загрузка списка дашбордов
         await this.loadDashboardList();
 
@@ -31,10 +37,6 @@ class AnalyticsDashboard {
         document.getElementById('reset-filters').addEventListener('click', () => {
             this.resetFilters();
         });
-
-        // Установка начальных фильтров
-        this.filters.date_from = document.getElementById('date-from').value;
-        this.filters.date_to = document.getElementById('date-to').value;
     }
 
     async loadDashboardList() {
@@ -238,13 +240,13 @@ class AnalyticsDashboard {
             value = Array.isArray(data) ? data[0]?.count : data.total_calls;
             console.log('total_calls extracted:', value);
         } else if (config.metric === 'success_rate') {
-            // Конверсия в успешные (4й этап воронки)
-            value = Array.isArray(data) && data[3] ? data[3].conversion_from_previous : 0;
+            // Конверсия в успешные: успешные/всего звонков (percentage)
+            value = Array.isArray(data) && data[3] ? data[3].percentage : 0;
         } else if (config.metric === 'deal_rate') {
-            // Конверсия в сделки (5й этап воронки)
-            value = Array.isArray(data) && data[4] ? data[4].conversion_from_previous : 0;
+            // Конверсия в сделки: сделки/всего звонков (percentage)
+            value = Array.isArray(data) && data[4] ? data[4].percentage : 0;
         } else if (config.metric === 'hot_deal_rate') {
-            // Конверсия в горячие (6й этап воронки)
+            // Конверсия в горячие: горячие/сделки (conversion_from_previous)
             value = Array.isArray(data) && data[5] ? data[5].conversion_from_previous : 0;
         } else if (config.metric && config.metric.includes('.')) {
             // Обработка путей типа "correlation.difference"

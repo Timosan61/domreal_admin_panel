@@ -88,15 +88,39 @@
             <span class="sidebar-menu-text">Правила шаблонов</span>
         </a>
 
-        <?php if ($_SESSION['role'] === 'admin'): ?>
-        <a href="/money_tracker.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'money_tracker.php' ? 'active' : ''; ?>">
+        <a href="/moodle_students.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'moodle_students.php' ? 'active' : ''; ?>">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            <span class="sidebar-menu-text">Money Tracker</span>
+            <span class="sidebar-menu-text">Студенты Moodle</span>
         </a>
 
+        <a href="/training_roi.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'training_roi.php' ? 'active' : ''; ?>" style="background: <?php echo basename($_SERVER['PHP_SELF']) == 'training_roi.php' ? '' : 'linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)'; ?>;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 6l-9.5 9.5-5-5L1 18"></path>
+                <path d="M17 6h6v6"></path>
+            </svg>
+            <span class="sidebar-menu-text">ROI обучения</span>
+        </a>
+
+        <a href="/skill_mapping.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'skill_mapping.php' ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            <span class="sidebar-menu-text">🔗 Навыки → Контент</span>
+        </a>
+
+        <a href="/recommendations.php" class="sidebar-menu-item <?php echo basename($_SERVER['PHP_SELF']) == 'recommendations.php' ? 'active' : ''; ?>">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            <span class="sidebar-menu-text">📚 Рекомендации</span>
+        </a>
+
+        <?php if ($_SESSION['role'] === 'admin'): ?>
         <a href="/admin_users.php" class="sidebar-menu-item" style="color: #dc3545;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 15v5m-3 0h6M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/>

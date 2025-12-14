@@ -50,7 +50,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -73,7 +73,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -96,7 +96,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -120,11 +120,11 @@ checkAuth(); // Проверка авторизации
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Применить</button>
+                        <button type="submit" class="btn btn-primary w-100">Применить</button>
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <button type="button" id="reset-filters" class="btn btn-secondary" style="width: 100%;">Сбросить</button>
+                        <button type="button" id="reset-filters" class="btn btn-secondary w-100">Сбросить</button>
                     </div>
                 </div>
             </form>
@@ -135,11 +135,11 @@ checkAuth(); // Проверка авторизации
             <table class="calls-table" id="calls-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px;">
+                        <th class="col-checkbox">
                             <input type="checkbox" id="select-all-calls" title="Выбрать все">
                         </th>
-                        <th style="width: 50px;">Тег</th>
-                        <th style="min-width: 200px;">Заметка</th>
+                        <th class="col-tag">Тег</th>
+                        <th class="col-note">Заметка</th>
                         <th data-sort="employee_name">Менеджер <span class="sort-icon">↕</span></th>
                         <th>Результат</th>
                         <th data-sort="started_at_utc">Дата и время <span class="sort-icon">↓</span></th>
@@ -165,7 +165,7 @@ checkAuth(); // Проверка авторизации
         </div>
 
         <!-- Панель массовых действий -->
-        <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
+        <div class="bulk-actions-bar d-none" id="bulk-actions-bar">
             <div class="bulk-actions-container">
                 <div class="bulk-actions-info">
                     <span>Выбрано: <strong id="selected-count">0</strong></span>
@@ -202,7 +202,7 @@ checkAuth(); // Проверка авторизации
     </div>
 
     <!-- Модальное окно для тегов -->
-    <div class="modal" id="tag-modal" style="display: none;">
+    <div class="modal d-none" id="tag-modal">
         <div class="modal-overlay" id="tag-modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">

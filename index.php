@@ -10,206 +10,6 @@ checkAuth(); // Проверка авторизации
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Звонки - Система оценки звонков</title>
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
-    <style>
-        /* Динамические колонки чеклистов */
-        .compliance-column {
-            text-align: center;
-            min-width: 80px;
-        }
-
-        /* Форматирование compliance значений */
-        .compliance-value {
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-
-        .compliance-high {
-            color: #10b981;
-            background-color: #d1fae5;
-        }
-
-        .compliance-medium {
-            color: #f59e0b;
-            background-color: #fef3c7;
-        }
-
-        .compliance-low {
-            color: #ef4444;
-            background-color: #fee2e2;
-        }
-
-        .compliance-na {
-            color: #9ca3af;
-        }
-
-        /* Кнопка настройки колонок */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .btn-settings {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #666;
-        }
-
-        .btn-settings:hover {
-            background: #e0e0e0;
-            border-color: #ccc;
-        }
-
-        /* Модальное окно настройки колонок */
-        .columns-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .columns-modal.active {
-            display: flex;
-        }
-
-        .columns-modal-content {
-            background: white;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .columns-modal-header {
-            padding: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .columns-modal-header h2 {
-            margin: 0;
-            font-size: 18px;
-            color: #333;
-        }
-
-        .columns-modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: #999;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-        }
-
-        .columns-modal-close:hover {
-            background: #f5f5f5;
-            color: #333;
-        }
-
-        .columns-modal-body {
-            padding: 20px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .columns-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .column-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .column-item:hover {
-            background: #f9f9f9;
-            border-color: #2196F3;
-        }
-
-        .column-item input[type="checkbox"] {
-            margin-right: 10px;
-            cursor: pointer;
-        }
-
-        .column-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .column-item.disabled:hover {
-            background: white;
-            border-color: #e0e0e0;
-        }
-
-        .columns-modal-footer {
-            padding: 15px 20px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .btn-reset {
-            padding: 10px 20px;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-reset:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-apply {
-            padding: 10px 24px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-apply:hover {
-            background: #1976D2;
-        }
-    </style>
     <script src="assets/js/theme-switcher.js"></script>
 </head>
 <body>
@@ -235,7 +35,7 @@ checkAuth(); // Проверка авторизации
         </header>
 
         <!-- Breadcrumb для возврата к аналитике -->
-        <div class="analytics-breadcrumb" id="analytics-breadcrumb" style="display: none;">
+        <div class="analytics-breadcrumb d-none" id="analytics-breadcrumb">
             <a href="analytics.php" class="breadcrumb-link">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -257,7 +57,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -280,7 +80,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -348,7 +148,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -378,7 +178,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -456,7 +256,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -490,7 +290,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -513,7 +313,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -536,7 +336,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -574,7 +374,7 @@ checkAuth(); // Проверка авторизации
                                     <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"/>
                                 </svg>
                             </div>
-                            <div class="multiselect-dropdown" style="display: none;">
+                            <div class="multiselect-dropdown d-none">
                                 <div class="multiselect-header">
                                     <input type="text" class="multiselect-search" placeholder="Поиск">
                                     <div class="multiselect-header-buttons">
@@ -649,11 +449,11 @@ checkAuth(); // Проверка авторизации
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Применить</button>
+                        <button type="submit" class="btn btn-primary w-100">Применить</button>
                     </div>
                     <div class="filter-group">
                         <label>&nbsp;</label>
-                        <button type="button" id="reset-filters" class="btn btn-secondary" style="width: 100%;">Сбросить</button>
+                        <button type="button" id="reset-filters" class="btn btn-secondary w-100">Сбросить</button>
                     </div>
                 </div>
             </form>
@@ -664,10 +464,10 @@ checkAuth(); // Проверка авторизации
             <table class="calls-table" id="calls-table">
                 <thead>
                     <tr>
-                        <th style="width: 40px;" data-column-id="checkbox">
+                        <th class="col-checkbox" data-column-id="checkbox">
                             <input type="checkbox" id="select-all-calls" title="Выбрать все">
                         </th>
-                        <th style="width: 50px;" data-column-id="tag">Тег</th>
+                        <th class="col-tag" data-column-id="tag">Тег</th>
                         <th data-sort="employee_name" data-column-id="manager">Менеджер <span class="sort-icon">↕</span></th>
                         <th data-column-id="result">Результат</th>
                         <!-- Динамические заголовки чеклистов (заполняется JS) -->
@@ -702,7 +502,7 @@ checkAuth(); // Проверка авторизации
     </div>
 
     <!-- Глобальный аудиоплеер -->
-    <div class="global-audio-player" id="global-audio-player" style="display: none;">
+    <div class="global-audio-player d-none" id="global-audio-player">
         <div class="player-container">
             <div class="player-info">
                 <span class="player-label">Звонок:</span>
@@ -762,7 +562,7 @@ checkAuth(); // Проверка авторизации
     </div>
 
     <!-- Панель массовых действий -->
-    <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
+    <div class="bulk-actions-bar d-none" id="bulk-actions-bar">
         <div class="bulk-actions-container">
             <div class="bulk-actions-info">
                 <span>Выбрано: <strong id="selected-count">0</strong></span>
@@ -802,7 +602,7 @@ checkAuth(); // Проверка авторизации
     </div>
 
     <!-- Модальное окно для тегов -->
-    <div class="modal" id="tag-modal" style="display: none;">
+    <div class="modal d-none" id="tag-modal">
         <div class="modal-overlay" id="tag-modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">

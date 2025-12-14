@@ -28,23 +28,23 @@ checkAuth();
         <!-- Заголовок страницы -->
         <header class="page-header">
             <h1>Правила применения шаблонов</h1>
-            <div style="display: flex; gap: 10px;">
+            <div class="rules-header-actions">
                 <button class="btn-primary" onclick="openCreateRuleModal()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rules-svg-icon">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                     Создать правило
                 </button>
                 <button class="btn-secondary" onclick="showTemplateFields('tpl-deal-dynamics-v1', 'Динамика сделки (унифицированный)')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rules-svg-icon">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M12 1v6m0 6v6m8.66-10l-5.2 3m-3.46 2l-5.2 3M3.34 7l5.2 3m3.46 2l5.2 3"></path>
                     </svg>
                     ⚙️ Настройки полей "Динамика сделки"
                 </button>
-                <button class="btn-secondary" onclick="showTemplateAlertSettings('tpl-conflict-of-interest-v1', 'Конфликт интересов')" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                <button class="btn-secondary rules-btn-conflict" onclick="showTemplateAlertSettings('tpl-conflict-of-interest-v1', 'Конфликт интересов')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rules-svg-icon">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                         <line x1="12" y1="9" x2="12" y2="13"></line>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -59,7 +59,7 @@ checkAuth();
             <div class="info-card">
                 <h2>Условное применение шаблонов</h2>
                 <p>Настройте правила для автоматического выбора шаблона анализа на основе данных из CRM.</p>
-                <ul style="margin: 12px 0 0 20px; color: var(--text-muted);">
+                <ul class="rules-info-list">
                     <li>Создавайте условия с операторами: =, !=, >, <, содержит, не содержит</li>
                     <li>Комбинируйте условия через И/ИЛИ</li>
                     <li>Приоритет определяет порядок проверки правил (выше = важнее)</li>
@@ -67,23 +67,23 @@ checkAuth();
             </div>
 
             <!-- Loading состояние -->
-            <div id="loading-state" style="text-align: center; padding: 40px;">
+            <div id="loading-state" class="rules-loading-state">
                 <p>Загрузка правил...</p>
             </div>
 
             <!-- Grid с карточками правил -->
-            <div class="rules-grid" id="rules-grid" style="display: none;">
+            <div class="rules-grid d-none" id="rules-grid">
                 <!-- Карточки будут загружены через JavaScript -->
             </div>
 
             <!-- Настройки полей для шаблона "Динамика сделки" -->
-            <div class="template-fields-section" id="template-fields-section" style="display: none; margin-top: 40px;">
+            <div class="template-fields-section d-none rules-fields-section" id="template-fields-section">
                 <div class="info-card">
                     <h2>⚙️ Настройки полей для шаблона "<span id="template-fields-name">Динамика сделки</span>"</h2>
                     <p>Управление стандартными и кастомными полями CRM для анализа звонков</p>
 
-                    <div style="margin: 20px 0;">
-                        <button class="btn-primary" onclick="showAddCustomFieldModal()" style="margin-right: 10px;">
+                    <div class="rules-fields-actions">
+                        <button class="btn-primary mr-2" onclick="showAddCustomFieldModal()">
                             ➕ Добавить кастомное поле
                         </button>
                         <button class="btn-secondary" onclick="hideTemplateFields()">
@@ -91,7 +91,7 @@ checkAuth();
                         </button>
                     </div>
 
-                    <table class="data-table" style="margin-top: 20px;">
+                    <table class="data-table rules-fields-table">
                         <thead>
                             <tr>
                                 <th width="40"></th>
@@ -99,17 +99,17 @@ checkAuth();
                                 <th width="100">Тип</th>
                                 <th width="100">Категория</th>
                                 <th width="120" title="Учитывать в контексте при анализе">
-                                    <div style="text-align: center;">
+                                    <div class="rules-th-center">
                                         📋<br>Контекст
                                     </div>
                                 </th>
                                 <th width="120" title="Проверять правильность заполнения">
-                                    <div style="text-align: center;">
+                                    <div class="rules-th-center">
                                         ✅<br>Валидация
                                     </div>
                                 </th>
                                 <th width="120" title="Заполнять автоматически если пусто">
-                                    <div style="text-align: center;">
+                                    <div class="rules-th-center">
                                         🤖<br>Авто-заполнение
                                     </div>
                                 </th>
@@ -124,21 +124,21 @@ checkAuth();
             </div>
 
             <!-- Настройки тревожных флагов для шаблона "Конфликт интересов" -->
-            <div class="template-alert-settings-section" id="template-alert-settings-section" style="display: none; margin-top: 40px;">
+            <div class="template-alert-settings-section d-none rules-fields-section" id="template-alert-settings-section">
                 <div class="info-card">
                     <h2>🚨 Настройки тревожных флагов для шаблона "<span id="template-alert-name">Конфликт интересов</span>"</h2>
                     <p>Управление отправкой тревожных флагов в CRM и настройками уведомлений</p>
 
-                    <div style="margin: 20px 0;">
+                    <div class="rules-fields-actions">
                         <button class="btn-secondary" onclick="hideTemplateAlertSettings()">
                             ← Вернуться к правилам
                         </button>
                     </div>
 
-                    <form id="alert-settings-form" onsubmit="saveAlertSettings(event)" style="max-width: 800px;">
+                    <form id="alert-settings-form" onsubmit="saveAlertSettings(event)" class="rules-alert-form">
                         <!-- Отправка в CRM -->
-                        <div class="form-section" style="margin-bottom: 30px;">
-                            <h3 style="margin-bottom: 15px;">📤 Отправка в CRM</h3>
+                        <div class="form-section rules-form-section">
+                            <h3 class="rules-form-section-title">📤 Отправка в CRM</h3>
 
                             <div class="form-group">
                                 <label class="checkbox-label">
@@ -147,23 +147,23 @@ checkAuth();
                                 </label>
                             </div>
 
-                            <div class="form-group" id="crm-field-group" style="display: none;">
+                            <div class="form-group d-none" id="crm-field-group">
                                 <label>Название поля в CRM *</label>
                                 <input type="text" id="alert-crm-field" placeholder="Например: UF_CRM_ALERT">
-                                <small style="color: var(--text-muted);">
+                                <small class="rules-form-hint">
                                     Это поле должно существовать в вашей CRM. Обычно начинается с UF_ (Bitrix24) или специальный ID (AmoCRM)
                                 </small>
                             </div>
                         </div>
 
                         <!-- Пороги тревоги -->
-                        <div class="form-section" style="margin-bottom: 30px;">
-                            <h3 style="margin-bottom: 15px;">🎯 Пороги уровней тревоги</h3>
-                            <p style="color: var(--text-muted); margin-bottom: 20px;">
+                        <div class="form-section rules-form-section">
+                            <h3 class="rules-form-section-title">🎯 Пороги уровней тревоги</h3>
+                            <p class="rules-form-description">
                                 Количество обнаруженных признаков для каждого уровня тревоги
                             </p>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+                            <div class="rules-threshold-grid">
                                 <div class="form-group">
                                     <label>🟢 НИЗКИЙ</label>
                                     <input type="number" id="alert-low-threshold" min="1" max="10" value="1" required>
@@ -191,8 +191,8 @@ checkAuth();
                         </div>
 
                         <!-- Автоматические уведомления -->
-                        <div class="form-section" style="margin-bottom: 30px;">
-                            <h3 style="margin-bottom: 15px;">📧 Автоматические уведомления</h3>
+                        <div class="form-section rules-form-section">
+                            <h3 class="rules-form-section-title">📧 Автоматические уведомления</h3>
 
                             <div class="form-group">
                                 <label class="checkbox-label">
@@ -211,13 +211,13 @@ checkAuth();
                             <div class="form-group">
                                 <label>Email адреса для уведомлений</label>
                                 <textarea id="alert-notification-emails" rows="3" placeholder="admin@company.ru&#10;supervisor@company.ru&#10;security@company.ru"></textarea>
-                                <small style="color: var(--text-muted);">
+                                <small class="rules-form-hint">
                                     Укажите email адреса по одному на строку. На эти адреса будут приходить уведомления о тревожных флагах.
                                 </small>
                             </div>
                         </div>
 
-                        <div class="form-actions" style="margin-top: 30px;">
+                        <div class="form-actions rules-form-actions">
                             <button type="submit" class="btn-primary">💾 Сохранить настройки</button>
                             <button type="button" onclick="hideTemplateAlertSettings()" class="btn-secondary">Отмена</button>
                         </div>
@@ -228,7 +228,7 @@ checkAuth();
     </div>
 
 <!-- Modal: Создание правила -->
-<div id="create-rule-modal" class="modal" style="display: none;">
+<div id="create-rule-modal" class="modal d-none">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Создать правило</h2>
@@ -256,7 +256,7 @@ checkAuth();
                 <div class="form-group">
                     <label>Приоритет (0-1000)</label>
                     <input type="number" id="rule-priority" value="100" min="0" max="1000">
-                    <small style="color: var(--text-muted);">Чем выше значение, тем выше приоритет правила</small>
+                    <small class="rules-form-hint">Чем выше значение, тем выше приоритет правила</small>
                 </div>
 
                 <div class="form-section">
@@ -264,7 +264,7 @@ checkAuth();
                     <div id="conditions-container">
                         <!-- Условия будут добавляться динамически -->
                     </div>
-                    <button type="button" class="btn-secondary" onclick="addCondition()" style="margin-top: 12px;">
+                    <button type="button" class="btn-secondary mt-3" onclick="addCondition()">
                         + Добавить условие
                     </button>
                 </div>
@@ -278,7 +278,7 @@ checkAuth();
 </div>
 
 <!-- Modal: Просмотр правила -->
-<div id="rule-modal" class="modal" style="display: none;">
+<div id="rule-modal" class="modal d-none">
     <div class="modal-content">
         <div class="modal-header">
             <h2 id="rule-modal-title">Правило</h2>
@@ -296,7 +296,7 @@ checkAuth();
 </div>
 
 <!-- Modal: Добавление кастомного поля -->
-<div id="add-custom-field-modal" class="modal" style="display: none;">
+<div id="add-custom-field-modal" class="modal d-none">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Добавить кастомное поле CRM</h2>
@@ -351,7 +351,7 @@ checkAuth();
                     <input type="number" id="custom-field-order" value="999" min="0">
                 </div>
 
-                <div class="form-section" style="margin-top: 20px;">
+                <div class="form-section rules-custom-field-settings">
                     <h3>Настройки использования</h3>
 
                     <div class="form-group">
@@ -376,7 +376,7 @@ checkAuth();
                     </div>
                 </div>
 
-                <div class="modal-footer" style="margin-top: 30px;">
+                <div class="modal-footer rules-modal-footer">
                     <button type="submit" class="btn-primary">Сохранить</button>
                     <button type="button" onclick="closeAddCustomFieldModal()" class="btn-secondary">Отмена</button>
                 </div>
@@ -384,198 +384,6 @@ checkAuth();
         </div>
     </div>
 </div>
-
-<style>
-    .rules-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    .rule-card {
-        background: var(--card-background);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-    }
-
-    .rule-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        transform: translateY(-2px);
-    }
-
-    .rule-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 12px;
-    }
-
-    .rule-priority {
-        background: var(--primary-color);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    .rule-card-actions {
-        display: flex;
-        gap: 8px;
-        position: absolute;
-        top: 16px;
-        right: 16px;
-    }
-
-    .toggle-switch {
-        width: 44px;
-        height: 24px;
-        background: #ccc;
-        border-radius: 12px;
-        position: relative;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    .toggle-switch::after {
-        content: '';
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        background: white;
-        border-radius: 50%;
-        top: 2px;
-        left: 2px;
-        transition: left 0.3s;
-    }
-
-    .toggle-switch.active {
-        background: var(--success-color);
-    }
-
-    .toggle-switch.active::after {
-        left: 22px;
-    }
-
-    .rule-card h3 {
-        margin: 0 0 8px 0;
-        font-size: 18px;
-        color: var(--text-color);
-        padding-right: 60px;
-    }
-
-    .rule-card p {
-        margin: 0 0 12px 0;
-        font-size: 14px;
-        color: var(--text-muted);
-    }
-
-    .rule-template-name {
-        display: inline-block;
-        padding: 4px 12px;
-        background: var(--accent-color);
-        color: white;
-        border-radius: 6px;
-        font-size: 12px;
-        margin-bottom: 8px;
-    }
-
-    .rule-conditions {
-        margin-top: 12px;
-        padding: 12px;
-        background: var(--background-color);
-        border-radius: 8px;
-        font-size: 13px;
-        font-family: 'Courier New', monospace;
-        color: var(--text-muted);
-    }
-
-    .condition-builder {
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 16px;
-        background: var(--background-color);
-    }
-
-    .condition-row {
-        display: grid;
-        grid-template-columns: 2fr 1.5fr 2fr auto;
-        gap: 12px;
-        margin-bottom: 12px;
-        align-items: center;
-    }
-
-    .condition-row select,
-    .condition-row input {
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        font-size: 14px;
-        background: var(--card-background);
-        color: var(--text-color);
-    }
-
-    .btn-remove {
-        background: var(--danger-color);
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .btn-remove:hover {
-        opacity: 0.8;
-    }
-
-    .form-section {
-        margin-top: 24px;
-        padding-top: 24px;
-        border-top: 1px solid var(--border-color);
-    }
-
-    .form-section h3 {
-        margin: 0 0 16px 0;
-        font-size: 16px;
-    }
-
-    .badge-inactive {
-        background: #95a5a6;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        margin-left: 8px;
-    }
-
-    .icon-btn {
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 8px;
-        border-radius: 6px;
-        transition: background 0.2s;
-    }
-
-    .icon-btn:hover {
-        background: rgba(0,0,0,0.1);
-    }
-
-    .icon-btn-danger:hover {
-        background: var(--danger-color);
-    }
-
-    .icon-btn-danger:hover svg {
-        stroke: white;
-    }
-</style>
 
 <script>
     // API Base URL
@@ -635,11 +443,11 @@ checkAuth();
             const result = await response.json();
             const rules = result.data || [];
 
-            loadingState.style.display = 'none';
-            gridContainer.style.display = 'grid';
+            loadingState.classList.add('d-none');
+            gridContainer.classList.remove('d-none');
 
             if (rules.length === 0) {
-                gridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">Нет правил. Создайте первое правило.</div>';
+                gridContainer.innerHTML = '<div class="rules-empty-state">Нет правил. Создайте первое правило.</div>';
                 return;
             }
 
@@ -651,9 +459,9 @@ checkAuth();
             });
         } catch (error) {
             console.error('Failed to load rules:', error);
-            loadingState.style.display = 'none';
-            gridContainer.style.display = 'grid';
-            gridContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--danger-color);">Ошибка загрузки правил</div>';
+            loadingState.classList.add('d-none');
+            gridContainer.classList.remove('d-none');
+            gridContainer.innerHTML = '<div class="rules-error-state">Ошибка загрузки правил</div>';
         }
     }
 
@@ -782,7 +590,8 @@ checkAuth();
 
     // Открыть модальное окно создания
     function openCreateRuleModal() {
-        document.getElementById('create-rule-modal').style.display = 'flex';
+        document.getElementById('create-rule-modal').classList.remove('d-none');
+        document.getElementById('create-rule-modal').classList.add('d-flex');
         document.getElementById('create-rule-form').reset();
         document.getElementById('conditions-container').innerHTML = '';
         conditionCounter = 0;
@@ -793,7 +602,8 @@ checkAuth();
 
     // Закрыть модальное окно создания
     function closeCreateRuleModal() {
-        document.getElementById('create-rule-modal').style.display = 'none';
+        document.getElementById('create-rule-modal').classList.remove('d-flex');
+        document.getElementById('create-rule-modal').classList.add('d-none');
     }
 
     // Создать правило
@@ -928,7 +738,8 @@ checkAuth();
 
     // Закрыть модальное окно деталей
     function closeRuleModal() {
-        document.getElementById('rule-modal').style.display = 'none';
+        document.getElementById('rule-modal').classList.remove('d-flex');
+        document.getElementById('rule-modal').classList.add('d-none');
     }
 
     // Escape HTML
@@ -1004,7 +815,8 @@ checkAuth();
             }
 
             // Открыть модальное окно
-            document.getElementById('create-rule-modal').style.display = 'flex';
+            document.getElementById('create-rule-modal').classList.remove('d-none');
+            document.getElementById('create-rule-modal').classList.add('d-flex');
 
             // Изменить заголовок
             document.querySelector('#create-rule-modal .modal-header h2').textContent = 'Редактировать правило';
@@ -1019,7 +831,8 @@ checkAuth();
     // Изменить closeCreateRuleModal для сброса состояния
     const originalCloseCreateRuleModal = closeCreateRuleModal;
     closeCreateRuleModal = function() {
-        document.getElementById('create-rule-modal').style.display = 'none';
+        document.getElementById('create-rule-modal').classList.remove('d-flex');
+        document.getElementById('create-rule-modal').classList.add('d-none');
         editingRuleId = null;
         document.querySelector('#create-rule-modal .modal-header h2').textContent = 'Создать правило';
     };
@@ -1110,9 +923,9 @@ checkAuth();
         currentTemplateId = templateId;
 
         // Скрыть правила, показать поля
-        document.getElementById('rules-grid').style.display = 'none';
-        document.getElementById('loading-state').style.display = 'none';
-        document.getElementById('template-fields-section').style.display = 'block';
+        document.getElementById('rules-grid').classList.add('d-none');
+        document.getElementById('loading-state').classList.add('d-none');
+        document.getElementById('template-fields-section').classList.remove('d-none');
         document.getElementById('template-fields-name').textContent = templateName;
 
         await loadTemplateFields(templateId);
@@ -1120,8 +933,8 @@ checkAuth();
 
     // Скрыть настройки полей, вернуться к правилам
     function hideTemplateFields() {
-        document.getElementById('template-fields-section').style.display = 'none';
-        document.getElementById('rules-grid').style.display = 'grid';
+        document.getElementById('template-fields-section').classList.add('d-none');
+        document.getElementById('rules-grid').classList.remove('d-none');
         currentTemplateId = null;
     }
 
@@ -1149,7 +962,7 @@ checkAuth();
         tbody.innerHTML = '';
 
         if (templateFields.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Нет настроенных полей</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="rules-empty-state">Нет настроенных полей</td></tr>';
             return;
         }
 
@@ -1157,42 +970,39 @@ checkAuth();
             const row = document.createElement('tr');
 
             const categoryBadge = field.field_category === 'standard'
-                ? '<span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Стандартное</span>'
-                : '<span style="background: #fff3e0; color: #f57c00; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Кастомное</span>';
+                ? '<span class="rules-field-category-standard">Стандартное</span>'
+                : '<span class="rules-field-category-custom">Кастомное</span>';
 
             row.innerHTML = `
-                <td style="text-align: center; font-size: 20px;">${field.emoji || '•'}</td>
+                <td class="rules-field-emoji">${field.emoji || '•'}</td>
                 <td>
                     <strong>${escapeHtml(field.field_label)}</strong><br>
-                    <small style="color: #666;">${escapeHtml(field.field_code)}</small>
-                    ${field.hint ? `<br><small style="color: #999;">${escapeHtml(field.hint)}</small>` : ''}
+                    <small class="text-muted">${escapeHtml(field.field_code)}</small>
+                    ${field.hint ? `<br><small class="text-muted">${escapeHtml(field.hint)}</small>` : ''}
                 </td>
                 <td>${escapeHtml(field.field_type)}</td>
                 <td>${categoryBadge}</td>
-                <td style="text-align: center;">
+                <td class="rules-checkbox-cell">
                     <input type="checkbox"
                            ${field.include_in_context ? 'checked' : ''}
-                           onchange="updateFieldSetting('${field.field_code}', 'include_in_context', this.checked)"
-                           style="width: 20px; height: 20px; cursor: pointer;">
+                           onchange="updateFieldSetting('${field.field_code}', 'include_in_context', this.checked)">
                 </td>
-                <td style="text-align: center;">
+                <td class="rules-checkbox-cell">
                     <input type="checkbox"
                            ${field.validate_correctness ? 'checked' : ''}
-                           onchange="updateFieldSetting('${field.field_code}', 'validate_correctness', this.checked)"
-                           style="width: 20px; height: 20px; cursor: pointer;">
+                           onchange="updateFieldSetting('${field.field_code}', 'validate_correctness', this.checked)">
                 </td>
-                <td style="text-align: center;">
+                <td class="rules-checkbox-cell">
                     <input type="checkbox"
                            ${field.auto_fill_if_empty ? 'checked' : ''}
-                           onchange="updateFieldSetting('${field.field_code}', 'auto_fill_if_empty', this.checked)"
-                           style="width: 20px; height: 20px; cursor: pointer;">
+                           onchange="updateFieldSetting('${field.field_code}', 'auto_fill_if_empty', this.checked)">
                 </td>
-                <td style="text-align: center;">
+                <td class="rules-action-cell">
                     ${field.field_category === 'custom' ? `
                         <button onclick="deleteTemplateField('${field.field_code}')"
                                 class="btn-icon-danger"
                                 title="Удалить">🗑️</button>
-                    ` : '<span style="color: #ccc;">—</span>'}
+                    ` : '<span class="rules-action-disabled">—</span>'}
                 </td>
             `;
 
@@ -1233,13 +1043,15 @@ checkAuth();
 
     // Показать модалку добавления кастомного поля
     function showAddCustomFieldModal() {
-        document.getElementById('add-custom-field-modal').style.display = 'flex';
+        document.getElementById('add-custom-field-modal').classList.remove('d-none');
+        document.getElementById('add-custom-field-modal').classList.add('d-flex');
         document.getElementById('add-custom-field-form').reset();
     }
 
     // Закрыть модалку добавления кастомного поля
     function closeAddCustomFieldModal() {
-        document.getElementById('add-custom-field-modal').style.display = 'none';
+        document.getElementById('add-custom-field-modal').classList.remove('d-flex');
+        document.getElementById('add-custom-field-modal').classList.add('d-none');
     }
 
     // Сохранить кастомное поле
@@ -1319,17 +1131,17 @@ checkAuth();
     async function showTemplateAlertSettings(templateId, templateName) {
         currentAlertTemplateId = templateId;
         document.getElementById('template-alert-name').textContent = templateName;
-        document.getElementById('rules-grid').style.display = 'none';
-        document.getElementById('template-fields-section').style.display = 'none';
-        document.getElementById('template-alert-settings-section').style.display = 'block';
+        document.getElementById('rules-grid').classList.add('d-none');
+        document.getElementById('template-fields-section').classList.add('d-none');
+        document.getElementById('template-alert-settings-section').classList.remove('d-none');
 
         await loadAlertSettings(templateId);
     }
 
     // Скрыть настройки тревожных флагов
     function hideTemplateAlertSettings() {
-        document.getElementById('template-alert-settings-section').style.display = 'none';
-        document.getElementById('rules-grid').style.display = 'grid';
+        document.getElementById('template-alert-settings-section').classList.add('d-none');
+        document.getElementById('rules-grid').classList.remove('d-none');
         currentAlertTemplateId = null;
     }
 
@@ -1372,7 +1184,12 @@ checkAuth();
     // Переключить видимость поля CRM
     function toggleCrmFieldVisibility() {
         const sendToCrmChecked = document.getElementById('alert-send-to-crm').checked;
-        document.getElementById('crm-field-group').style.display = sendToCrmChecked ? 'block' : 'none';
+        const crmFieldGroup = document.getElementById('crm-field-group');
+        if (sendToCrmChecked) {
+            crmFieldGroup.classList.remove('d-none');
+        } else {
+            crmFieldGroup.classList.add('d-none');
+        }
     }
 
     // Обработчик изменения чекбокса "Отправлять в CRM"

@@ -10,160 +10,6 @@ checkAuth();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Динамика сделок - Система оценки звонков</title>
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo time(); ?>">
-    <style>
-        .deal-status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .deal-status-badge.hot {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .deal-status-badge.warm {
-            background: #fff7ed;
-            color: #ea580c;
-        }
-
-        .deal-status-badge.cold {
-            background: #dbeafe;
-            color: #2563eb;
-        }
-
-        .deal-status-badge.lost {
-            background: #f3f4f6;
-            color: #6b7280;
-            text-decoration: line-through;
-        }
-
-        .compliance-bar {
-            background: #e5e7eb;
-            height: 8px;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .compliance-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
-            transition: width 0.3s ease;
-        }
-
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .summary-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .summary-card-title {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 8px;
-        }
-
-        .summary-card-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #111827;
-        }
-
-        .risk-table-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .risk-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .risk-table thead {
-            background: #f9fafb;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .risk-table th {
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            color: #374151;
-            font-size: 14px;
-        }
-
-        .risk-table th.text-center {
-            text-align: center;
-        }
-
-        .risk-table tbody tr {
-            border-bottom: 1px solid #e5e7eb;
-            transition: background-color 0.2s;
-            cursor: pointer;
-        }
-
-        .risk-table tbody tr:hover {
-            background-color: #f9fafb;
-        }
-
-        .risk-table td {
-            padding: 12px 16px;
-            font-size: 14px;
-            color: #111827;
-        }
-
-        .risk-table td.text-center {
-            text-align: center;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6b7280;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #9ca3af;
-            font-style: italic;
-        }
-
-        .summary-text-cell {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .objections-cell {
-            max-width: 250px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            color: #dc2626;
-        }
-
-        .next-steps-cell {
-            max-width: 250px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            color: #2563eb;
-        }
-    </style>
     <script src="assets/js/theme-switcher.js"></script>
 </head>
 <body>
@@ -214,36 +60,36 @@ checkAuth();
                                 <option value="">Все менеджеры</option>
                             </select>
                         </div>
-                        <div class="filter-group" style="align-self: end;">
-                            <button type="submit" class="btn-primary" style="width: 100%;">Применить</button>
+                        <div class="filter-group filter-group-end">
+                            <button type="submit" class="btn-primary w-100">Применить</button>
                         </div>
                     </div>
                 </form>
             </div>
 
             <!-- Сводка -->
-            <div class="summary-cards" id="summary-cards">
-                <div class="summary-card">
-                    <div class="summary-card-title">Всего сделок</div>
-                    <div class="summary-card-value" id="summary-total">0</div>
+            <div class="deal-summary-cards" id="summary-cards">
+                <div class="deal-summary-card">
+                    <div class="deal-summary-card-title">Всего сделок</div>
+                    <div class="deal-summary-card-value" id="summary-total">0</div>
                 </div>
-                <div class="summary-card" style="border-left: 4px solid #dc2626;">
-                    <div class="summary-card-title">🔥 Горячие</div>
-                    <div class="summary-card-value" id="summary-hot">0</div>
+                <div class="deal-summary-card hot-border">
+                    <div class="deal-summary-card-title">🔥 Горячие</div>
+                    <div class="deal-summary-card-value" id="summary-hot">0</div>
                 </div>
-                <div class="summary-card" style="border-left: 4px solid #ea580c;">
-                    <div class="summary-card-title">🟠 Теплые</div>
-                    <div class="summary-card-value" id="summary-warm">0</div>
+                <div class="deal-summary-card warm-border">
+                    <div class="deal-summary-card-title">🟠 Теплые</div>
+                    <div class="deal-summary-card-value" id="summary-warm">0</div>
                 </div>
-                <div class="summary-card" style="border-left: 4px solid #2563eb;">
-                    <div class="summary-card-title">❄️ Холодные</div>
-                    <div class="summary-card-value" id="summary-cold">0</div>
+                <div class="deal-summary-card cold-border">
+                    <div class="deal-summary-card-title">❄️ Холодные</div>
+                    <div class="deal-summary-card-value" id="summary-cold">0</div>
                 </div>
             </div>
 
             <!-- Таблица сделок -->
-            <div class="risk-table-container">
-                <table class="risk-table">
+            <div class="deal-table-container">
+                <table class="deal-table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -320,7 +166,7 @@ checkAuth();
                 let requisitionCell = '-';
                 if (deal.crm_requisition_id) {
                     const requisitionUrl = `https://app.joywork.ru/requisitions/${deal.crm_requisition_id}`;
-                    requisitionCell = `<a href="${requisitionUrl}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 500;" onclick="event.stopPropagation();" title="Открыть сделку в JoyWork CRM">${deal.crm_requisition_id}</a>`;
+                    requisitionCell = `<a href="${requisitionUrl}" target="_blank" class="deal-crm-link" onclick="event.stopPropagation();" title="Открыть сделку в JoyWork CRM">${deal.crm_requisition_id}</a>`;
                 }
 
                 return `
@@ -328,7 +174,7 @@ checkAuth();
                         <td>${index + 1}</td>
                         <td>${deal.call_date}</td>
                         <td>
-                            <div style="font-weight: 500;">${escapeHtml(deal.employee_name || '-')}</div>
+                            <div class="deal-manager-name">${escapeHtml(deal.employee_name || '-')}</div>
                         </td>
                         <td>${deal.client_phone || '-'}</td>
                         <td>${requisitionCell}</td>
@@ -339,25 +185,25 @@ checkAuth();
                             </span>
                         </td>
                         <td class="text-center">
-                            <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
-                                <div class="compliance-bar" style="width: 60px;">
-                                    <div class="compliance-fill" style="width: ${compliancePercent}%"></div>
+                            <div class="deal-compliance-wrapper">
+                                <div class="deal-compliance-bar">
+                                    <div class="deal-compliance-fill" style="width: ${compliancePercent}%"></div>
                                 </div>
-                                <span style="font-weight: 600; min-width: 35px;">${compliancePercent}%</span>
+                                <span class="deal-compliance-value">${compliancePercent}%</span>
                             </div>
                         </td>
                         <td>
-                            <div class="summary-text-cell" title="${escapeHtml(deal.summary_text || '')}">
+                            <div class="deal-summary-text-cell" title="${escapeHtml(deal.summary_text || '')}">
                                 ${escapeHtml(deal.summary_text || '-')}
                             </div>
                         </td>
                         <td>
-                            <div class="objections-cell" title="${escapeHtml(deal.deal_objections || '')}">
+                            <div class="deal-objections-cell" title="${escapeHtml(deal.deal_objections || '')}">
                                 ${deal.deal_objections ? '⚠️ ' + escapeHtml(deal.deal_objections) : '-'}
                             </div>
                         </td>
                         <td>
-                            <div class="next-steps-cell" title="${escapeHtml(deal.deal_next_steps || '')}">
+                            <div class="deal-next-steps-cell" title="${escapeHtml(deal.deal_next_steps || '')}">
                                 ${deal.deal_next_steps ? '📋 ' + escapeHtml(deal.deal_next_steps.replace(/\n/g, ' | ')) : '-'}
                             </div>
                         </td>

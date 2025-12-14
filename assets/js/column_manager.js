@@ -1,6 +1,7 @@
 /**
  * Column Manager - управление видимостью колонок таблицы звонков
  */
+console.log('📄 column_manager.js загружен');
 
 // Определение всех колонок таблицы
 const TABLE_COLUMNS = [
@@ -70,6 +71,7 @@ class ColumnManager {
             e.stopPropagation();
             this.openModal();
         });
+        console.log('✅ Event listener для кнопки настройки колонок добавлен');
 
         document.getElementById('columns-modal-close').addEventListener('click', () => this.closeModal());
         document.getElementById('columns-apply-btn').addEventListener('click', () => this.applySettings());

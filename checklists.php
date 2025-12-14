@@ -26,7 +26,7 @@ checkAuth(); // Проверка авторизации
         <header class="page-header">
             <h1>Шаблоны анализа звонков</h1>
             <button class="btn-primary" onclick="openCreateTemplateModal()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                <svg class="svg-icon-mr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -43,19 +43,19 @@ checkAuth(); // Проверка авторизации
             </div>
 
             <!-- Loading состояние -->
-            <div id="loading-state" style="text-align: center; padding: 40px;">
+            <div id="loading-state" class="checklists-loading-state">
                 <p>Загрузка шаблонов...</p>
             </div>
 
             <!-- Grid с карточками шаблонов -->
-            <div class="checklists-grid" id="templates-grid" style="display: none;">
+            <div class="checklists-grid d-none" id="templates-grid">
                 <!-- Карточки будут загружены через JavaScript -->
             </div>
         </div>
     </div>
 
     <!-- Модальное окно просмотра шаблона -->
-    <div id="template-modal" class="modal" style="display: none;">
+    <div id="template-modal" class="modal d-none">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modal-title">Шаблон</h2>
@@ -72,7 +72,7 @@ checkAuth(); // Проверка авторизации
     </div>
 
     <!-- Модальное окно создания шаблона -->
-    <div id="create-template-modal" class="modal" style="display: none;">
+    <div id="create-template-modal" class="modal d-none">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Создать новый шаблон</h2>
@@ -96,12 +96,12 @@ checkAuth(); // Проверка авторизации
                     <!-- Редактируемые вопросы -->
                     <div class="form-group">
                         <label>Вопросы чеклиста</label>
-                        <div id="editable-questions-container" style="margin-top: 12px;">
-                            <p style="color: var(--text-muted); font-size: 13px;">
+                        <div id="editable-questions-container" class="mt-3">
+                            <p class="editable-questions-empty">
                                 После создания шаблона вы сможете добавить вопросы для анализа.
                             </p>
                         </div>
-                        <button type="button" onclick="addNewQuestion()" class="btn-secondary" style="margin-top: 12px; width: 100%;">
+                        <button type="button" onclick="addNewQuestion()" class="btn-secondary btn-add-question">
                             + Добавить вопрос
                         </button>
                     </div>
@@ -116,350 +116,9 @@ checkAuth(); // Проверка авторизации
 
     <script src="assets/js/sidebar.js?v=<?php echo time(); ?>"></script>
 
-    <style>
-        .checklists-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .btn-primary {
-            display: flex;
-            align-items: center;
-            padding: 10px 20px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .btn-primary:hover {
-            opacity: 0.9;
-        }
-
-        .info-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .info-card h2 {
-            margin: 0 0 12px 0;
-            font-size: 20px;
-            color: var(--text-color);
-        }
-
-        .info-card p {
-            margin: 8px 0;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .checklists-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-            margin-top: 24px;
-        }
-
-        .checklist-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .checklist-card:hover {
-            border-color: var(--primary-color);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-actions {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            display: flex;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            border: none;
-            background: var(--background-color);
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .icon-btn svg {
-            pointer-events: none;
-        }
-
-        .icon-btn:hover {
-            background: var(--border-color);
-        }
-
-        .icon-btn-danger {
-            color: #ff3b30;
-        }
-
-        .icon-btn-danger:hover {
-            background: #ff3b30;
-            color: white;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 44px;
-            height: 24px;
-            background: #ccc;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .toggle-switch.active {
-            background: var(--primary-color);
-        }
-
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: white;
-            top: 2px;
-            left: 2px;
-            transition: left 0.3s;
-        }
-
-        .toggle-switch.active::after {
-            left: 22px;
-        }
-
-        .checklist-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--primary-color);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-bottom: 16px;
-        }
-
-        .checklist-card-content {
-            cursor: pointer;
-        }
-
-        .checklist-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
-            color: var(--text-color);
-            padding-right: 80px;
-        }
-
-        .checklist-card p {
-            margin: 0 0 16px 0;
-            font-size: 14px;
-            color: var(--text-muted);
-            line-height: 1.5;
-        }
-
-        .checklist-meta {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .badge {
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .badge-success {
-            background-color: rgba(52, 199, 89, 0.1);
-            color: #34c759;
-        }
-
-        .badge-warning {
-            background-color: rgba(255, 149, 0, 0.1);
-            color: #ff9500;
-        }
-
-        .badge-inactive {
-            background-color: rgba(142, 142, 147, 0.1);
-            color: #8e8e93;
-        }
-
-        /* Модальное окно */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: var(--surface-color);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 20px;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-close:hover {
-            color: var(--text-color);
-        }
-
-        .modal-body {
-            padding: 20px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .modal-footer {
-            padding: 20px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        .btn-secondary {
-            padding: 8px 16px;
-            background: var(--border-color);
-            color: var(--text-color);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-secondary:hover {
-            opacity: 0.8;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-color);
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 14px;
-            background: var(--background-color);
-            color: var(--text-color);
-            font-family: inherit;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .question-item {
-            padding: 12px;
-            background: var(--background-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-
-        .question-item h4 {
-            margin: 0 0 8px 0;
-            font-size: 14px;
-            color: var(--text-color);
-        }
-
-        .question-item p {
-            margin: 0;
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        [data-theme="dark"] .info-card,
-        [data-theme="dark"] .checklist-card,
-        [data-theme="dark"] .modal-content {
-            background-color: #2c2c2e;
-        }
-    </style>
-
     <script>
-        // API Base URL
-        const API_BASE = 'http://localhost:8001';
+        // API Base URL - используем PHP API
+        const API_BASE = 'api/templates.php';
 
         // Загрузка шаблонов при загрузке страницы
         document.addEventListener('DOMContentLoaded', async () => {
@@ -474,10 +133,10 @@ checkAuth(); // Проверка авторизации
 
             try {
                 // Показываем состояние загрузки
-                loadingState.style.display = 'block';
-                templatesGrid.style.display = 'none';
+                loadingState.classList.remove('d-none');
+                templatesGrid.classList.add('d-none');
 
-                const response = await fetch(`${API_BASE}/api/templates/test-list`);
+                const response = await fetch(`${API_BASE}?action=list`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -493,12 +152,12 @@ checkAuth(); // Проверка авторизации
                     templatesGrid.removeChild(templatesGrid.firstChild);
                 }
 
-                loadingState.style.display = 'none';
-                templatesGrid.style.display = 'grid';
+                loadingState.classList.add('d-none');
+                templatesGrid.classList.remove('d-none');
 
                 if (templates.length === 0) {
                     const emptyMsg = document.createElement('p');
-                    emptyMsg.style.cssText = 'grid-column: 1/-1; text-align: center; color: var(--text-muted);';
+                    emptyMsg.className = 'checklists-empty-msg';
                     emptyMsg.textContent = 'Нет шаблонов. Создайте первый шаблон!';
                     templatesGrid.appendChild(emptyMsg);
                     return;
@@ -514,9 +173,9 @@ checkAuth(); // Проверка авторизации
 
             } catch (error) {
                 console.error('Ошибка загрузки шаблонов:', error);
-                loadingState.innerHTML = `<p style="color: red;">Ошибка загрузки: ${error.message}</p>`;
-                loadingState.style.display = 'block';
-                templatesGrid.style.display = 'none';
+                loadingState.innerHTML = `<p class="checklists-error">Ошибка загрузки: ${error.message}</p>`;
+                loadingState.classList.remove('d-none');
+                templatesGrid.classList.add('d-none');
             }
         }
 
@@ -527,7 +186,7 @@ checkAuth(); // Проверка авторизации
 
             // Для системных шаблонов показываем иконку замка вместо кнопки удаления
             const deleteButtonHTML = template.is_system
-                ? `<div class="icon-btn system-lock" title="Системный шаблон (неудаляемый)" style="opacity: 0.5; cursor: not-allowed;">
+                ? `<div class="icon-btn system-lock" title="Системный шаблон (неудаляемый)">
                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
                        </svg>
@@ -615,8 +274,8 @@ checkAuth(); // Проверка авторизации
             }
 
             try {
-                const response = await fetch(`${API_BASE}/api/templates/test-toggle/${templateId}`, {
-                    method: 'PATCH',
+                const response = await fetch(`${API_BASE}?action=toggle&id=${templateId}`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     }
@@ -684,8 +343,8 @@ checkAuth(); // Проверка авторизации
             try {
                 console.log('Deleting template:', templateId);
 
-                const response = await fetch(`${API_BASE}/api/templates/test-delete/${templateId}`, {
-                    method: 'DELETE',
+                const response = await fetch(`${API_BASE}?action=delete&id=${templateId}`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     }
@@ -720,13 +379,17 @@ checkAuth(); // Проверка авторизации
 
         // Открыть модальное окно создания
         function openCreateTemplateModal() {
-            document.getElementById('create-template-modal').style.display = 'flex';
+            const modal = document.getElementById('create-template-modal');
+            modal.classList.remove('d-none');
+            modal.classList.add('d-flex');
             document.getElementById('create-template-form').reset();
         }
 
         // Закрыть модальное окно создания
         function closeCreateTemplateModal() {
-            document.getElementById('create-template-modal').style.display = 'none';
+            const modal = document.getElementById('create-template-modal');
+            modal.classList.add('d-none');
+            modal.classList.remove('d-flex');
 
             // Сбросить состояние редактирования
             editingTemplateId = null;
@@ -734,7 +397,7 @@ checkAuth(); // Проверка авторизации
 
             // Очистить контейнер вопросов
             document.getElementById('editable-questions-container').innerHTML = `
-                <p style="color: var(--text-muted); font-size: 13px;">
+                <p class="editable-questions-empty">
                     После создания шаблона вы сможете добавить вопросы для анализа.
                 </p>
             `;
@@ -775,7 +438,7 @@ checkAuth(); // Проверка авторизации
             }
 
             try {
-                const response = await fetch(`${API_BASE}/api/templates/test-create`, {
+                const response = await fetch(`${API_BASE}?action=create`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -819,16 +482,18 @@ checkAuth(); // Проверка авторизации
             const modalInfo = document.getElementById('modal-template-info');
             const modalQuestions = document.getElementById('modal-questions-list');
 
-            modal.style.display = 'flex';
+            modal.classList.remove('d-none');
+            modal.classList.add('d-flex');
 
             try {
-                const response = await fetch(`get_template.php?id=${templateId}`);
+                const response = await fetch(`${API_BASE}?action=get&id=${templateId}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
 
-                const template = await response.json();
+                const result = await response.json();
+                const template = result.data;
 
                 modalTitle.textContent = template.name;
 
@@ -839,7 +504,7 @@ checkAuth(); // Проверка авторизации
                 `;
 
                 if (template.questions && template.questions.length > 0) {
-                    modalQuestions.innerHTML = '<h3 style="margin-top: 20px;">Вопросы:</h3>';
+                    modalQuestions.innerHTML = '<h3 class="questions-list-header">Вопросы:</h3>';
                     template.questions.forEach((q) => {
                         const questionDiv = document.createElement('div');
                         questionDiv.className = 'question-item';
@@ -850,19 +515,21 @@ checkAuth(); // Проверка авторизации
                         modalQuestions.appendChild(questionDiv);
                     });
                 } else {
-                    modalQuestions.innerHTML = '<p style="color: var(--text-muted); margin-top: 20px;">Нет вопросов. Добавьте через API.</p>';
+                    modalQuestions.innerHTML = '<p class="questions-empty-msg">Нет вопросов. Добавьте через редактирование.</p>';
                 }
 
             } catch (error) {
                 console.error('Ошибка загрузки шаблона:', error);
-                modalInfo.innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
+                modalInfo.innerHTML = `<p class="checklists-error">Ошибка: ${error.message}</p>`;
                 modalQuestions.innerHTML = '';
             }
         }
 
         // Закрыть модальное окно просмотра
         function closeTemplateModal() {
-            document.getElementById('template-modal').style.display = 'none';
+            const modal = document.getElementById('template-modal');
+            modal.classList.add('d-none');
+            modal.classList.remove('d-flex');
         }
 
         // Открыть модальное окно редактирования шаблона
@@ -875,7 +542,7 @@ checkAuth(); // Проверка авторизации
 
             try {
                 // Загрузить данные шаблона
-                const response = await fetch(`${API_BASE}/api/templates/test-get/${templateId}`);
+                const response = await fetch(`${API_BASE}?action=get&id=${templateId}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -896,7 +563,9 @@ checkAuth(); // Проверка авторизации
                 renderEditableQuestions();
 
                 // Открыть модальное окно
-                document.getElementById('create-template-modal').style.display = 'flex';
+                const modal = document.getElementById('create-template-modal');
+                modal.classList.remove('d-none');
+                modal.classList.add('d-flex');
 
                 // Изменить заголовок и кнопку
                 document.querySelector('#create-template-modal .modal-header h2').textContent = 'Редактировать шаблон';
@@ -917,17 +586,16 @@ checkAuth(); // Проверка авторизации
             container.innerHTML = '';
 
             if (editingQuestions.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted);">Нет вопросов. Добавьте новый вопрос ниже.</p>';
+                container.innerHTML = '<p class="editable-questions-empty">Нет вопросов. Добавьте новый вопрос ниже.</p>';
                 return;
             }
 
             editingQuestions.forEach((question, index) => {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = 'question-item-editable';
-                questionDiv.style.cssText = 'margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--background-color);';
 
                 questionDiv.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div class="question-item-editable-header">
                         <strong>Вопрос ${index + 1}</strong>
                         <button type="button" class="icon-btn" onclick="removeQuestion(${index})" title="Удалить вопрос">
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -936,20 +604,17 @@ checkAuth(); // Проверка авторизации
                             </svg>
                         </button>
                     </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-muted);">Текст вопроса:</label>
-                        <input type="text" class="question-text-input" data-index="${index}" value="${escapeHtml(question.question_text)}"
-                               style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--background-color); color: var(--text-color);" />
+                    <div class="question-input-group">
+                        <label class="question-input-label">Текст вопроса:</label>
+                        <input type="text" class="question-text-input question-input-field" data-index="${index}" value="${escapeHtml(question.question_text)}" />
                     </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-muted);">Код вопроса (question_code):</label>
-                        <input type="text" class="question-code-input" data-index="${index}" value="${escapeHtml(question.question_code || '')}"
-                               style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--background-color); color: var(--text-color);" />
+                    <div class="question-input-group">
+                        <label class="question-input-label">Код вопроса (question_code):</label>
+                        <input type="text" class="question-code-input question-input-field" data-index="${index}" value="${escapeHtml(question.question_code || '')}" />
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-muted);">Подсказка (опционально):</label>
-                        <input type="text" class="question-hint-input" data-index="${index}" value="${escapeHtml(question.hint_text || '')}"
-                               style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--background-color); color: var(--text-color);" />
+                        <label class="question-input-label">Подсказка (опционально):</label>
+                        <input type="text" class="question-hint-input question-input-field" data-index="${index}" value="${escapeHtml(question.hint_text || '')}" />
                     </div>
                 `;
 
@@ -1026,8 +691,8 @@ checkAuth(); // Проверка авторизации
             }
 
             try {
-                const response = await fetch(`${API_BASE}/api/templates/test-update/${editingTemplateId}`, {
-                    method: 'PATCH',
+                const response = await fetch(`${API_BASE}?action=update&id=${editingTemplateId}`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
