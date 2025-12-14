@@ -941,7 +941,7 @@ checkAuth();
     // Загрузить поля для шаблона
     async function loadTemplateFields(templateId) {
         try {
-            const response = await fetch(`${API_BASE}/api/template-fields/${templateId}`);
+            const response = await fetch(`api/template-fields.php?template_id=${templateId}&org_id=org-legacy`);
             const result = await response.json();
 
             if (result.success) {
@@ -1013,7 +1013,7 @@ checkAuth();
     // Обновить настройку поля
     async function updateFieldSetting(fieldCode, settingName, value) {
         try {
-            const response = await fetch(`${API_BASE}/api/template-fields/${currentTemplateId}/${fieldCode}`, {
+            const response = await fetch(`api/template-fields.php?template_id=${currentTemplateId}&field_code=${fieldCode}&org_id=org-legacy`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [settingName]: value })
@@ -1073,7 +1073,7 @@ checkAuth();
         };
 
         try {
-            const response = await fetch(`${API_BASE}/api/template-fields/${currentTemplateId}`, {
+            const response = await fetch(`api/template-fields.php?template_id=${currentTemplateId}&org_id=org-legacy`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(fieldData)
@@ -1102,7 +1102,7 @@ checkAuth();
         }
 
         try {
-            const response = await fetch(`${API_BASE}/api/template-fields/${currentTemplateId}/${fieldCode}`, {
+            const response = await fetch(`api/template-fields.php?template_id=${currentTemplateId}&field_code=${fieldCode}&org_id=org-legacy`, {
                 method: 'DELETE'
             });
 
@@ -1148,7 +1148,7 @@ checkAuth();
     // Загрузить настройки тревожных флагов
     async function loadAlertSettings(templateId) {
         try {
-            const response = await fetch(`${API_BASE}/api/template-alerts/${templateId}?org_id=org-legacy`);
+            const response = await fetch(`api/template-alerts.php?template_id=${templateId}&org_id=org-legacy`);
             const result = await response.json();
 
             if (!result.success) {
@@ -1231,7 +1231,7 @@ checkAuth();
         };
 
         try {
-            const response = await fetch(`${API_BASE}/api/template-alerts/${currentAlertTemplateId}?org_id=org-legacy`, {
+            const response = await fetch(`api/template-alerts.php?template_id=${currentAlertTemplateId}&org_id=org-legacy`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settingsData)
