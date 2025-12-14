@@ -387,7 +387,7 @@ checkAuth();
 
 <script>
     // API Base URL
-    const API_BASE = 'http://localhost:8001';
+    const API_BASE = 'api/rules.php';
 
     let availableTemplates = [];
     let availableCRMFields = [];
@@ -405,9 +405,9 @@ checkAuth();
     // Загрузка шаблонов
     async function loadTemplates() {
         try {
-            const response = await fetch(`${API_BASE}/api/templates/test-list`);
+            const response = await fetch(`${API_BASE}?action=templates`);
             const result = await response.json();
-            availableTemplates = result.data || [];
+            availableTemplates = Array.isArray(result) ? result : (result.data || []);
 
             // Заполнить select
             const select = document.getElementById('rule-template');
@@ -425,9 +425,9 @@ checkAuth();
     // Загрузка полей CRM
     async function loadCRMFields() {
         try {
-            const response = await fetch(`${API_BASE}/api/rules/test-crm-fields`);
+            const response = await fetch(`${API_BASE}?action=crm-fields`);
             const result = await response.json();
-            availableCRMFields = result.data || [];
+            availableCRMFields = Array.isArray(result) ? result : (result.data || []);
         } catch (error) {
             console.error('Failed to load CRM fields:', error);
         }
@@ -439,9 +439,9 @@ checkAuth();
         const gridContainer = document.getElementById('rules-grid');
 
         try {
-            const response = await fetch(`${API_BASE}/api/rules/test-list`);
+            const response = await fetch(`${API_BASE}?action=list`);
             const result = await response.json();
-            const rules = result.data || [];
+            const rules = Array.isArray(result) ? result : (result.data || []);
 
             loadingState.classList.add('d-none');
             gridContainer.classList.remove('d-none');
@@ -638,7 +638,7 @@ checkAuth();
         }
 
         try {
-            const response = await fetch(`${API_BASE}/api/rules/test-create`, {
+            const response = await fetch(`${API_BASE}?action=create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -679,7 +679,7 @@ checkAuth();
         event.stopPropagation();
 
         try {
-            const response = await fetch(`${API_BASE}/api/rules/test-toggle/${ruleId}`, {
+            const response = await fetch(`${API_BASE}?action=toggle&id=${ruleId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
@@ -709,7 +709,7 @@ checkAuth();
         }
 
         try {
-            const response = await fetch(`${API_BASE}/api/rules/test-delete/${ruleId}`, {
+            const response = await fetch(`${API_BASE}?action=delete&id=${ruleId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
@@ -758,7 +758,7 @@ checkAuth();
 
         try {
             // Загрузить данные правила
-            const response = await fetch(`${API_BASE}/api/rules/test-get/${ruleId}`);
+            const response = await fetch(`${API_BASE}?action=get&id=${ruleId}`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -871,8 +871,8 @@ checkAuth();
 
         try {
             const url = editingRuleId
-                ? `${API_BASE}/api/rules/test-update/${editingRuleId}`
-                : `${API_BASE}/api/rules/test-create`;
+                ? `${API_BASE}?action=update&id=${editingRuleId}`
+                : `${API_BASE}?action=create`;
             const method = editingRuleId ? 'PATCH' : 'POST';
 
             const response = await fetch(url, {
