@@ -1,0 +1,572 @@
+/**
+ * Weekly Analysis Dashboard Styles
+ * FIP Weekly Error Analysis
+ */
+
+.weekly-analysis-container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.header-title h1 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+.header-title .subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-muted, #6b7280);
+}
+
+.week-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.week-selector label {
+    font-size: 14px;
+    color: var(--text-muted, #6b7280);
+}
+
+.week-selector select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    background: var(--surface-color, #fff);
+    color: var(--text-color, #1f2937);
+    font-size: 14px;
+    min-width: 250px;
+    cursor: pointer;
+}
+
+.week-selector select:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* KPI Cards */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.kpi-card {
+    background: var(--surface-color, #fff);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border: 1px solid var(--border-color, #e5e7eb);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-card.warning {
+    border-left: 4px solid #f59e0b;
+}
+
+.kpi-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-color, #1f2937);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.kpi-label {
+    font-size: 13px;
+    color: var(--text-muted, #6b7280);
+}
+
+.kpi-trend {
+    font-size: 14px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.kpi-trend.up {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.kpi-trend.down {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.kpi-trend.stable {
+    color: #6b7280;
+    background: rgba(107, 114, 128, 0.1);
+}
+
+/* Main Content Grid */
+.main-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+}
+
+@media (max-width: 1024px) {
+    .main-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Managers Section */
+.managers-section {
+    background: var(--surface-color, #fff);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.managers-section h2 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+.managers-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.managers-table th {
+    text-align: left;
+    padding: 12px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted, #6b7280);
+    border-bottom: 2px solid var(--border-color, #e5e7eb);
+}
+
+.managers-table td {
+    padding: 12px 8px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    color: var(--text-color, #1f2937);
+}
+
+.managers-table .clickable-row {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.managers-table .clickable-row:hover {
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.managers-table .manager-name {
+    font-weight: 500;
+}
+
+.managers-table .text-center {
+    text-align: center;
+}
+
+.managers-table .compliance-high {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.managers-table .compliance-medium {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.managers-table .compliance-low {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.trend {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.trend.up {
+    color: #10b981;
+}
+
+.trend.down {
+    color: #ef4444;
+}
+
+.trend.stable {
+    color: #6b7280;
+}
+
+.skill-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    margin: 1px;
+}
+
+.skill-badge.critical {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.skill-badge.more {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+}
+
+.loading-cell,
+.empty-cell,
+.error-cell {
+    text-align: center;
+    padding: 40px 20px !important;
+    color: var(--text-muted, #6b7280);
+}
+
+.error-cell {
+    color: #ef4444;
+}
+
+/* Chart Section */
+.chart-section {
+    background: var(--surface-color, #fff);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.chart-section h2 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+.chart-container {
+    height: 300px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--surface-color, #fff);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-muted, #6b7280);
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.modal-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-color, #1f2937);
+}
+
+.modal-header {
+    padding: 24px 24px 0 24px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+.modal-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: var(--text-muted, #6b7280);
+}
+
+.modal-body {
+    padding: 20px 24px 24px 24px;
+}
+
+/* Modal KPI Row */
+.modal-kpi-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: var(--bg-color, #f9fafb);
+    border-radius: 8px;
+}
+
+.modal-kpi {
+    text-align: center;
+}
+
+.modal-kpi-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-color, #1f2937);
+}
+
+.modal-kpi-label {
+    font-size: 13px;
+    color: var(--text-muted, #6b7280);
+}
+
+/* Modal FIP Section */
+.modal-fip-section {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.fip-wheel-wrapper {
+    flex: 0 0 auto;
+}
+
+.fip-modules-list {
+    flex: 1;
+    min-width: 250px;
+}
+
+.module-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg-color, #f9fafb);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.module-icon {
+    font-size: 18px;
+}
+
+.module-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-color, #1f2937);
+}
+
+.module-bar {
+    width: 80px;
+    height: 8px;
+    background: var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.module-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.module-score {
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: right;
+    color: var(--text-color, #1f2937);
+}
+
+/* Modal Skills Section */
+.modal-skills-section {
+    margin-bottom: 24px;
+}
+
+.modal-skills-section h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+.skills-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.skill-item {
+    padding: 12px;
+    background: var(--bg-color, #f9fafb);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+}
+
+.skill-item.is-critical {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.skill-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.skill-number {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.skill-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color, #1f2937);
+}
+
+.badge.critical {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: #ef4444;
+    color: white;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.skill-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.skill-score {
+    font-weight: 600;
+}
+
+.skill-score.critical {
+    color: #ef4444;
+}
+
+.skill-score.warning {
+    color: #f59e0b;
+}
+
+.skill-score.good {
+    color: #10b981;
+}
+
+.skill-calls {
+    color: var(--text-muted, #6b7280);
+}
+
+.moodle-link {
+    color: #8b5cf6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.moodle-link:hover {
+    text-decoration: underline;
+}
+
+/* Modal History Section */
+.modal-history-section h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+}
+
+.history-chart-container {
+    height: 150px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-row {
+        flex-direction: column;
+    }
+
+    .week-selector select {
+        min-width: 100%;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .kpi-value {
+        font-size: 24px;
+    }
+
+    .modal-fip-section {
+        flex-direction: column;
+    }
+
+    .modal-kpi-row {
+        flex-wrap: wrap;
+    }
+}

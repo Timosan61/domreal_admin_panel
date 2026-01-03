@@ -1,51 +1,17 @@
 /**
  * Emotion Display Component
  *
- * Визуализация результатов гибридного анализа эмоций:
- * - Детектированные сценарии с карточками
+ * Визуализация базовых эмоциональных показателей:
  * - Sentiment breakdown (менеджер/клиент)
- * - Audio characteristics
- * - Emotional trajectory
+ * - Audio characteristics (тон, громкость, темп)
+ * - Общие метрики (тон разговора, интенсивность)
+ *
+ * Используется как контекст для комплексного анализа вместе с транскрипцией.
  */
 
 class EmotionDisplay {
     constructor(containerSelector) {
         this.container = document.querySelector(containerSelector);
-        this.scenarioIcons = {
-            'conflict': '⚔️',
-            'client_disappointment': '😞',
-            'manager_burnout': '🥱',
-            'client_distrust': '🤔',
-            'categorical_rejection': '❌',
-            'client_interest': '✨',
-            'deal_readiness': '💰',
-            'manager_trust': '🤝',
-            'postpone_decision': '⏳',
-            'repeat_listening': '🔁',
-            'price_discussion': '💵',
-            'location_clarification': '📍'
-        };
-
-        this.scenarioNames = {
-            'conflict': 'КОНФЛИКТ',
-            'client_disappointment': 'РАЗОЧАРОВАНИЕ КЛИЕНТА',
-            'manager_burnout': 'ВЫГОРАНИЕ МЕНЕДЖЕРА',
-            'client_distrust': 'НЕДОВЕРИЕ КЛИЕНТА',
-            'categorical_rejection': 'КАТЕГОРИЧНЫЙ ОТКАЗ',
-            'client_interest': 'ЗАИНТЕРЕСОВАННОСТЬ КЛИЕНТА',
-            'deal_readiness': 'ГОТОВНОСТЬ К СДЕЛКЕ',
-            'manager_trust': 'ДОВЕРИЕ К МЕНЕДЖЕРУ',
-            'postpone_decision': 'ОТКЛАДЫВАНИЕ РЕШЕНИЯ',
-            'repeat_listening': 'ПОВТОРНОЕ ПРОСЛУШИВАНИЕ',
-            'price_discussion': 'ОБСУЖДЕНИЕ ЦЕНЫ',
-            'location_clarification': 'УТОЧНЕНИЕ ЛОКАЦИИ'
-        };
-
-        this.scenarioCategories = {
-            'negative': ['conflict', 'client_disappointment', 'manager_burnout', 'client_distrust', 'categorical_rejection'],
-            'positive': ['client_interest', 'deal_readiness', 'manager_trust'],
-            'process': ['postpone_decision', 'repeat_listening', 'price_discussion', 'location_clarification']
-        };
     }
 
     /**
@@ -110,14 +76,17 @@ class EmotionDisplay {
     }
 
     /**
-     * Главный метод рендеринга
+     * Главный метод рендеринга (только базовые показатели)
      */
     render(emotionData) {
         try {
             console.log('🔍 Emotion data structure:', emotionData);
 
-            const scenariosHtml = this.renderScenarios(emotionData);
-            console.log('✅ Scenarios rendered');
+            const metricsHtml = this.renderOverallMetrics(emotionData);
+            console.log('✅ Overall metrics rendered');
+
+            const indicatorsHtml = this.renderIndicators(emotionData);
+            console.log('✅ Indicators rendered');
 
             const sentimentHtml = this.renderSentimentBreakdown(emotionData);
             console.log('✅ Sentiment rendered');
@@ -125,19 +94,16 @@ class EmotionDisplay {
             const audioHtml = this.renderAudioProfiles(emotionData);
             console.log('✅ Audio profiles rendered');
 
-            const metricsHtml = this.renderOverallMetrics(emotionData);
-            console.log('✅ Overall metrics rendered');
-
             const html = `
                 <div class="emotion-analysis-container">
                     <h4>
-                        🧠 Гибридный анализ эмоций (BERT + Audio)
+                        🎭 Эмоциональный контекст разговора
                     </h4>
 
-                    ${scenariosHtml}
+                    ${metricsHtml}
+                    ${indicatorsHtml}
                     ${sentimentHtml}
                     ${audioHtml}
-                    ${metricsHtml}
                 </div>
             `;
 
@@ -145,111 +111,63 @@ class EmotionDisplay {
         } catch (error) {
             console.error('❌ Render error:', error);
             console.error('Stack:', error.stack);
-            throw error; // Re-throw to be caught by loadAndDisplay
+            throw error;
         }
     }
 
     /**
-     * Рендеринг детектированных сценариев с карточками
+     * Рендеринг индикаторов перебивания и конфликта
      */
-    renderScenarios(emotionData) {
+    renderIndicators(emotionData) {
         const scenarios = emotionData.scenarios || {};
         const confidences = emotionData.scenario_confidences || {};
 
-        // Фильтруем только детектированные сценарии
-        const detected = Object.keys(scenarios)
-            .filter(key => scenarios[key])
-            .map(key => ({
-                key: key,
-                confidence: confidences[key] || 0
-            }))
-            .sort((a, b) => b.confidence - a.confidence); // Сортируем по уверенности
+        // Конфликт
+        const hasConflict = scenarios.conflict || false;
+        const conflictConfidence = Math.round((confidences.conflict || 0) * 100);
 
-        if (detected.length === 0) {
-            return `
-                <div class="emotion-alert emotion-alert-success">
-                    ✅ Проблемных сценариев не обнаружено
-                </div>
-            `;
-        }
+        // Перебивание - проверяем из audio профилей или scenarios
+        const managerAudio = emotionData.manager_audio_profile || emotionData.manager_audio || {};
+        const clientAudio = emotionData.client_audio_profile || emotionData.client_audio || {};
 
-        // Группируем по категориям
-        const byCategory = {
-            'negative': detected.filter(s => this.scenarioCategories.negative.includes(s.key)),
-            'positive': detected.filter(s => this.scenarioCategories.positive.includes(s.key)),
-            'process': detected.filter(s => this.scenarioCategories.process.includes(s.key))
-        };
+        // Вычисляем overlap из speaking_rate или другого источника
+        const overlapScore = emotionData.overlap_score || emotionData.interruption_score || 0;
+        const hasInterruptions = overlapScore > 0.3;
 
-        let html = '<div class="scenarios-section">';
-        html += '<h5>🎯 Детектированные сценарии:</h5>';
-        html += '<div class="emotion-row">';
+        let html = '<div class="emotion-indicators-row">';
 
-        // Негативные сценарии
-        if (byCategory.negative.length > 0) {
-            html += this.renderScenarioCategory('negative', '🚨 Проблемы', byCategory.negative);
-        }
-
-        // Позитивные сценарии
-        if (byCategory.positive.length > 0) {
-            html += this.renderScenarioCategory('positive', '✅ Позитив', byCategory.positive);
-        }
-
-        // Процессуальные сценарии
-        if (byCategory.process.length > 0) {
-            html += this.renderScenarioCategory('process', '📋 Процесс', byCategory.process);
-        }
-
-        html += '</div></div>';
-
-        return html;
-    }
-
-    /**
-     * Рендеринг категории сценариев
-     */
-    renderScenarioCategory(category, title, scenarios) {
-        const colorClass = {
-            'negative': 'danger',
-            'positive': 'success',
-            'process': 'info'
-        }[category];
-
-        let html = `
-            <div class="emotion-col">
-                <div class="emotion-card">
-                    <div class="emotion-card-header emotion-card-header-${colorClass}">
-                        <strong>${title}</strong>
-                    </div>
-                    <div class="emotion-card-body">
-        `;
-
-        scenarios.forEach(scenario => {
-            const icon = this.scenarioIcons[scenario.key] || '•';
-            const name = this.scenarioNames[scenario.key] || scenario.key;
-            const confidence = Math.round(scenario.confidence * 100);
-
+        // Индикатор конфликта
+        if (hasConflict) {
             html += `
-                <div class="scenario-item">
-                    <div class="scenario-item-header">
-                        <span>
-                            <span class="scenario-icon">${icon}</span>
-                            <strong>${name}</strong>
-                        </span>
-                        <span class="emotion-badge emotion-badge-${colorClass}">${confidence}%</span>
-                    </div>
-                    <div class="emotion-progress">
-                        <div class="emotion-progress-bar emotion-progress-bar-${colorClass}"
-                             style="width: ${confidence}%"></div>
-                    </div>
+                <div class="emotion-indicator emotion-indicator-danger">
+                    ⚔️ Конфликт обнаружен (${conflictConfidence}%)
                 </div>
             `;
-        });
-
-        html += `
-                    </div>
+        } else {
+            html += `
+                <div class="emotion-indicator emotion-indicator-ok">
+                    ✅ Без конфликта
                 </div>
-            </div>
-        `;
+            `;
+        }
+
+        // Индикатор перебивания
+        if (hasInterruptions) {
+            const overlapPercent = Math.round(overlapScore * 100);
+            html += `
+                <div class="emotion-indicator emotion-indicator-warning">
+                    🗣️ Перебивания (${overlapPercent}%)
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="emotion-indicator emotion-indicator-ok">
+                    ✅ Без перебивания
+                </div>
+            `;
+        }
+
+        html += '</div>';
 
         return html;
     }
@@ -325,6 +243,15 @@ class EmotionDisplay {
         const managerAudio = emotionData.manager_audio_profile || emotionData.manager_audio || {};
         const clientAudio = emotionData.client_audio_profile || emotionData.client_audio || {};
 
+        // Проверяем есть ли хоть какие-то audio данные
+        const hasManagerAudio = this.hasAudioData(managerAudio);
+        const hasClientAudio = this.hasAudioData(clientAudio);
+
+        // Если нет audio данных (text-only анализ) - не показываем блок
+        if (!hasManagerAudio && !hasClientAudio) {
+            return '';
+        }
+
         return `
             <div class="audio-section">
                 <h5>🎤 Audio Characteristics (librosa):</h5>
@@ -348,6 +275,15 @@ class EmotionDisplay {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Проверка наличия audio данных
+     */
+    hasAudioData(audio) {
+        if (!audio || typeof audio !== 'object') return false;
+        const keys = ['pitch_mean', 'energy_mean', 'speaking_rate', 'voice_brightness'];
+        return keys.some(key => audio[key] !== undefined && audio[key] !== null && audio[key] > 0);
     }
 
     /**
@@ -380,7 +316,7 @@ class EmotionDisplay {
     }
 
     /**
-     * Рендеринг общих метрик
+     * Рендеринг общих метрик (компактно)
      */
     renderOverallMetrics(emotionData) {
         const overall = emotionData.overall_sentiment || 'NEUTRAL';
@@ -393,34 +329,29 @@ class EmotionDisplay {
         };
 
         const overallLabels = {
-            'POSITIVE': 'Позитивный',
-            'NEUTRAL': 'Нейтральный',
-            'NEGATIVE': 'Негативный'
+            'POSITIVE': '😊 Позитивный',
+            'NEUTRAL': '😐 Нейтральный',
+            'NEGATIVE': '😟 Негативный'
         };
+
+        const intensityPercent = Math.round(intensity * 100);
+        const intensityLabel = intensityPercent < 30 ? 'Спокойный' :
+                              intensityPercent < 60 ? 'Умеренный' : 'Эмоциональный';
 
         return `
             <div class="overall-section">
-                <h5>📊 Общие метрики:</h5>
-                <div class="emotion-row">
-                    <div class="emotion-col">
-                        <div class="emotion-overall-card">
-                            <h6>Общий тон разговора</h6>
-                            <h3 class="emotion-text-${overallColors[overall]}">
-                                ${overallLabels[overall]}
-                            </h3>
-                        </div>
+                <div class="emotion-summary-row">
+                    <div class="emotion-summary-item">
+                        <span class="emotion-summary-label">Общий тон:</span>
+                        <span class="emotion-badge emotion-badge-${overallColors[overall]}">
+                            ${overallLabels[overall]}
+                        </span>
                     </div>
-                    <div class="emotion-col">
-                        <div class="emotion-overall-card">
-                            <h6>Эмоциональная интенсивность</h6>
-                            <h3 class="emotion-text-info">
-                                ${Math.round(intensity * 100)}%
-                            </h3>
-                            <div class="emotion-progress" style="height: 20px; margin-top: 12px;">
-                                <div class="emotion-progress-bar emotion-progress-bar-info"
-                                     style="width: ${Math.round(intensity * 100)}%"></div>
-                            </div>
-                        </div>
+                    <div class="emotion-summary-item">
+                        <span class="emotion-summary-label">Интенсивность:</span>
+                        <span class="emotion-badge emotion-badge-info">
+                            ${intensityLabel} (${intensityPercent}%)
+                        </span>
                     </div>
                 </div>
             </div>
