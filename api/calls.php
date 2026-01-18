@@ -38,6 +38,7 @@ $tags = isset($_GET['tags']) ? $_GET['tags'] : ''; // Множественный
 $crm_stages = isset($_GET['crm_stages']) ? $_GET['crm_stages'] : ''; // Множественный выбор CRM этапов (формат: "funnel1:step1,funnel2:step2")
 $solvency_levels = isset($_GET['solvency_levels']) ? $_GET['solvency_levels'] : ''; // Множественный выбор платежеспособности
 $client_statuses = isset($_GET['client_statuses']) ? $_GET['client_statuses'] : ''; // Множественный выбор статусов клиента
+$batch_id = isset($_GET['batch_id']) ? trim($_GET['batch_id']) : ''; // Фильтр по пакетному анализу
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = isset($_GET['per_page']) ? min(100, max(10, intval($_GET['per_page']))) : 20;
 $sort_by = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'started_at_utc';
@@ -112,8 +113,26 @@ $params = [];
 
 $query .= "\nWHERE 1=1";
 
-// Фильтрация по отделам пользователя (если не admin)
-if ($_SESSION['role'] !== 'admin' && !empty($user_departments)) {
+// Фильтрация галлюцинаций Whisper (спам-транскрипты)
+$query .= " AND (t.is_hallucinated IS NULL OR t.is_hallucinated = 0)";
+
+// Фильтрация по организации (multi-tenancy)
+$org_id = $_SESSION['org_id'] ?? 'org-legacy';
+$query .= " AND cr.org_id = :org_id";
+$params[':org_id'] = $org_id;
+
+// Фильтрация по batch_id (пакетный анализ)
+if (!empty($batch_id)) {
+    // Показываем только звонки из конкретного пакета
+    $query .= " AND cr.callid IN (SELECT bci.callid FROM batch_call_items bci WHERE bci.batch_id = :batch_id)";
+    $params[':batch_id'] = $batch_id;
+} else {
+    // Скрыть uploaded звонки (upl-*) с главной страницы - они видны через batch_calls.php
+    $query .= " AND cr.callid NOT LIKE 'upl-%'";
+}
+
+// Фильтрация по отделам пользователя (если не admin и не rop)
+if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'rop' && !empty($user_departments)) {
     $placeholders = [];
     foreach ($user_departments as $index => $dept) {
         $param_name = ':user_dept_' . $index;
@@ -123,16 +142,16 @@ if ($_SESSION['role'] !== 'admin' && !empty($user_departments)) {
     $query .= " AND cr.department IN (" . implode(', ', $placeholders) . ")";
 }
 
-// Фильтр по отделам (множественный выбор)
+// Фильтр по отделам (множественный выбор по department_id)
 if (!empty($departments)) {
     $departments_array = explode(',', $departments);
     $departments_placeholders = [];
     foreach ($departments_array as $index => $dept) {
-        $param_name = ':department_' . $index;
+        $param_name = ':department_id_' . $index;
         $departments_placeholders[] = $param_name;
-        $params[$param_name] = $dept;
+        $params[$param_name] = intval($dept);
     }
-    $query .= " AND cr.department IN (" . implode(', ', $departments_placeholders) . ")";
+    $query .= " AND cr.department_id IN (" . implode(', ', $departments_placeholders) . ")";
 }
 
 // Фильтр по менеджерам (множественный выбор)
@@ -172,9 +191,9 @@ if (!empty($duration_range)) {
     }
 }
 
-// Фильтр "Скрыть до 10 сек" (toggle переключатель)
+// Фильтр "Скрыть до 20 сек" (toggle переключатель)
 if ($hide_short_calls === '1') {
-    $query .= " AND cr.duration_sec > 10";
+    $query .= " AND cr.duration_sec > 20";
 }
 
 // Фильтр по номеру клиента
@@ -184,9 +203,10 @@ if (!empty($client_phone)) {
 }
 
 // Фильтр по ID звонка (точное или частичное совпадение)
+// Убираем точки для совместимости с Moodle (clean_param удаляет точки)
 if (!empty($call_id)) {
-    $query .= " AND cr.callid LIKE :call_id";
-    $params[':call_id'] = '%' . $call_id . '%';
+    $query .= " AND REPLACE(cr.callid, '.', '') LIKE :call_id";
+    $params[':call_id'] = '%' . str_replace('.', '', $call_id) . '%';
 }
 
 // Фильтр по направлениям звонка (множественный выбор, формат: "INBOUND,OUTBOUND")
@@ -202,19 +222,23 @@ if (!empty($directions)) {
 }
 
 // Фильтр по оценке (множественный выбор: high,medium,low)
+// compliance_score хранится как проценты 0-100
 if (!empty($ratings)) {
     $ratings_array = explode(',', $ratings);
     $rating_conditions = [];
 
     foreach ($ratings_array as $rating) {
         $rating = trim($rating);
-        $score_field = 'COALESCE(ar.script_compliance_score_v4, ar.script_compliance_score)';
+        $score_field = 'ar.compliance_score';
         if ($rating === 'high') {
-            $rating_conditions[] = "($score_field >= 0.8 AND $score_field <= 1.0)";
+            // Высокая: 60-100%
+            $rating_conditions[] = "($score_field >= 60 AND $score_field <= 100)";
         } elseif ($rating === 'medium') {
-            $rating_conditions[] = "($score_field >= 0.6 AND $score_field < 0.8)";
+            // Средняя: 30-60%
+            $rating_conditions[] = "($score_field >= 30 AND $score_field < 60)";
         } elseif ($rating === 'low') {
-            $rating_conditions[] = "($score_field >= 0 AND $score_field < 0.6)";
+            // Низкая: 0-30%
+            $rating_conditions[] = "($score_field >= 0 AND $score_field < 30)";
         }
     }
 
@@ -238,7 +262,7 @@ if (!empty($call_type)) {
     // Убрали поддержку устаревшего значения 'other'
 }
 
-// Фильтр по результату звонка (множественный выбор через LIKE)
+// Фильтр по результату звонка (успешный/неуспешный)
 if (!empty($call_results)) {
     $results_array = explode(',', $call_results);
     $result_conditions = [];
@@ -246,44 +270,10 @@ if (!empty($call_results)) {
     foreach ($results_array as $result) {
         $result = trim($result);
 
-        // Категории первого звонка
-        if ($result === 'квалификация') {
-            $result_conditions[] = "LOWER(ar.call_result) LIKE '%квалифик%'";
-        } elseif ($result === 'материалы') {
-            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%материал%' OR LOWER(ar.call_result) LIKE '%отправ%')";
-        } elseif ($result === 'назначен перезвон') {
-            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%назначен перезвон%' OR (LOWER(ar.call_result) LIKE '%перезвон%' AND ar.call_type = 'first_call'))";
-        }
-
-        // Категории других звонков
-        elseif ($result === 'показ назначен') {
-            // Ищем все варианты назначенного показа (как в kpi.php)
-            $result_conditions[] = "(ar.call_result IN ('Назначен показ', 'Подтвержден показ', 'Показ назначен')
-                OR ar.call_result LIKE 'Показ назначен%'
-                OR ar.call_result LIKE '%Результат: Показ назначен%')";
-        } elseif ($result === 'показ состоялся') {
-            // Ищем все варианты состоявшегося показа (как в kpi.php)
-            $result_conditions[] = "(ar.call_result = 'Показ проведен'
-                OR ar.call_result = 'Показ состоялся'
-                OR ar.call_result LIKE 'Показ состоялся%'
-                OR ar.call_result LIKE '%Результат: Показ состоялся%')";
-        } elseif ($result === 'показ') {
-            $result_conditions[] = "LOWER(ar.call_result) LIKE '%показ%'";
-        } elseif ($result === 'перезвон') {
-            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%перезвон%' AND ar.call_type != 'first_call')";
-        } elseif ($result === 'думает') {
-            $result_conditions[] = "LOWER(ar.call_result) LIKE '%думает%'";
-        }
-
-        // Общие категории
-        elseif ($result === 'отказ') {
-            $result_conditions[] = "LOWER(ar.call_result) LIKE '%отказ%'";
-        } elseif ($result === 'не целевой') {
-            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%не целевой%' OR LOWER(ar.call_result) LIKE '%нецелевой%')";
-        } elseif ($result === 'не дозвонились') {
-            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%не дозвон%' OR LOWER(ar.call_result) LIKE '%автоответчик%')";
-        } elseif ($result === 'личный') {
-            $result_conditions[] = "(LOWER(ar.call_result) LIKE '%личн%' OR LOWER(ar.call_result) LIKE '%нерабоч%')";
+        if ($result === 'successful') {
+            $result_conditions[] = "ar.is_successful = 1";
+        } elseif ($result === 'unsuccessful') {
+            $result_conditions[] = "(ar.is_successful = 0 OR ar.is_successful IS NULL)";
         }
     }
 
@@ -364,6 +354,9 @@ $needs_ar_join = !empty($call_type) || !empty($call_results) || !empty($ratings)
 $needs_ct_join = !empty($tags);
 // client_enrichment нужен для фильтра по solvency_levels и client_statuses
 $needs_ce_join = !empty($solvency_levels) || !empty($client_statuses);
+
+// transcripts всегда нужен для фильтра галлюцинаций
+$count_query .= "\nLEFT JOIN transcripts t ON cr.callid = t.callid";
 
 if ($needs_ar_join) {
     $count_query .= "\nLEFT JOIN analysis_results ar ON cr.callid = ar.callid";

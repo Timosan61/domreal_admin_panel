@@ -175,14 +175,12 @@ async function loadStateFromURL() {
         currentSort.by = sortBy;
         currentSort.order = sortOrder || 'DESC';
 
-        // Обновляем стрелки сортировки в таблице
-        document.querySelectorAll('th[data-sort]').forEach(th => {
-            const sortField = th.getAttribute('data-sort');
-            if (sortField === sortBy) {
-                th.textContent = th.textContent.replace(/ [↑↓]/g, '');
-                th.textContent += sortOrder === 'DESC' ? ' ↓' : ' ↑';
-            }
-        });
+        // Обновляем UI компонента TableSort (если уже инициализирован)
+        // Активируем UI только если это не сортировка по умолчанию
+        if (tableSortInstance) {
+            const isNonDefault = (sortBy !== 'started_at_utc' || sortOrder !== 'DESC');
+            tableSortInstance.setSort(currentSort.by, currentSort.order, isNonDefault);
+        }
     }
 
     // Восстанавливаем страницу
@@ -223,6 +221,7 @@ async function initializePage() {
     await loadStateFromURL(); // Восстанавливаем состояние из URL (теперь async)
     setupEventListeners();
     initGlobalAudioPlayer(); // Инициализация глобального плеера
+    stickyScrollbarInstance = initStickyScrollbar(); // Инициализация sticky scrollbar
     await loadCalls();
 }
 
@@ -231,32 +230,32 @@ async function initializePage() {
  */
 async function loadFilterOptions() {
     try {
+        console.log('📋 loadFilterOptions: начало загрузки');
         const response = await fetch('api/filters.php');
         const result = await response.json();
+        console.log('📋 loadFilterOptions: получен ответ', result);
 
         if (result.success) {
             const { departments, managers, call_types } = result.data;
+            console.log('📋 Managers from API:', managers);
 
-            // Заполняем multiselect отделов
-            const departmentMS = multiselectInstances.get('department-multiselect');
-            if (departmentMS) {
-                const options = departments.map(dept => ({
-                    name: 'departments[]',
-                    value: dept,
-                    label: dept
-                }));
-                departmentMS.setOptions(options);
-            }
+            // Загружаем отделы из нового API
+            await loadDepartmentsFilter();
 
             // Заполняем multiselect менеджеров (начальная загрузка - все менеджеры)
             const managerMS = multiselectInstances.get('manager-multiselect');
+            console.log('📋 Manager multiselect instance:', managerMS);
             if (managerMS) {
                 const options = managers.map(manager => ({
                     name: 'managers[]',
                     value: manager,
                     label: manager
                 }));
+                console.log('📋 Setting manager options:', options);
                 managerMS.setOptions(options);
+                console.log('📋 Manager options set, container:', managerMS.optionsContainer.innerHTML.substring(0, 200));
+            } else {
+                console.log('❌ Manager multiselect NOT FOUND');
             }
 
             // Заполняем multiselect тегов
@@ -303,16 +302,16 @@ async function loadFilterOptions() {
 }
 
 /**
- * Загрузка менеджеров по выбранным отделам
+ * Загрузка менеджеров по выбранным отделам (department_id)
+ * @param {Array} departmentIds - массив ID отделов (например, ["5", "6"])
  */
-async function loadManagersByDepartments(departments) {
+async function loadManagersByDepartments(departmentIds) {
     try {
-        // Если выбрано несколько отделов, загружаем менеджеров для каждого
+        // Формируем URL с department_ids для нового API
         let url = 'api/filters.php';
-        if (departments && departments.length > 0) {
-            // Для простоты пока загружаем менеджеров для первого отдела
-            // TODO: можно улучшить, загружая для всех отделов
-            url = `api/filters.php?department=${encodeURIComponent(departments[0])}`;
+        if (departmentIds && departmentIds.length > 0) {
+            // Передаём все выбранные отделы через department_ids (CSV)
+            url = `api/filters.php?department_ids=${encodeURIComponent(departmentIds.join(','))}`;
         }
 
         const response = await fetch(url);
@@ -342,6 +341,31 @@ async function loadManagersByDepartments(departments) {
         }
     } catch (error) {
         console.error('Ошибка загрузки менеджеров:', error);
+    }
+}
+
+/**
+ * Загрузка отделов для фильтра из /api/departments.php
+ */
+async function loadDepartmentsFilter() {
+    try {
+        const response = await fetch('/api/departments.php');
+        const result = await response.json();
+
+        if (result.success && result.departments) {
+            const departmentMS = multiselectInstances.get('department-multiselect');
+            if (departmentMS) {
+                const options = result.departments.map(dept => ({
+                    name: 'departments[]',
+                    value: dept.department_id.toString(),
+                    label: dept.name
+                }));
+                console.log('📋 Setting department options:', options);
+                departmentMS.setOptions(options);
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки отделов:', error);
     }
 }
 
@@ -383,7 +407,7 @@ function setupEventListeners() {
         loadCalls();
     });
 
-    // Обработчик toggle "Скрыть до 10 сек"
+    // Обработчик toggle "Скрыть до 20 сек"
     const hideShortCallsCheckbox = document.getElementById('hide-short-calls');
     if (hideShortCallsCheckbox) {
         hideShortCallsCheckbox.addEventListener('change', function() {
@@ -408,29 +432,52 @@ function setupEventListeners() {
         });
     }
 
-    // Сортировка по колонкам
-    document.querySelectorAll('th[data-sort]').forEach(th => {
-        th.addEventListener('click', function() {
-            const sortBy = this.getAttribute('data-sort');
+    // Инициализация компонента сортировки TableSort
+    initTableSort();
+}
 
-            // Переключаем направление сортировки
-            if (currentSort.by === sortBy) {
-                currentSort.order = currentSort.order === 'DESC' ? 'ASC' : 'DESC';
+/**
+ * Глобальная переменная для компонента сортировки
+ */
+let tableSortInstance = null;
+
+/**
+ * Инициализация компонента сортировки таблицы
+ */
+function initTableSort() {
+    const callsTable = document.getElementById('calls-table');
+    if (!callsTable) {
+        console.warn('TableSort: таблица #calls-table не найдена');
+        return;
+    }
+
+    tableSortInstance = new TableSort(callsTable, {
+        defaultSort: { field: 'started_at_utc', order: 'DESC' },
+        clearText: 'Очистить',
+        onSort: (field, order) => {
+            // Обновляем глобальные переменные сортировки
+            if (field && order) {
+                currentSort.by = field;
+                currentSort.order = order;
             } else {
-                currentSort.by = sortBy;
+                // Сброс к сортировке по умолчанию
+                currentSort.by = 'started_at_utc';
                 currentSort.order = 'DESC';
             }
 
-            // Обновляем стрелки сортировки
-            document.querySelectorAll('th[data-sort]').forEach(header => {
-                header.textContent = header.textContent.replace(/ [↑↓]/g, '');
-            });
-            this.textContent += currentSort.order === 'DESC' ? ' ↓' : ' ↑';
-
-            saveStateToURL(); // Сохраняем состояние в URL
+            saveStateToURL();
             loadCalls();
-        });
+        }
     });
+
+    // Устанавливаем начальную сортировку из currentSort (если восстановлена из URL)
+    if (currentSort.by && currentSort.order) {
+        // Активируем UI только если это нестандартная сортировка
+        const isNonDefault = (currentSort.by !== 'started_at_utc' || currentSort.order !== 'DESC');
+        tableSortInstance.setSort(currentSort.by, currentSort.order, isNonDefault);
+    }
+
+    console.log('TableSort: компонент инициализирован для таблицы звонков');
 }
 
 /**
@@ -453,7 +500,7 @@ function getFiltersFromForm() {
         }
     }
 
-    // Обработка toggle "Скрыть до 10 сек" (checkbox всегда передается, даже если unchecked)
+    // Обработка toggle "Скрыть до 20 сек" (checkbox всегда передается, даже если unchecked)
     const hideShortCallsCheckbox = document.getElementById('hide-short-calls');
     if (hideShortCallsCheckbox) {
         filters['hide_short_calls'] = hideShortCallsCheckbox.checked ? '1' : '0';
@@ -524,23 +571,6 @@ function getFiltersFromForm() {
             }
         }
 
-        // Платежеспособность
-        const solvencyMS = multiselectInstances.get('solvency-multiselect');
-        if (solvencyMS) {
-            const solvencyLevels = solvencyMS.getValues();
-            if (solvencyLevels.length > 0) {
-                filters['solvency_levels'] = solvencyLevels.join(',');
-            }
-        }
-
-        // Статус клиента
-        const clientStatusMS = multiselectInstances.get('client-status-multiselect');
-        if (clientStatusMS) {
-            const clientStatuses = clientStatusMS.getValues();
-            if (clientStatuses.length > 0) {
-                filters['client_statuses'] = clientStatuses.join(',');
-            }
-        }
     }
 
     return filters;
@@ -562,6 +592,11 @@ async function loadCalls() {
             sort_by: currentSort.by,
             sort_order: currentSort.order
         });
+
+        // Добавляем batch_id если мы на странице пакетного анализа
+        if (typeof BATCH_ID !== 'undefined' && BATCH_ID) {
+            params.set('batch_id', BATCH_ID);
+        }
 
         console.log('🔍 Отправка фильтров:', currentFilters);
         console.log('📡 API URL:', `api/calls.php?${params}`);
@@ -611,6 +646,11 @@ async function renderCalls(calls) {
         return;
     }
 
+    // Отладка: подсчет колонок
+    const headerCount = document.querySelectorAll('thead tr th').length;
+    const complianceHeaderCount = document.querySelectorAll('.compliance-column-header').length;
+    console.log(`🔢 Заголовков в таблице: ${headerCount}, из них compliance: ${complianceHeaderCount}, activeTemplates: ${activeTemplates.length}`);
+
     // 🎯 Загружаем compliance данные и alert flags для всех звонков
     const callIds = calls.map(call => call.callid);
     await Promise.all([
@@ -622,7 +662,7 @@ async function renderCalls(calls) {
     const currentStateURL = window.location.search;
 
     tbody.innerHTML = calls.map(call => `
-        <tr>
+        <tr data-callid="${call.callid}">
             <td class="text-center" data-column-id="checkbox">
                 <input type="checkbox" class="call-checkbox" data-callid="${call.callid}">
             </td>
@@ -632,6 +672,7 @@ async function renderCalls(calls) {
             <td class="employee-cell" data-column-id="manager" data-full-text="${escapeHtml(call.employee_name || '-')}">${formatEmployeeName(call.employee_name)}</td>
             <td data-column-id="result">${formatCallResult(call.client_overall_status || call.call_result, call.is_successful, call.call_type)}</td>
             ${renderComplianceCells(call.callid, call)}
+            <td class="text-center" data-column-id="success_score"><span class="loading-spinner-sm"></span></td>
             <td class="summary-cell" data-column-id="summary" data-full-text="${escapeHtml(call.summary_text || '')}">${formatSummary(call.summary_text)}</td>
             <td class="solvency-cell" data-column-id="solvency">${formatSolvency(call.solvency_level)}</td>
             <td data-column-id="datetime">${formatDateTime(call.started_at_utc)}</td>
@@ -649,7 +690,7 @@ async function renderCalls(calls) {
                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
                 </button>
-                <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}&returnState=${encodeURIComponent(currentStateURL)}"
+                <a href="call_evaluation.php?callid=${encodeURIComponent(call.callid)}${typeof BATCH_ID !== 'undefined' && BATCH_ID ? '&from=batch&batch_id=' + encodeURIComponent(BATCH_ID) : '&returnState=' + encodeURIComponent(currentStateURL)}"
                    class="btn btn-primary btn-sm">
                     Открыть
                 </a>
@@ -660,6 +701,20 @@ async function renderCalls(calls) {
         </tr>
     `).join('');
 
+    // Отладка: подсчет ячеек в первой строке
+    const firstRow = document.querySelector('tbody tr:first-child');
+    if (firstRow) {
+        const cellCount = firstRow.querySelectorAll('td').length;
+        const headerCount = document.querySelectorAll('thead tr th').length;
+        const complianceCellCount = firstRow.querySelectorAll('.compliance-column').length;
+        console.log(`🔢 ПРОВЕРКА ВЫРАВНИВАНИЯ: заголовков=${headerCount}, ячеек в строке=${cellCount}, compliance ячеек=${complianceCellCount}`);
+        if (headerCount !== cellCount) {
+            console.error(`❌ НЕСОВПАДЕНИЕ! Заголовков: ${headerCount}, ячеек: ${cellCount}. Разница: ${headerCount - cellCount}`);
+        } else {
+            console.log(`✅ Количество заголовков и ячеек совпадает: ${headerCount}`);
+        }
+    }
+
     // Инициализация tooltip для обрезанных ячеек
     initTruncatedCellTooltips('.employee-cell');
     initTruncatedCellTooltips('.summary-cell');
@@ -669,6 +724,21 @@ async function renderCalls(calls) {
 
     // Инициализация обработчиков для кнопок Play
     initPlayButtons();
+
+    // Применяем настройки видимости колонок после рендера
+    // (column_manager скрывает колонки, но cells рендерятся после него)
+    if (window.columnManager && typeof window.columnManager.applyColumnSettings === 'function') {
+        window.columnManager.applyColumnSettings();
+        console.log('✅ Настройки колонок применены после рендера');
+    }
+
+    // Обновляем sticky scrollbar после рендера
+    if (stickyScrollbarInstance) {
+        requestAnimationFrame(() => stickyScrollbarInstance.update());
+    }
+
+    // Загружаем Success Score асинхронно
+    loadSuccessScores(callIds);
 }
 
 /**
@@ -1497,22 +1567,19 @@ async function loadActiveTemplates() {
         if (result.templates && Array.isArray(result.templates)) {
             activeTemplates = result.templates;
             console.log(`✅ Загружено ${activeTemplates.length} активных шаблонов:`, activeTemplates);
-
-            // Добавляем колонки в таблицу
-            insertComplianceColumns();
         } else {
             console.warn('⚠️ Не удалось загрузить активные шаблоны - неверный формат ответа');
             activeTemplates = [];
         }
+
+        // ВСЕГДА вызываем insertComplianceColumns (чтобы удалить placeholder)
+        insertComplianceColumns();
     } catch (error) {
         console.error('❌ Ошибка при загрузке активных шаблонов:', error);
 
-        // FALLBACK: Используем хардкодные шаблоны для тестирования
-        activeTemplates = [
-            {template_id: 'tpl-e6ee988fce03', name: 'недвижимость (v4)', template_type: 'first_call'},
-            {template_id: 'tpl-deal-dynamics-v1', name: 'Динамика сделки (унифицированный)', template_type: 'custom'}
-        ];
-        console.log('⚠️ Используем fallback шаблоны:', activeTemplates);
+        // FALLBACK: Пустой массив - колонки не добавляются при ошибке API
+        activeTemplates = [];
+        console.log('⚠️ API недоступен - шаблоны не загружены');
         insertComplianceColumns();
     }
 }
@@ -1522,30 +1589,29 @@ async function loadActiveTemplates() {
  */
 function insertComplianceColumns() {
     const placeholder = document.getElementById('compliance-headers-placeholder');
-    if (!placeholder) {
-        console.error('❌ Не найден placeholder compliance-headers-placeholder');
-        return;
-    }
 
     // Удаляем старые колонки (если есть)
     const oldColumns = document.querySelectorAll('.compliance-column-header');
     oldColumns.forEach(col => col.remove());
 
-    // Если нет активных шаблонов, скрываем placeholder
+    // ВСЕГДА удаляем placeholder (чтобы количество колонок совпадало с ячейками)
+    if (placeholder) {
+        placeholder.remove();
+        console.log('✅ Placeholder удален');
+    }
+
+    // Если нет активных шаблонов, ничего не вставляем
     if (activeTemplates.length === 0) {
-        placeholder.style.display = 'none';
+        console.log('⚠️ Нет активных шаблонов - колонки не добавляются');
         return;
     }
 
-    // Находим заголовок "Резюме" для вставки перед ним
+    // Находим заголовок "Динамика сделки" для вставки перед ним
     const headerRow = document.querySelector('thead tr');
     const allHeaders = Array.from(headerRow.querySelectorAll('th'));
-    const insertBeforeElement = allHeaders.find(th => th.textContent.trim().includes('Резюме'));
+    const insertBeforeElement = allHeaders.find(th => th.textContent.trim().includes('Динамика сделки'));
 
-    console.log(`🔍 Найден заголовок "Резюме":`, insertBeforeElement);
-
-    // Удаляем placeholder
-    placeholder.remove();
+    console.log(`🔍 Найден заголовок "Динамика сделки":`, insertBeforeElement);
 
     // Создаём и вставляем заголовки для каждого шаблона
     activeTemplates.forEach(template => {
@@ -1558,17 +1624,22 @@ function insertComplianceColumns() {
         const shortName = shortenTemplateName(template.name);
         th.innerHTML = `${shortName} <span class="sort-icon">↕</span>`;
 
-        // Вставляем колонку перед "Резюме"
+        // Вставляем колонку перед "Динамика сделки"
         if (insertBeforeElement) {
             headerRow.insertBefore(th, insertBeforeElement);
-            console.log(`✅ Вставлена колонка "${shortName}" перед "Резюме"`);
+            console.log(`✅ Вставлена колонка "${shortName}" перед "Динамика сделки"`);
         } else {
             headerRow.appendChild(th);
-            console.warn(`⚠️ Заголовок "Резюме" не найден, колонка "${shortName}" добавлена в конец`);
+            console.warn(`⚠️ Заголовок "Динамика сделки" не найден, колонка "${shortName}" добавлена в конец`);
         }
     });
 
     console.log(`✅ Добавлено ${activeTemplates.length} колонок чеклистов`);
+
+    // Отладка: подсчет колонок после вставки
+    const finalHeaderCount = document.querySelectorAll('thead tr th').length;
+    const complianceHeaderCount = document.querySelectorAll('.compliance-column-header').length;
+    console.log(`🔢 ИТОГО заголовков: ${finalHeaderCount}, из них compliance: ${complianceHeaderCount}, activeTemplates: ${activeTemplates.length}`);
 }
 
 /**
@@ -1756,7 +1827,7 @@ function renderComplianceCells(callid, call) {
             const summaryText = call.summary_text || '';
             const complianceScore = call.compliance_score !== null ? call.compliance_score : null;
 
-            return `<td class="summary-cell compliance-column" data-template-id="${template.template_id}" data-full-text="${escapeHtml(summaryText)}">
+            return `<td class="summary-cell compliance-column" data-template-id="${template.template_id}">
                 ${formatTemplateSummary(summaryText, complianceScore, template.template_id)}
             </td>`;
         } else {
@@ -1878,5 +1949,155 @@ function formatAlertLevel(callid) {
               title="${title}">
             ${config.emoji} ${totalFlags}
         </span>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STICKY HORIZONTAL SCROLLBAR
+// ═══════════════════════════════════════════════════════════════
+
+let stickyScrollbarInstance = null;
+
+function initStickyScrollbar() {
+    const tableContainer = document.querySelector('.table-container');
+    const stickyWrapper = document.getElementById('sticky-scrollbar-wrapper');
+    const stickyInner = document.getElementById('sticky-scrollbar-inner');
+
+    if (!tableContainer || !stickyWrapper || !stickyInner) return null;
+
+    let isSyncing = false;
+
+    function updateScrollbarWidth() {
+        const table = tableContainer.querySelector('.calls-table');
+        if (table) {
+            stickyInner.style.width = table.scrollWidth + 'px';
+        }
+    }
+
+    function checkVisibility() {
+        const table = tableContainer.querySelector('.calls-table');
+        if (!table) return;
+
+        const containerRect = tableContainer.getBoundingClientRect();
+        const hasOverflow = table.scrollWidth > tableContainer.clientWidth;
+        const bottomBelowViewport = containerRect.bottom > window.innerHeight;
+        const topVisible = containerRect.top < window.innerHeight;
+
+        if (hasOverflow && bottomBelowViewport && topVisible) {
+            stickyWrapper.classList.remove('d-none');
+        } else {
+            stickyWrapper.classList.add('d-none');
+        }
+    }
+
+    function syncStickyToTable() {
+        if (isSyncing) return;
+        isSyncing = true;
+        tableContainer.scrollLeft = stickyWrapper.scrollLeft;
+        requestAnimationFrame(() => { isSyncing = false; });
+    }
+
+    function syncTableToSticky() {
+        if (isSyncing) return;
+        isSyncing = true;
+        stickyWrapper.scrollLeft = tableContainer.scrollLeft;
+        requestAnimationFrame(() => { isSyncing = false; });
+    }
+
+    stickyWrapper.addEventListener('scroll', syncStickyToTable, { passive: true });
+    tableContainer.addEventListener('scroll', syncTableToSticky, { passive: true });
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    window.addEventListener('resize', () => {
+        updateScrollbarWidth();
+        checkVisibility();
+    }, { passive: true });
+
+    updateScrollbarWidth();
+    checkVisibility();
+
+    return {
+        update: () => {
+            updateScrollbarWidth();
+            checkVisibility();
+        }
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUCCESS SCORE (Динамика сделки)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Загрузка Success Score для списка звонков
+ * @param {Array} callIds - массив callid
+ */
+async function loadSuccessScores(callIds) {
+    if (!callIds || callIds.length === 0) {
+        return;
+    }
+
+    try {
+        const response = await fetch('api/deal_success_scores.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ callids: callIds })
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.scores) {
+            for (const [callid, score] of Object.entries(result.scores)) {
+                const cell = document.querySelector(`tr[data-callid="${callid}"] td[data-column-id="success_score"]`);
+                if (cell) {
+                    cell.innerHTML = formatSuccessScore(score);
+                }
+            }
+            console.log(`✅ Загружено Success Score для ${Object.keys(result.scores).length} звонков`);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки Success Score:', error);
+        // При ошибке заменяем спиннеры на прочерки
+        document.querySelectorAll('td[data-column-id="success_score"] .loading-spinner-sm').forEach(spinner => {
+            spinner.parentElement.innerHTML = '<span class="score-na">—</span>';
+        });
+    }
+}
+
+/**
+ * Форматирование Success Score для отображения
+ * @param {object|null} data - объект {score, breakdown} или null
+ */
+function formatSuccessScore(data) {
+    if (data === null || data === undefined || data.score === null || data.score === undefined) {
+        return '<span class="score-na">—</span>';
+    }
+
+    const score = data.score;
+    const breakdown = data.breakdown || {};
+
+    let cssClass = 'score-low';
+    if (score >= 70) {
+        cssClass = 'score-high';
+    } else if (score >= 40) {
+        cssClass = 'score-medium';
+    }
+
+    const complianceDisplay = breakdown.compliance !== null && breakdown.compliance !== undefined
+        ? breakdown.compliance + '%'
+        : 'н/д';
+
+    const breakdownHtml = `
+        <div class="score-breakdown-row"><span class="score-breakdown-label">Этап:</span><span class="score-breakdown-value">${breakdown.stage || 0}%</span></div>
+        <div class="score-breakdown-row"><span class="score-breakdown-label">Эмоции:</span><span class="score-breakdown-value">${breakdown.emotion || 0}%</span></div>
+        <div class="score-breakdown-row"><span class="score-breakdown-label">Соответствие:</span><span class="score-breakdown-value">${complianceDisplay}</span></div>
+        <div class="score-breakdown-row"><span class="score-breakdown-label">Активность:</span><span class="score-breakdown-value">${breakdown.activity || 0}%</span></div>
+        <div class="score-breakdown-row"><span class="score-breakdown-label">Свежесть:</span><span class="score-breakdown-value">${breakdown.recency || 0}%</span></div>
+    `;
+
+    return `
+        <div class="score-wrapper">
+            <span class="success-score ${cssClass}">${score}%</span>
+            <div class="score-breakdown-tooltip">${breakdownHtml}</div>
+        </div>
     `;
 }
